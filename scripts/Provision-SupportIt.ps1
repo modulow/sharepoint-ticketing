@@ -28,6 +28,23 @@ function Write-Step {
     Write-Host "`n==> $Message" -ForegroundColor Cyan
 }
 
+function Get-LocalizedRoleName {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("Reader", "Contributor", "Editor", "Administrator")]
+        [string]$RoleTypeKind
+    )
+
+    $role = Get-PnPRoleDefinition |
+        Where-Object { $_.RoleTypeKind.ToString() -eq $RoleTypeKind } |
+        Select-Object -First 1
+    if (-not $role) {
+        throw "The built-in SharePoint role with RoleTypeKind '$RoleTypeKind' could not be resolved."
+    }
+
+    return $role.Name
+}
+
 function Ensure-Field {
     param(
         [Parameter(Mandatory)][string]$InternalName,
@@ -108,7 +125,12 @@ try {
     $internalUsersLogin = "c:0-.f|rolemanager|spo-grid-all-users/$tenantId"
     $internalUsers = New-PnPUser -LoginName $internalUsersLogin
 
-    Set-PnPWebPermission -User $internalUsers.LoginName -AddRole "Read" | Out-Null
+    $readerRoleName = Get-LocalizedRoleName -RoleTypeKind "Reader"
+    $contributeRoleName = Get-LocalizedRoleName -RoleTypeKind "Contributor"
+    $editorRoleName = Get-LocalizedRoleName -RoleTypeKind "Editor"
+    $administratorRoleName = Get-LocalizedRoleName -RoleTypeKind "Administrator"
+
+    Set-PnPWebPermission -User $internalUsers.LoginName -AddRole $readerRoleName | Out-Null
 
     Write-Step "Creating the agent group and least-privilege contributor role"
     $agentGroup = Get-PnPGroup -Identity $agentsGroup -ErrorAction SilentlyContinue
@@ -120,7 +142,7 @@ try {
     if (-not $role) {
         Add-PnPRoleDefinition `
             -RoleName $contributorRole `
-            -Clone "Contribute" `
+            -Clone $contributeRoleName `
             -Exclude ManageLists, ManagePermissions, ManageWeb | Out-Null
     }
 
@@ -164,8 +186,8 @@ try {
     Write-Step "Applying list permissions"
     Set-PnPList -Identity $listTitle -BreakRoleInheritance -CopyRoleAssignments:$false -ClearSubscopes:$true | Out-Null
     Set-PnPListPermission -Identity $listTitle -User $internalUsers.LoginName -AddRole $contributorRole | Out-Null
-    Set-PnPListPermission -Identity $listTitle -Group $agentsGroup -AddRole "Edit" | Out-Null
-    Set-PnPListPermission -Identity $listTitle -User $OwnerUpn -AddRole "Full Control" | Out-Null
+    Set-PnPListPermission -Identity $listTitle -Group $agentsGroup -AddRole $editorRoleName | Out-Null
+    Set-PnPListPermission -Identity $listTitle -User $OwnerUpn -AddRole $administratorRoleName | Out-Null
 
     Write-Step "Creating list views"
     $viewFields = @("ID", "Title", "Categorie", "Priorite", "Statut", "AssignedTo", "DueDate", "Author", "Created", "Modified")
