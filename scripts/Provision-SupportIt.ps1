@@ -149,7 +149,7 @@ try {
     Write-Step "Creating and configuring the Tickets list"
     $list = Get-PnPList -Identity $listTitle -ErrorAction SilentlyContinue
     if (-not $list) {
-        Add-PnPList -Title $listTitle -Template GenericList -OnQuickLaunch | Out-Null
+        New-PnPList -Title $listTitle -Template GenericList -OnQuickLaunch | Out-Null
     }
 
     Set-PnPList `
