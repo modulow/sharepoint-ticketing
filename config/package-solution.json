@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "Support IT Ticketing",
+    "id": "74ac2a98-3afb-4e98-ae83-99e0d929e658",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.23.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "Portail SharePoint Support IT"
+      },
+      "longDescription": {
+        "default": "Création et suivi sécurisé des tickets Support IT dans SharePoint Online."
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "Support IT Ticketing",
+        "description": "Active le web part du portail Support IT.",
+        "id": "2af41fbd-cd1b-4666-b26b-80604d2f6eb7",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/support-it-ticketing.sppkg"
+  }
+}
