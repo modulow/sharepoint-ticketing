@@ -198,10 +198,17 @@ try {
     Write-Step "Preparing the modern home page and navigation"
     $page = Get-PnPPage -Identity "Home.aspx" -ErrorAction SilentlyContinue
     if (-not $page) {
-        Add-PnPPage -Name "Home" -LayoutType Home -Publish | Out-Null
-        Add-PnPPageTextPart -Page "Home" -Text "<h2>Support IT</h2><p>Add the <strong>Support IT</strong> web part to this page after deploying the SPFx package.</p>" -Section 1 -Column 1 | Out-Null
-        Set-PnPPage -Identity "Home" -Publish | Out-Null
+        Add-PnPPage -Name "Home" -LayoutType Home | Out-Null
+        $page = Get-PnPPage -Identity "Home.aspx"
     }
+    if (@($page.Sections).Count -eq 0) {
+        Add-PnPPageSection -Page "Home" -SectionTemplate OneColumn -Order 1 | Out-Null
+        $page = Get-PnPPage -Identity "Home.aspx"
+    }
+    if (@($page.Controls).Count -eq 0) {
+        Add-PnPPageTextPart -Page "Home" -Text "<h2>Support IT</h2><p>Add the <strong>Support IT</strong> web part to this page after deploying the SPFx package.</p>" -Section 1 -Column 1 | Out-Null
+    }
+    Set-PnPPage -Identity "Home" -Publish | Out-Null
     Set-PnPHomePage -RootFolderRelativeUrl "SitePages/Home.aspx"
 
     if (-not (Get-PnPNavigationNode -Location QuickLaunch | Where-Object { $_.Title -eq "Support IT" })) {

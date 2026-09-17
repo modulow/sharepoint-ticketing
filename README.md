@@ -57,7 +57,28 @@ It exits with an explicit error if prerequisites or SharePoint operations fail. 
 2. Open the tenant App Catalog (`https://modulow.sharepoint.com/sites/appcatalog`, or the configured tenant catalog).
 3. Upload `sharepoint/solution/support-it-ticketing.sppkg`.
 4. Select **Enable this app and add it to all sites** only if tenant-wide availability is intended; otherwise deploy normally and add the app on the Support IT site.
-5. Open the Support IT home page, choose **Edit**, add the **Support IT** web part, publish the page, and remove the provisioning placeholder text.
+5. Add the **Support IT** web part to the home page and publish it. You can use the page editor, or the reliable PnP.PowerShell sequence below.
+
+The page must contain a section before a web part can be added. After the app is installed on the site, run:
+
+```powershell
+Connect-PnPOnline -Url "https://modulow.sharepoint.com/sites/support-it" `
+  -Interactive -ClientId "9a3dfc8f-3edf-4f21-9db3-2aaa72624188"
+
+$page = Get-PnPPage -Identity "Home.aspx"
+if (@($page.Sections).Count -eq 0) {
+  Add-PnPPageSection -Page "Home" -SectionTemplate OneColumn -Order 1
+}
+
+Add-PnPPageWebPart `
+  -Page "Home" `
+  -Component "4742c330-3d76-4123-be50-1c6b16ae31bf" `
+  -Section 1 `
+  -Column 1
+Set-PnPPage -Identity "Home" -Publish
+```
+
+Remove the provisioning placeholder text in the page editor after confirming that the web part loads. Run `Add-PnPPageWebPart` only once unless you intentionally want another instance.
 
 The solution requests no Microsoft Graph or SharePoint API permission grant because it uses the current user's SharePoint session through `SPHttpClient`.
 
