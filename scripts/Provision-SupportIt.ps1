@@ -105,7 +105,7 @@ try {
             -Title $SiteTitle `
             -Url $SiteUrl `
             -Owner $OwnerUpn `
-            -Lcid 1036 `
+            -Lcid 1033 `
             -TimeZone 3 | Out-Null
     }
     else {
@@ -161,27 +161,27 @@ try {
         -WriteSecurity 2 | Out-Null
 
     Set-PnPField -List $listTitle -Identity "Title" -Values @{
-        Title = "Sujet"
+        Title = "Subject"
         Required = $true
     } | Out-Null
 
     Ensure-Field -InternalName "Description" -DisplayName "Description" -Type Note
-    Ensure-Field -InternalName "Categorie" -DisplayName "Catégorie" -Type Choice -Choices @(
-        "Matériel", "Logiciel", "Accès", "Réseau", "Téléphonie", "Autre"
+    Ensure-Field -InternalName "Category" -DisplayName "Category" -Type Choice -Choices @(
+        "Hardware", "Software", "Access", "Network", "Telephony", "Other"
     )
-    Ensure-Field -InternalName "Priorite" -DisplayName "Priorité" -Type Choice -Choices @(
-        "Basse", "Normale", "Haute", "Critique"
+    Ensure-Field -InternalName "Priority" -DisplayName "Priority" -Type Choice -Choices @(
+        "Low", "Normal", "High", "Critical"
     )
-    Ensure-Field -InternalName "Statut" -DisplayName "Statut" -Type Choice -Choices @(
-        "Nouveau", "En cours", "En attente", "Résolu", "Fermé"
+    Ensure-Field -InternalName "Status" -DisplayName "Status" -Type Choice -Choices @(
+        "New", "In progress", "Waiting", "Resolved", "Closed"
     )
-    Ensure-Field -InternalName "AssignedTo" -DisplayName "Assigné à" -Type User
-    Ensure-Field -InternalName "DueDate" -DisplayName "Échéance" -Type DateTime
-    Ensure-Field -InternalName "Resolution" -DisplayName "Résolution" -Type Note
+    Ensure-Field -InternalName "AssignedTo" -DisplayName "Assigned to" -Type User
+    Ensure-Field -InternalName "DueDate" -DisplayName "Due date" -Type DateTime
+    Ensure-Field -InternalName "Resolution" -DisplayName "Resolution" -Type Note
 
-    Set-PnPField -List $listTitle -Identity "Categorie" -Values @{ Required = $true; DefaultValue = "Logiciel" } | Out-Null
-    Set-PnPField -List $listTitle -Identity "Priorite" -Values @{ Required = $true; DefaultValue = "Normale" } | Out-Null
-    Set-PnPField -List $listTitle -Identity "Statut" -Values @{ Required = $true; DefaultValue = "Nouveau" } | Out-Null
+    Set-PnPField -List $listTitle -Identity "Category" -Values @{ Required = $true; DefaultValue = "Software" } | Out-Null
+    Set-PnPField -List $listTitle -Identity "Priority" -Values @{ Required = $true; DefaultValue = "Normal" } | Out-Null
+    Set-PnPField -List $listTitle -Identity "Status" -Values @{ Required = $true; DefaultValue = "New" } | Out-Null
 
     Write-Step "Applying list permissions"
     Set-PnPList -Identity $listTitle -BreakRoleInheritance -CopyRoleAssignments:$false -ClearSubscopes:$true | Out-Null
@@ -190,22 +190,22 @@ try {
     Set-PnPListPermission -Identity $listTitle -User $OwnerUpn -AddRole $administratorRoleName | Out-Null
 
     Write-Step "Creating list views"
-    $viewFields = @("ID", "Title", "Categorie", "Priorite", "Statut", "AssignedTo", "DueDate", "Author", "Created", "Modified")
-    Ensure-View -Title "Tous les tickets" -Fields $viewFields -Query "<OrderBy><FieldRef Name='Modified' Ascending='FALSE'/></OrderBy>"
-    Ensure-View -Title "Tickets ouverts" -Fields $viewFields -Query "<Where><And><Neq><FieldRef Name='Statut'/><Value Type='Choice'>Résolu</Value></Neq><Neq><FieldRef Name='Statut'/><Value Type='Choice'>Fermé</Value></Neq></And></Where><OrderBy><FieldRef Name='Priorite' Ascending='FALSE'/><FieldRef Name='Created' Ascending='TRUE'/></OrderBy>"
-    Ensure-View -Title "Mes tickets" -Fields $viewFields -Query "<Where><Eq><FieldRef Name='Author'/><Value Type='Integer'><UserID/></Value></Eq></Where><OrderBy><FieldRef Name='Modified' Ascending='FALSE'/></OrderBy>"
+    $viewFields = @("ID", "Title", "Category", "Priority", "Status", "AssignedTo", "DueDate", "Author", "Created", "Modified")
+    Ensure-View -Title "All tickets" -Fields $viewFields -Query "<OrderBy><FieldRef Name='Modified' Ascending='FALSE'/></OrderBy>"
+    Ensure-View -Title "Open tickets" -Fields $viewFields -Query "<Where><And><Neq><FieldRef Name='Status'/><Value Type='Choice'>Resolved</Value></Neq><Neq><FieldRef Name='Status'/><Value Type='Choice'>Closed</Value></Neq></And></Where><OrderBy><FieldRef Name='Priority' Ascending='FALSE'/><FieldRef Name='Created' Ascending='TRUE'/></OrderBy>"
+    Ensure-View -Title "My tickets" -Fields $viewFields -Query "<Where><Eq><FieldRef Name='Author'/><Value Type='Integer'><UserID/></Value></Eq></Where><OrderBy><FieldRef Name='Modified' Ascending='FALSE'/></OrderBy>"
 
     Write-Step "Preparing the modern home page and navigation"
-    $page = Get-PnPPage -Identity "Accueil.aspx" -ErrorAction SilentlyContinue
+    $page = Get-PnPPage -Identity "Home.aspx" -ErrorAction SilentlyContinue
     if (-not $page) {
-        Add-PnPPage -Name "Accueil" -LayoutType Home -Publish | Out-Null
-        Add-PnPPageTextPart -Page "Accueil" -Text "<h2>Support IT</h2><p>Ajoutez le web part <strong>Support IT</strong> à cette page après le déploiement du package SPFx.</p>" -Section 1 -Column 1 | Out-Null
-        Set-PnPPage -Identity "Accueil" -Publish | Out-Null
+        Add-PnPPage -Name "Home" -LayoutType Home -Publish | Out-Null
+        Add-PnPPageTextPart -Page "Home" -Text "<h2>Support IT</h2><p>Add the <strong>Support IT</strong> web part to this page after deploying the SPFx package.</p>" -Section 1 -Column 1 | Out-Null
+        Set-PnPPage -Identity "Home" -Publish | Out-Null
     }
-    Set-PnPHomePage -RootFolderRelativeUrl "SitePages/Accueil.aspx"
+    Set-PnPHomePage -RootFolderRelativeUrl "SitePages/Home.aspx"
 
     if (-not (Get-PnPNavigationNode -Location QuickLaunch | Where-Object { $_.Title -eq "Support IT" })) {
-        Add-PnPNavigationNode -Location QuickLaunch -Title "Support IT" -Url "$SiteUrl/SitePages/Accueil.aspx" | Out-Null
+        Add-PnPNavigationNode -Location QuickLaunch -Title "Support IT" -Url "$SiteUrl/SitePages/Home.aspx" | Out-Null
     }
     if (-not (Get-PnPNavigationNode -Location QuickLaunch | Where-Object { $_.Title -eq "Tickets" })) {
         Add-PnPNavigationNode -Location QuickLaunch -Title "Tickets" -Url "$SiteUrl/Lists/Tickets/AllItems.aspx" | Out-Null

@@ -6,7 +6,7 @@ const ticket = (status, priority) => ({
   id: 1,
   subject: 'Test',
   description: 'Description',
-  category: 'Logiciel',
+  category: 'Software',
   priority,
   status,
   author: { id: 1, displayName: 'Utilisateur', email: 'user@example.com' },
@@ -18,10 +18,10 @@ const ticket = (status, priority) => ({
 test('summarizeTickets counts workflow and priority states', () => {
   assert.deepEqual(
     summarizeTickets([
-      ticket('Nouveau', 'Critique'),
-      ticket('En attente', 'Normale'),
-      ticket('Résolu', 'Haute'),
-      ticket('Fermé', 'Critique')
+      ticket('New', 'Critical'),
+      ticket('Waiting', 'Normal'),
+      ticket('Resolved', 'High'),
+      ticket('Closed', 'Critical')
     ]),
     { total: 4, open: 2, waiting: 1, resolved: 2, critical: 1 }
   );

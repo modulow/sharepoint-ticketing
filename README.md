@@ -42,7 +42,7 @@ Run from PowerShell, supplying the intended site collection administrator:
 The script is idempotent and:
 
 - creates the modern `Support IT` site when absent;
-- creates the **Tickets** list with stable internal field names and French labels;
+- creates the **Tickets** list with stable English internal names and display labels;
 - enables versioning and attachments;
 - applies item-level read/write restrictions (`own items` for standard users);
 - grants **Everyone except external users** Read at web scope and a custom list-only contributor role without Manage Lists;
@@ -82,17 +82,17 @@ Remove an agent with `Remove-PnPGroupMember`. Keep this group limited to support
 
 ## Data model
 
-| Internal name | French label | Type |
+| Internal name | Display label | Type |
 |---|---|---|
-| `Title` | Sujet | Text |
+| `Title` | Subject | Text |
 | `Description` | Description | Multiple lines |
-| `Categorie` | Catégorie | Choice |
-| `Priorite` | Priorité | Choice |
-| `Statut` | Statut | Choice |
-| `AssignedTo` | Assigné à | Person |
-| `DueDate` | Échéance | Date/time |
-| `Resolution` | Résolution | Multiple lines |
-| `Author`, `Created`, `Modified` | Créé par, Créé, Modifié | Built-in |
+| `Category` | Category | Choice |
+| `Priority` | Priority | Choice |
+| `Status` | Status | Choice |
+| `AssignedTo` | Assigned to | Person |
+| `DueDate` | Due date | Date/time |
+| `Resolution` | Resolution | Multiple lines |
+| `Author`, `Created`, `Modified` | Created by, Created, Modified | Built-in |
 
 Attachments are enabled on the list. They can be managed through the standard SharePoint item form; the portal reports attachment presence but does not upload files in this release.
 

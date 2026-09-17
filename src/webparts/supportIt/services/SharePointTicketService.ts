@@ -30,9 +30,9 @@ interface ISharePointTicket {
   Id: number;
   Title: string;
   Description: string;
-  Categorie: ITicket['category'];
-  Priorite: ITicket['priority'];
-  Statut: ITicket['status'];
+  Category: ITicket['category'];
+  Priority: ITicket['priority'];
+  Status: ITicket['status'];
   AssignedTo?: ISharePointUser;
   DueDate?: string;
   Resolution?: string;
@@ -63,7 +63,7 @@ export class SharePointTicketService implements ITicketService {
 
   public async getTickets(context: IUserContext): Promise<ITicket[]> {
     const select = [
-      'Id', 'Title', 'Description', 'Categorie', 'Priorite', 'Statut',
+      'Id', 'Title', 'Description', 'Category', 'Priority', 'Status',
       'AssignedTo/Id', 'AssignedTo/Title', 'AssignedTo/Email',
       'DueDate', 'Resolution', 'Author/Id', 'Author/Title', 'Author/Email',
       'Created', 'Modified', 'Attachments', 'AttachmentFiles'
@@ -81,9 +81,9 @@ export class SharePointTicketService implements ITicketService {
     const response = await this.post<ISharePointTicket>(endpoint, {
       Title: ticket.subject.trim(),
       Description: ticket.description.trim(),
-      Categorie: ticket.category,
-      Priorite: ticket.priority,
-      Statut: 'Nouveau'
+      Category: ticket.category,
+      Priority: ticket.priority,
+      Status: 'New'
     });
 
     return this.getTicket(response.Id);
@@ -94,8 +94,8 @@ export class SharePointTicketService implements ITicketService {
     await this.post<void>(
       endpoint,
       {
-        Statut: update.status,
-        Priorite: update.priority,
+        Status: update.status,
+        Priority: update.priority,
         DueDate: update.dueDate ? new Date(`${update.dueDate}T12:00:00`).toISOString() : null,
         Resolution: update.resolution?.trim() || null
       },
@@ -106,7 +106,7 @@ export class SharePointTicketService implements ITicketService {
   private async getTicket(id: number): Promise<ITicket> {
     const endpoint =
       `/_api/web/lists/getbytitle('${LIST_TITLE}')/items(${id})` +
-      '?$select=Id,Title,Description,Categorie,Priorite,Statut,AssignedTo/Id,AssignedTo/Title,' +
+      '?$select=Id,Title,Description,Category,Priority,Status,AssignedTo/Id,AssignedTo/Title,' +
       'AssignedTo/Email,DueDate,Resolution,Author/Id,Author/Title,Author/Email,Created,Modified,' +
       'Attachments,AttachmentFiles&$expand=Author,AssignedTo,AttachmentFiles';
     return this.mapTicket(await this.get<ISharePointTicket>(endpoint));
@@ -167,9 +167,9 @@ export class SharePointTicketService implements ITicketService {
       id: item.Id,
       subject: item.Title,
       description: item.Description,
-      category: item.Categorie,
-      priority: item.Priorite,
-      status: item.Statut,
+      category: item.Category,
+      priority: item.Priority,
+      status: item.Status,
       assignedTo: item.AssignedTo ? this.mapUser(item.AssignedTo) : undefined,
       dueDate: item.DueDate,
       resolution: item.Resolution,

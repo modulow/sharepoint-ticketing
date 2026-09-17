@@ -19,7 +19,7 @@
     "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
     "group": { "default": "Advanced" },
     "title": {     "default": "Support IT" },
-    "description": {     "default": "Créez et suivez vos demandes de support informatique." },
+    "description": {     "default": "Create and track your IT support requests." },
     "officeFabricIconFontName": "Page",
     "properties": {
       "description": "SupportIt"

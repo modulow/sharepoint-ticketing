@@ -3,16 +3,16 @@ import type { ITicket, ITicketSummary } from '../models/Ticket';
 export function summarizeTickets(tickets: ITicket[]): ITicketSummary {
   return tickets.reduce<ITicketSummary>((summary, ticket) => {
     summary.total += 1;
-    if (ticket.status !== 'Résolu' && ticket.status !== 'Fermé') {
+    if (ticket.status !== 'Resolved' && ticket.status !== 'Closed') {
       summary.open += 1;
     }
-    if (ticket.status === 'En attente') {
+    if (ticket.status === 'Waiting') {
       summary.waiting += 1;
     }
-    if (ticket.status === 'Résolu' || ticket.status === 'Fermé') {
+    if (ticket.status === 'Resolved' || ticket.status === 'Closed') {
       summary.resolved += 1;
     }
-    if (ticket.priority === 'Critique' && ticket.status !== 'Fermé') {
+    if (ticket.priority === 'Critical' && ticket.status !== 'Closed') {
       summary.critical += 1;
     }
     return summary;
@@ -21,9 +21,9 @@ export function summarizeTickets(tickets: ITicket[]): ITicketSummary {
 
 export function formatDate(value?: string): string {
   if (!value) {
-    return 'Non définie';
+    return 'Not set';
   }
-  return new Intl.DateTimeFormat('fr-FR', {
+  return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'

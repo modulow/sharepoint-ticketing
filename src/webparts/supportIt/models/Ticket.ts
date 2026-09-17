@@ -1,6 +1,6 @@
-export const ticketCategories = ['Matériel', 'Logiciel', 'Accès', 'Réseau', 'Téléphonie', 'Autre'] as const;
-export const ticketPriorities = ['Basse', 'Normale', 'Haute', 'Critique'] as const;
-export const ticketStatuses = ['Nouveau', 'En cours', 'En attente', 'Résolu', 'Fermé'] as const;
+export const ticketCategories = ['Hardware', 'Software', 'Access', 'Network', 'Telephony', 'Other'] as const;
+export const ticketPriorities = ['Low', 'Normal', 'High', 'Critical'] as const;
+export const ticketStatuses = ['New', 'In progress', 'Waiting', 'Resolved', 'Closed'] as const;
 
 export type TicketCategory = typeof ticketCategories[number];
 export type TicketPriority = typeof ticketPriorities[number];

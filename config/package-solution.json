@@ -16,10 +16,10 @@
     },
     "metadata": {
       "shortDescription": {
-        "default": "Portail SharePoint Support IT"
+        "default": "Support IT SharePoint portal"
       },
       "longDescription": {
-        "default": "Création et suivi sécurisé des tickets Support IT dans SharePoint Online."
+        "default": "Secure Support IT ticket creation and tracking in SharePoint Online."
       },
       "screenshotPaths": [],
       "videoUrl": "",
@@ -28,7 +28,7 @@
     "features": [
       {
         "title": "Support IT Ticketing",
-        "description": "Active le web part du portail Support IT.",
+        "description": "Activates the Support IT portal web part.",
         "id": "2af41fbd-cd1b-4666-b26b-80604d2f6eb7",
         "version": "1.0.0.0"
       }

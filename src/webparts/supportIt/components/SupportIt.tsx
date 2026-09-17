@@ -17,23 +17,23 @@ type View = 'dashboard' | 'create' | 'tickets';
 const initialTicket: INewTicket = {
   subject: '',
   description: '',
-  category: 'Logiciel',
-  priority: 'Normale'
+  category: 'Software',
+  priority: 'Normal'
 };
 
 const statusClass: Record<ITicket['status'], string> = {
-  'Nouveau': styles.statusNew,
-  'En cours': styles.statusActive,
-  'En attente': styles.statusWaiting,
-  'Résolu': styles.statusResolved,
-  'Fermé': styles.statusClosed
+  'New': styles.statusNew,
+  'In progress': styles.statusActive,
+  'Waiting': styles.statusWaiting,
+  'Resolved': styles.statusResolved,
+  'Closed': styles.statusClosed
 };
 
 const priorityClass: Record<ITicket['priority'], string> = {
-  'Basse': styles.priorityLow,
-  'Normale': styles.priorityNormal,
-  'Haute': styles.priorityHigh,
-  'Critique': styles.priorityCritical
+  'Low': styles.priorityLow,
+  'Normal': styles.priorityNormal,
+  'High': styles.priorityHigh,
+  'Critical': styles.priorityCritical
 };
 
 const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
@@ -56,7 +56,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       setContext(currentContext);
       setTickets(items);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Impossible de charger les tickets.');
+      setError(caught instanceof Error ? caught.message : 'Unable to load tickets.');
     } finally {
       setLoading(false);
     }
@@ -78,10 +78,10 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       setTickets(current => [created, ...current]);
       setDraft(initialTicket);
       setSelectedTicket(created);
-      setNotice(`Ticket #${created.id} créé. L'équipe Support IT a été informée.`);
+      setNotice(`Ticket #${created.id} was created. The Support IT team has been notified.`);
       setView('tickets');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Le ticket n’a pas pu être créé.');
+      setError(caught instanceof Error ? caught.message : 'The ticket could not be created.');
     } finally {
       setSaving(false);
     }
@@ -110,9 +110,9 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       };
       setTickets(current => current.map(item => item.id === ticket.id ? updated : item));
       setSelectedTicket(updated);
-      setNotice(`Ticket #${ticket.id} mis à jour.`);
+      setNotice(`Ticket #${ticket.id} was updated.`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'La mise à jour a échoué.');
+      setError(caught instanceof Error ? caught.message : 'The update failed.');
     } finally {
       setSaving(false);
     }
@@ -133,18 +133,18 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     <section aria-labelledby="tickets-title">
       <div className={styles.sectionHeading}>
         <div>
-          <span className={styles.eyebrow}>{context?.isAgent ? 'Vue équipe' : 'Suivi personnel'}</span>
-          <h2 id="tickets-title">{context?.isAgent ? 'Tous les tickets' : 'Mes tickets'}</h2>
+          <span className={styles.eyebrow}>{context?.isAgent ? 'Team view' : 'Personal tracking'}</span>
+          <h2 id="tickets-title">{context?.isAgent ? 'All tickets' : 'My tickets'}</h2>
         </div>
         <button className={styles.primaryButton} type="button" onClick={() => navigate('create')}>
-          + Créer un ticket
+          + Create a ticket
         </button>
       </div>
       {tickets.length === 0 ? (
         <div className={styles.emptyState}>
           <span aria-hidden="true">✓</span>
-          <h3>Aucun ticket pour le moment</h3>
-          <p>Tout fonctionne ? Tant mieux. Nous sommes là dès que vous en avez besoin.</p>
+          <h3>No tickets yet</h3>
+          <p>Everything working? Great. We are here whenever you need us.</p>
         </div>
       ) : (
         <div className={styles.ticketGrid}>
@@ -154,7 +154,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
               type="button"
               key={ticket.id}
               onClick={() => setSelectedTicket(ticket)}
-              aria-label={`Ouvrir le ticket ${ticket.id}, ${ticket.subject}`}
+              aria-label={`Open ticket ${ticket.id}, ${ticket.subject}`}
             >
               <span className={styles.ticketNumber}>#{ticket.id}</span>
               <span className={`${styles.priorityStripe} ${priorityClass[ticket.priority]}`} />
@@ -165,7 +165,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
               <strong>{ticket.subject}</strong>
               <span className={styles.cardDescription}>{ticket.description}</span>
               <span className={styles.cardFooter}>
-                <span>Modifié le {formatDate(ticket.modified)}</span>
+                <span>Updated {formatDate(ticket.modified)}</span>
                 <span aria-hidden="true">→</span>
               </span>
             </button>
@@ -178,7 +178,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   const renderDetail = (ticket: ITicket): React.ReactElement => (
     <section aria-labelledby="detail-title" className={styles.detail}>
       <button className={styles.backButton} type="button" onClick={() => setSelectedTicket(undefined)}>
-        ← Retour aux tickets
+        ← Back to tickets
       </button>
       <div className={styles.detailHero}>
         <div>
@@ -187,49 +187,49 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           <div className={styles.detailBadges}>{renderStatus(ticket)} <span className={styles.category}>{ticket.category}</span></div>
         </div>
         <div className={`${styles.priorityBlock} ${priorityClass[ticket.priority]}`}>
-          <span>Priorité</span><strong>{ticket.priority}</strong>
+          <span>Priority</span><strong>{ticket.priority}</strong>
         </div>
       </div>
       <div className={styles.detailGrid}>
         <article className={styles.detailBody}>
           <h3>Description</h3>
           <p>{ticket.description}</p>
-          {ticket.resolution && <><h3>Résolution</h3><p>{ticket.resolution}</p></>}
+          {ticket.resolution && <><h3>Resolution</h3><p>{ticket.resolution}</p></>}
         </article>
         <aside className={styles.metaPanel} aria-label="Informations du ticket">
           <dl>
-            <div><dt>Demandeur</dt><dd>{ticket.author.displayName}</dd></div>
-            <div><dt>Assigné à</dt><dd>{ticket.assignedTo?.displayName || 'Non assigné'}</dd></div>
-            <div><dt>Créé le</dt><dd>{formatDate(ticket.created)}</dd></div>
-            <div><dt>Échéance</dt><dd>{formatDate(ticket.dueDate)}</dd></div>
+            <div><dt>Requester</dt><dd>{ticket.author.displayName}</dd></div>
+            <div><dt>Assigned to</dt><dd>{ticket.assignedTo?.displayName || 'Unassigned'}</dd></div>
+            <div><dt>Created</dt><dd>{formatDate(ticket.created)}</dd></div>
+            <div><dt>Due date</dt><dd>{formatDate(ticket.dueDate)}</dd></div>
           </dl>
         </aside>
       </div>
       {context?.isAgent && (
         <form className={styles.agentForm} onSubmit={event => { updateTicket(event, ticket).catch(() => undefined); }}>
           <div className={styles.sectionHeading}>
-            <div><span className={styles.eyebrow}>Espace agent</span><h3>Mettre à jour le ticket</h3></div>
+            <div><span className={styles.eyebrow}>Agent workspace</span><h3>Update ticket</h3></div>
           </div>
           <div className={styles.formGrid}>
-            <label>Statut
+            <label>Status
               <select name="status" defaultValue={ticket.status}>
                 {ticketStatuses.map(value => <option key={value}>{value}</option>)}
               </select>
             </label>
-            <label>Priorité
+            <label>Priority
               <select name="priority" defaultValue={ticket.priority}>
                 {ticketPriorities.map(value => <option key={value}>{value}</option>)}
               </select>
             </label>
-            <label>Échéance
+            <label>Due date
               <input name="dueDate" type="date" defaultValue={ticket.dueDate?.slice(0, 10)} />
             </label>
-            <label className={styles.fullWidth}>Résolution
+            <label className={styles.fullWidth}>Resolution
               <textarea name="resolution" rows={4} defaultValue={ticket.resolution} />
             </label>
           </div>
           <button className={styles.primaryButton} type="submit" disabled={saving}>
-            {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+            {saving ? 'Saving…' : 'Save changes'}
           </button>
         </form>
       )}
@@ -239,18 +239,18 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   const renderCreate = (): React.ReactElement => (
     <section className={styles.createPanel} aria-labelledby="create-title">
       <div>
-        <span className={styles.eyebrow}>Besoin d’aide ?</span>
-        <h2 id="create-title">Créer un ticket</h2>
-        <p>Décrivez votre demande avec précision. Notre équipe reviendra vers vous rapidement.</p>
+        <span className={styles.eyebrow}>Need help?</span>
+        <h2 id="create-title">Create a ticket</h2>
+        <p>Describe your request clearly. Our team will get back to you promptly.</p>
       </div>
       <form onSubmit={event => { createTicket(event).catch(() => undefined); }}>
-        <label>Sujet
+        <label>Subject
           <input
             required
             maxLength={255}
             value={draft.subject}
             onChange={event => setDraft({ ...draft, subject: event.target.value })}
-            placeholder="Ex. Impossible de me connecter au VPN"
+            placeholder="Example: Unable to connect to the VPN"
           />
         </label>
         <label>Description
@@ -260,11 +260,11 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
             rows={6}
             value={draft.description}
             onChange={event => setDraft({ ...draft, description: event.target.value })}
-            placeholder="Contexte, message d’erreur, impact…"
+            placeholder="Context, error message, impact…"
           />
         </label>
         <div className={styles.formGrid}>
-          <label>Catégorie
+          <label>Category
             <select
               value={draft.category}
               onChange={event => setDraft({ ...draft, category: event.target.value as INewTicket['category'] })}
@@ -272,7 +272,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
               {ticketCategories.map(value => <option key={value}>{value}</option>)}
             </select>
           </label>
-          <label>Priorité
+          <label>Priority
             <select
               value={draft.priority}
               onChange={event => setDraft({ ...draft, priority: event.target.value as INewTicket['priority'] })}
@@ -282,9 +282,9 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           </label>
         </div>
         <div className={styles.formActions}>
-          <button className={styles.secondaryButton} type="button" onClick={() => navigate('dashboard')}>Annuler</button>
+          <button className={styles.secondaryButton} type="button" onClick={() => navigate('dashboard')}>Cancel</button>
           <button className={styles.primaryButton} type="submit" disabled={saving}>
-            {saving ? 'Création…' : 'Envoyer le ticket'}
+            {saving ? 'Creating…' : 'Submit ticket'}
           </button>
         </div>
       </form>
@@ -293,45 +293,45 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
 
   return (
     <main className={styles.supportIt}>
-      <a className={styles.skipLink} href="#support-content">Aller au contenu</a>
+      <a className={styles.skipLink} href="#support-content">Skip to content</a>
       <header className={styles.hero}>
         <div className={styles.heroMark} aria-hidden="true"><span /><span /><span /></div>
         <div>
           <span className={styles.heroLabel}>Support IT · modulow</span>
-          <h1>Bonjour {userDisplayName.split(' ')[0]}</h1>
-          <p>Une question, un incident, une demande ? Centralisez tout ici.</p>
+          <h1>Hello {userDisplayName.split(' ')[0]}</h1>
+          <p>A question, an incident, a request? Manage everything in one place.</p>
         </div>
-        {context?.isAgent && <span className={styles.agentBadge}>Mode agent</span>}
+        {context?.isAgent && <span className={styles.agentBadge}>Agent mode</span>}
       </header>
-      <nav className={styles.nav} aria-label="Navigation du portail">
-        <button aria-current={view === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}>Tableau de bord</button>
-        <button aria-current={view === 'create' ? 'page' : undefined} onClick={() => navigate('create')}>Créer un ticket</button>
+      <nav className={styles.nav} aria-label="Portal navigation">
+        <button aria-current={view === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}>Dashboard</button>
+        <button aria-current={view === 'create' ? 'page' : undefined} onClick={() => navigate('create')}>Create a ticket</button>
         <button aria-current={view === 'tickets' ? 'page' : undefined} onClick={() => navigate('tickets')}>
-          {context?.isAgent ? 'Tous les tickets' : 'Mes tickets'}
+          {context?.isAgent ? 'All tickets' : 'My tickets'}
         </button>
       </nav>
       <div id="support-content" className={styles.content} tabIndex={-1}>
-        {error && <div className={styles.error} role="alert"><strong>Une erreur est survenue.</strong><span>{error}</span><button type="button" onClick={() => { load().catch(() => undefined); }}>Réessayer</button></div>}
+        {error && <div className={styles.error} role="alert"><strong>Something went wrong.</strong><span>{error}</span><button type="button" onClick={() => { load().catch(() => undefined); }}>Try again</button></div>}
         {notice && <div className={styles.notice} role="status">{notice}</div>}
         {loading ? (
-          <div className={styles.loading} role="status"><span /><p>Chargement de votre espace support…</p></div>
+          <div className={styles.loading} role="status"><span /><p>Loading your support workspace…</p></div>
         ) : selectedTicket ? renderDetail(selectedTicket) : view === 'create' ? renderCreate() : view === 'tickets' ? renderTickets() : (
           <>
             <section className={styles.summary} aria-labelledby="summary-title">
               <div className={styles.sectionHeading}>
-                <div><span className={styles.eyebrow}>Vue d’ensemble</span><h2 id="summary-title">Vos demandes en un coup d’œil</h2></div>
-                <button className={styles.primaryButton} type="button" onClick={() => navigate('create')}>+ Créer un ticket</button>
+                <div><span className={styles.eyebrow}>Overview</span><h2 id="summary-title">Your requests at a glance</h2></div>
+                <button className={styles.primaryButton} type="button" onClick={() => navigate('create')}>+ Create a ticket</button>
               </div>
               <div className={styles.summaryGrid}>
-                <button className={styles.summaryCard} onClick={() => navigate('tickets')}><span>Tickets ouverts</span><strong>{summary.open}</strong><small>À suivre</small></button>
-                <button className={`${styles.summaryCard} ${styles.yellowCard}`} onClick={() => navigate('tickets')}><span>En attente</span><strong>{summary.waiting}</strong><small>Action requise</small></button>
-                <button className={`${styles.summaryCard} ${styles.skyCard}`} onClick={() => navigate('tickets')}><span>Résolus</span><strong>{summary.resolved}</strong><small>Demandes traitées</small></button>
-                <button className={`${styles.summaryCard} ${styles.coralCard}`} onClick={() => navigate('tickets')}><span>Critiques</span><strong>{summary.critical}</strong><small>Priorité immédiate</small></button>
+                <button className={styles.summaryCard} onClick={() => navigate('tickets')}><span>Open tickets</span><strong>{summary.open}</strong><small>Needs attention</small></button>
+                <button className={`${styles.summaryCard} ${styles.yellowCard}`} onClick={() => navigate('tickets')}><span>Waiting</span><strong>{summary.waiting}</strong><small>Action required</small></button>
+                <button className={`${styles.summaryCard} ${styles.skyCard}`} onClick={() => navigate('tickets')}><span>Resolved</span><strong>{summary.resolved}</strong><small>Requests completed</small></button>
+                <button className={`${styles.summaryCard} ${styles.coralCard}`} onClick={() => navigate('tickets')}><span>Critical</span><strong>{summary.critical}</strong><small>Immediate priority</small></button>
               </div>
             </section>
             <section className={styles.recent} aria-labelledby="recent-title">
-              <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>Activité récente</span><h2 id="recent-title">Derniers tickets</h2></div><button className={styles.textButton} onClick={() => navigate('tickets')}>Tout voir →</button></div>
-              {tickets.length === 0 ? <div className={styles.emptyState}><h3>Aucun ticket</h3><p>Créez votre première demande pour commencer.</p></div> :
+              <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>Recent activity</span><h2 id="recent-title">Latest tickets</h2></div><button className={styles.textButton} onClick={() => navigate('tickets')}>View all →</button></div>
+              {tickets.length === 0 ? <div className={styles.emptyState}><h3>No tickets</h3><p>Create your first request to get started.</p></div> :
                 <div className={styles.recentList}>{tickets.slice(0, 3).map(ticket => <button key={ticket.id} onClick={() => setSelectedTicket(ticket)}><span className={styles.ticketNumber}>#{ticket.id}</span><strong>{ticket.subject}</strong>{renderStatus(ticket)}<span>{formatDate(ticket.modified)}</span></button>)}</div>}
             </section>
           </>
