@@ -37,11 +37,9 @@ $border: #c9dced;
 }
 
 .hero {
+  --hero-parallax: 0px;
   align-items: center;
-  background:
-    radial-gradient(circle at 78% 18%, rgba(255, 240, 0, .2) 0, rgba(255, 240, 0, 0) 24%),
-    radial-gradient(circle at 12% 110%, rgba(142, 202, 240, .42) 0, rgba(142, 202, 240, 0) 38%),
-    linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
+  background: linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
   color: #fff;
   display: flex;
   isolation: isolate;
@@ -61,6 +59,8 @@ $border: #c9dced;
     opacity: .55;
     pointer-events: none;
     position: absolute;
+    transform: translate3d(0, calc(var(--hero-parallax) * .45), 0);
+    will-change: transform;
     z-index: -1;
   }
 
@@ -105,28 +105,16 @@ $border: #c9dced;
   z-index: 1;
 }
 
-.heroGlow {
-  border: 1px solid rgba(255, 255, 255, .18);
-  border-radius: 50%;
-  height: 360px;
+.heroBackdrop {
+  background:
+    linear-gradient(118deg, transparent 0 58%, rgba(142, 202, 240, .2) 58% 72%, transparent 72%),
+    linear-gradient(118deg, transparent 0 71%, rgba(255, 240, 0, .16) 71% 78%, transparent 78%);
+  inset: -70px -30px;
   pointer-events: none;
   position: absolute;
-  right: -80px;
-  top: -145px;
-  width: 360px;
-
-  &::before,
-  &::after {
-    border: 1px solid rgba(255, 255, 255, .13);
-    border-radius: inherit;
-    content: "";
-    inset: 38px;
-    position: absolute;
-  }
-
-  &::after {
-    inset: 86px;
-  }
+  transform: translate3d(0, var(--hero-parallax), 0);
+  will-change: transform;
+  z-index: -1;
 }
 
 .heroLabel,
@@ -704,11 +692,6 @@ a {
     padding: 2.25rem 1.25rem;
   }
 
-  .heroGlow {
-    opacity: .55;
-    right: -210px;
-  }
-
   .agentBadge {
     margin-left: 0;
   }
@@ -752,6 +735,11 @@ a {
   .primaryButton:hover,
   .summaryCard:hover,
   .ticketCard:hover {
+    transform: none;
+  }
+
+  .hero::before,
+  .heroBackdrop {
     transform: none;
   }
 }

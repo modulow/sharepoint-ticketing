@@ -41,6 +41,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     .trim()
     .split(/\s+/)[0]
     .replace(/^./, character => character.toUpperCase());
+  const heroRef = React.useRef<HTMLElement>(null);
   const [view, setView] = React.useState<View>('dashboard');
   const [context, setContext] = React.useState<IUserContext>();
   const [tickets, setTickets] = React.useState<ITicket[]>([]);
@@ -69,6 +70,30 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   React.useEffect(() => {
     load().catch(() => undefined);
   }, [load]);
+
+  React.useEffect(() => {
+    const hero = heroRef.current;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (!hero || reducedMotion.matches) {
+      return undefined;
+    }
+
+    let frame = 0;
+    const updateParallax = (): void => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const offset = Math.max(-32, Math.min(32, -hero.getBoundingClientRect().top * 0.14));
+        hero.style.setProperty('--hero-parallax', `${offset}px`);
+      });
+    };
+
+    updateParallax();
+    window.addEventListener('scroll', updateParallax, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', updateParallax);
+    };
+  }, []);
 
   const summary = React.useMemo(() => summarizeTickets(tickets), [tickets]);
 
@@ -298,8 +323,8 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   return (
     <main className={styles.supportIt}>
       <a className={styles.skipLink} href="#support-content">Skip to content</a>
-      <header className={styles.hero}>
-        <div className={styles.heroGlow} aria-hidden="true" />
+      <header className={styles.hero} ref={heroRef}>
+        <div className={styles.heroBackdrop} aria-hidden="true" />
         <div className={styles.heroContent}>
           <span className={styles.heroLabel}>Learn IT · Helpdesk portal</span>
           <h1>
