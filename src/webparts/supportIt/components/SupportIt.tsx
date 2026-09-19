@@ -136,7 +136,6 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     .trim()
     .split(/\s+/)[0]
     .replace(/^./, character => character.toUpperCase());
-  const heroRef = React.useRef<HTMLElement>(null);
   const [view, setView] = React.useState<View>('dashboard');
   const [context, setContext] = React.useState<IUserContext>();
   const [tickets, setTickets] = React.useState<ITicket[]>([]);
@@ -165,33 +164,6 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   React.useEffect(() => {
     load().catch(() => undefined);
   }, [load]);
-
-  React.useEffect(() => {
-    const hero = heroRef.current;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (!hero || reducedMotion.matches) {
-      return undefined;
-    }
-
-    let frame = 0;
-    const updateParallax = (): void => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const top = hero.getBoundingClientRect().top;
-        const backgroundLock = Math.max(0, Math.min(hero.offsetHeight, -top));
-        hero.style.setProperty('--hero-background-lock', `${backgroundLock}px`);
-      });
-    };
-
-    updateParallax();
-    document.addEventListener('scroll', updateParallax, { passive: true, capture: true });
-    window.addEventListener('resize', updateParallax, { passive: true });
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('scroll', updateParallax, true);
-      window.removeEventListener('resize', updateParallax);
-    };
-  }, []);
 
   const summary = React.useMemo(() => summarizeTickets(tickets), [tickets]);
 
@@ -421,8 +393,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   return (
     <main className={styles.supportIt}>
       <a className={styles.skipLink} href="#support-content">Skip to content</a>
-      <header className={styles.hero} ref={heroRef}>
-        <div className={styles.heroBackdrop} aria-hidden="true" />
+      <header className={styles.hero}>
         <div className={styles.heroContent}>
           <span className={styles.heroLabel}>Learn IT · Helpdesk portal</span>
           <h1>

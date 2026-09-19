@@ -37,13 +37,17 @@ $border: #c9dced;
 }
 
 .hero {
-  --hero-background-lock: 0px;
   align-items: center;
-  background: linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
+  background-color: #f8fbff;
+  background-image:
+    linear-gradient(118deg, transparent 0 60%, rgba(21, 89, 164, .97) 60% 76%, transparent 76%),
+    linear-gradient(118deg, transparent 0 72%, rgba(255, 240, 0, .94) 72% 80%, transparent 80%),
+    radial-gradient(circle at 88% 46%, rgba(142, 202, 240, .9) 0 9%, transparent 9.4%),
+    linear-gradient(125deg, #fff 0%, #edf7fe 100%);
   background-attachment: fixed;
   background-position: center top;
-  background-size: cover;
-  color: #fff;
+  background-size: 100vw 100vh;
+  color: $ink;
   display: flex;
   isolation: isolate;
   min-height: 290px;
@@ -53,15 +57,15 @@ $border: #c9dced;
 
   &::before {
     background-image:
-      linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px);
+      linear-gradient(rgba(21, 89, 164, .06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(21, 89, 164, .06) 1px, transparent 1px);
     background-attachment: fixed;
     background-position: center top;
     background-size: 42px 42px;
     content: "";
     inset: 0;
     mask-image: linear-gradient(90deg, #000, transparent 72%);
-    opacity: .55;
+    opacity: .8;
     pointer-events: none;
     position: absolute;
     z-index: -1;
@@ -87,7 +91,7 @@ $border: #c9dced;
     text-transform: uppercase;
 
     span {
-      color: $yellow;
+      color: $blue;
       display: block;
       font-size: .46em;
       letter-spacing: .04em;
@@ -106,18 +110,6 @@ $border: #c9dced;
 .heroContent {
   position: relative;
   z-index: 1;
-}
-
-.heroBackdrop {
-  background:
-    linear-gradient(118deg, transparent 0 58%, rgba(142, 202, 240, .2) 58% 72%, transparent 72%),
-    linear-gradient(118deg, transparent 0 71%, rgba(255, 240, 0, .16) 71% 78%, transparent 78%);
-  inset: -320px -30px;
-  pointer-events: none;
-  position: absolute;
-  transform: translate3d(0, var(--hero-background-lock), 0);
-  will-change: transform;
-  z-index: -1;
 }
 
 .heroLabel,
@@ -1085,7 +1077,6 @@ a {
   }
 
   .hero::before,
-  .heroBackdrop,
   .heroContent {
     transform: none;
   }
