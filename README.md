@@ -87,6 +87,7 @@ The same `.sppkg` includes the agent backend. Add it to an agent page with compo
 ```powershell
 Add-PnPPage -Name "Support-Management" -LayoutType Article -ErrorAction SilentlyContinue
 $managementPage = Get-PnPPage -Identity "Support-Management.aspx"
+Set-PnPPage -Identity $managementPage -HeaderType None
 if (@($managementPage.Sections).Count -eq 0) {
   Add-PnPPageSection -Page "Support-Management" -SectionTemplate OneColumn -Order 1
 }

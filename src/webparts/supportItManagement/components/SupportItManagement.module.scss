@@ -109,6 +109,106 @@ $border: #c9dced;
   }
 }
 
+.agentView {
+  margin: 0 clamp(1rem, 4vw, 3rem) 2rem;
+}
+
+.agentViewHeading {
+  align-items: end;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+
+  div > span {
+    color: $blue;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    color: $navy;
+    font-size: clamp(1.35rem, 3vw, 2rem);
+    margin: .3rem 0 0;
+    text-transform: uppercase;
+  }
+
+  p {
+    color: #63798c;
+    margin: 0;
+  }
+}
+
+.agentCards {
+  display: flex;
+  gap: .75rem;
+  overflow-x: auto;
+  padding: .15rem .15rem .75rem;
+
+  button {
+    align-items: center;
+    background: #fff;
+    border: 1px solid $border;
+    color: $ink;
+    cursor: pointer;
+    display: flex;
+    flex: 0 0 220px;
+    gap: .75rem;
+    padding: .8rem;
+    text-align: left;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+
+    &:hover {
+      border-color: $blue;
+      transform: translateY(-2px);
+    }
+
+    &.activeAgent {
+      border-color: $blue;
+      box-shadow: inset 0 -4px $blue;
+    }
+
+    > span:last-child {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    small {
+      color: #63798c;
+      margin-top: .25rem;
+    }
+  }
+}
+
+.agentAvatar {
+  align-items: center;
+  background: $sky;
+  border-radius: 50%;
+  color: $navy;
+  display: inline-flex;
+  flex: 0 0 46px;
+  font-size: .72rem;
+  font-weight: 900;
+  height: 46px;
+  justify-content: center;
+  letter-spacing: .03em;
+  width: 46px;
+}
+
+.unassignedAvatar {
+  background: $yellow;
+  font-size: 1.1rem;
+}
+
 .filters {
   align-items: end;
   display: grid;
@@ -520,6 +620,11 @@ $border: #c9dced;
     gap: 1.5rem;
   }
 
+  .agentViewHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -563,5 +668,9 @@ $border: #c9dced;
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
+  }
+
+  .agentCards button:hover {
+    transform: none;
   }
 }

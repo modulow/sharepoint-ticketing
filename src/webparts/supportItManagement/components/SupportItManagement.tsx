@@ -15,6 +15,7 @@ import {
 import { formatDate } from '../../supportIt/utils/ticketUtils';
 
 type AssignmentFilter = 'all' | 'assigned' | 'unassigned';
+type AgentFilter = 'all' | 'unassigned' | number;
 
 interface IEditDraft {
   status: TicketStatus;
@@ -51,6 +52,7 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
   const [priorityFilter, setPriorityFilter] = React.useState<TicketPriority | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = React.useState<TicketCategory | 'all'>('all');
   const [assignmentFilter, setAssignmentFilter] = React.useState<AssignmentFilter>('all');
+  const [agentFilter, setAgentFilter] = React.useState<AgentFilter>('all');
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string>();
@@ -117,9 +119,13 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
         assignmentFilter === 'all' ||
         (assignmentFilter === 'assigned' && Boolean(ticket.assignedTo)) ||
         (assignmentFilter === 'unassigned' && !ticket.assignedTo);
-      return matchesSearch && matchesStatus && matchesPriority && matchesCategory && matchesAssignment;
+      const matchesAgent =
+        agentFilter === 'all' ||
+        (agentFilter === 'unassigned' && !ticket.assignedTo) ||
+        (typeof agentFilter === 'number' && ticket.assignedTo?.id === agentFilter);
+      return matchesSearch && matchesStatus && matchesPriority && matchesCategory && matchesAssignment && matchesAgent;
     });
-  }, [assignmentFilter, categoryFilter, priorityFilter, search, statusFilter, tickets]);
+  }, [agentFilter, assignmentFilter, categoryFilter, priorityFilter, search, statusFilter, tickets]);
 
   const metrics = React.useMemo(() => ({
     total: tickets.length,
@@ -127,6 +133,28 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
     critical: tickets.filter(ticket => ticket.priority === 'Critical' && ticket.status !== 'Closed').length,
     unassigned: tickets.filter(ticket => !ticket.assignedTo && ticket.status !== 'Closed').length
   }), [tickets]);
+
+  const agentWorkload = React.useMemo(() => {
+    const workload = new Map<number, { user: IUserSummary; total: number; open: number }>();
+    tickets.forEach(ticket => {
+      if (!ticket.assignedTo) {
+        return;
+      }
+      const existing = workload.get(ticket.assignedTo.id) || {
+        user: ticket.assignedTo,
+        total: 0,
+        open: 0
+      };
+      existing.total += 1;
+      if (ticket.status !== 'Resolved' && ticket.status !== 'Closed') {
+        existing.open += 1;
+      }
+      workload.set(ticket.assignedTo.id, existing);
+    });
+    return Array.from(workload.values()).sort((left, right) =>
+      left.user.displayName.localeCompare(right.user.displayName)
+    );
+  }, [tickets]);
 
   const save = async (): Promise<void> => {
     if (!selectedTicket || !draft) {
@@ -189,6 +217,50 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
         <div className={styles.unassignedMetric}><span>Unassigned</span><strong>{metrics.unassigned}</strong></div>
       </section>
 
+      <section className={styles.agentView} aria-labelledby="agent-view-title">
+        <div className={styles.agentViewHeading}>
+          <div><span>Workload</span><h2 id="agent-view-title">View by assigned agent</h2></div>
+          <p>Select an agent to filter the ticket queue.</p>
+        </div>
+        <div className={styles.agentCards}>
+          <button
+            className={agentFilter === 'all' ? styles.activeAgent : ''}
+            onClick={() => setAgentFilter('all')}
+            type="button"
+          >
+            <span className={styles.agentAvatar} aria-hidden="true">ALL</span>
+            <span><strong>All agents</strong><small>{tickets.length} tickets</small></span>
+          </button>
+          {agentWorkload.map(agent => (
+            <button
+              className={agentFilter === agent.user.id ? styles.activeAgent : ''}
+              key={agent.user.id}
+              onClick={() => {
+                setAgentFilter(agent.user.id);
+                setAssignmentFilter('all');
+              }}
+              type="button"
+            >
+              <span className={styles.agentAvatar} aria-hidden="true">
+                {agent.user.displayName.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}
+              </span>
+              <span><strong>{agent.user.displayName}</strong><small>{agent.open} open · {agent.total} total</small></span>
+            </button>
+          ))}
+          <button
+            className={agentFilter === 'unassigned' ? styles.activeAgent : ''}
+            onClick={() => {
+              setAgentFilter('unassigned');
+              setAssignmentFilter('all');
+            }}
+            type="button"
+          >
+            <span className={`${styles.agentAvatar} ${styles.unassignedAvatar}`} aria-hidden="true">?</span>
+            <span><strong>Unassigned</strong><small>{metrics.unassigned} open tickets</small></span>
+          </button>
+        </div>
+      </section>
+
       {error && <div className={styles.alert} role="alert"><span>{error}</span><button onClick={() => setError(undefined)} aria-label="Dismiss error">×</button></div>}
       {notice && <div className={styles.notice} role="status">{notice}</div>}
 
@@ -200,7 +272,10 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
         <label><span>Status</span><select value={statusFilter} onChange={event => setStatusFilter(event.target.value as TicketStatus | 'all')}><option value="all">All statuses</option>{ticketStatuses.map(status => <option key={status}>{status}</option>)}</select></label>
         <label><span>Priority</span><select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value as TicketPriority | 'all')}><option value="all">All priorities</option>{ticketPriorities.map(priority => <option key={priority}>{priority}</option>)}</select></label>
         <label><span>Category</span><select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value as TicketCategory | 'all')}><option value="all">All categories</option>{ticketCategories.map(category => <option key={category}>{category}</option>)}</select></label>
-        <label><span>Assignment</span><select value={assignmentFilter} onChange={event => setAssignmentFilter(event.target.value as AssignmentFilter)}><option value="all">All tickets</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option></select></label>
+        <label><span>Assignment</span><select value={assignmentFilter} onChange={event => {
+          setAssignmentFilter(event.target.value as AssignmentFilter);
+          setAgentFilter('all');
+        }}><option value="all">All tickets</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option></select></label>
       </section>
 
       <div className={styles.workspace}>
