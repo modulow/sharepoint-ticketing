@@ -186,10 +186,12 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     };
 
     updateParallax();
-    window.addEventListener('scroll', updateParallax, { passive: true });
+    document.addEventListener('scroll', updateParallax, { passive: true, capture: true });
+    window.addEventListener('resize', updateParallax, { passive: true });
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', updateParallax);
+      document.removeEventListener('scroll', updateParallax, true);
+      window.removeEventListener('resize', updateParallax);
     };
   }, []);
 

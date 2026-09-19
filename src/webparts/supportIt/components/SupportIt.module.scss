@@ -56,6 +56,8 @@ $border: #c9dced;
     background-image:
       linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px);
+    background-attachment: fixed;
+    background-position: center top;
     background-size: 42px 42px;
     content: "";
     inset: 0;
@@ -63,8 +65,6 @@ $border: #c9dced;
     opacity: .55;
     pointer-events: none;
     position: absolute;
-    transform: translate3d(0, calc(var(--hero-parallax) * .45), 0);
-    will-change: transform;
     z-index: -1;
   }
 
@@ -1091,5 +1091,9 @@ a {
 
   .hero {
     background-attachment: scroll;
+
+    &::before {
+      background-attachment: scroll;
+    }
   }
 }
