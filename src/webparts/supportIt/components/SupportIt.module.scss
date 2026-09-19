@@ -38,6 +38,7 @@ $border: #c9dced;
 
 .hero {
   --hero-parallax: 0px;
+  --hero-text-lock: 0px;
   align-items: center;
   background: linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
   color: #fff;
@@ -102,6 +103,8 @@ $border: #c9dced;
 
 .heroContent {
   position: relative;
+  transform: translate3d(0, var(--hero-text-lock), 0);
+  will-change: transform;
   z-index: 1;
 }
 
@@ -243,6 +246,7 @@ $border: #c9dced;
 }
 
 .summaryCard {
+  animation: cardReveal .56s cubic-bezier(.2, .75, .25, 1) both;
   background: $blue;
   border: 0;
   color: #fff;
@@ -258,6 +262,18 @@ $border: #c9dced;
     font-weight: 800;
     letter-spacing: .1em;
     text-transform: uppercase;
+  }
+
+  .summaryCard:nth-child(2) {
+    animation-delay: 70ms;
+  }
+
+  .summaryCard:nth-child(3) {
+    animation-delay: 140ms;
+  }
+
+  .summaryCard:nth-child(4) {
+    animation-delay: 210ms;
   }
 
   strong {
@@ -292,6 +308,150 @@ $border: #c9dced;
 
 .recent {
   margin-top: 4rem;
+}
+
+.resources,
+.faq {
+  margin-top: 4.5rem;
+}
+
+.resourceGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.resourceCard {
+  --card-delay: 0ms;
+  animation: cardReveal .58s cubic-bezier(.2, .75, .25, 1) both;
+  animation-delay: var(--card-delay);
+  background: #fff;
+  border: 1px solid $border;
+  color: $ink;
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
+  padding: 1.4rem;
+  position: relative;
+  text-decoration: none;
+
+  &::before {
+    background: $blue;
+    content: "";
+    height: 7px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
+  > span {
+    color: $blue;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .11em;
+    margin-top: .35rem;
+    text-transform: uppercase;
+  }
+
+  strong {
+    font-size: 1.35rem;
+    line-height: 1.15;
+    margin-top: 1.25rem;
+  }
+
+  p {
+    color: #52677a;
+    line-height: 1.5;
+    margin: .7rem 2rem 0 0;
+  }
+
+  b {
+    bottom: 1rem;
+    color: $blue;
+    font-size: 1.25rem;
+    position: absolute;
+    right: 1.15rem;
+  }
+
+  &:hover {
+    box-shadow: 0 15px 32px rgba(21, 89, 164, .14);
+    transform: translateY(-5px) rotate(-.25deg);
+  }
+}
+
+.resourceYellow::before {
+  background: $yellow;
+}
+
+.resourceSky::before {
+  background: $sky;
+}
+
+.resourceBlue::before {
+  background: $blue;
+}
+
+.resourceMint::before {
+  background: #56c596;
+}
+
+.resourceCoral::before {
+  background: $coral;
+}
+
+.resourceNavy::before {
+  background: $navy;
+}
+
+.faq {
+  background: #fff;
+  border-top: 8px solid $blue;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.faqList {
+  border-top: 1px solid $border;
+
+  details {
+    --card-delay: 0ms;
+    animation: cardReveal .5s ease both;
+    animation-delay: var(--card-delay);
+    border-bottom: 1px solid $border;
+  }
+
+  summary {
+    align-items: center;
+    color: $navy;
+    cursor: pointer;
+    display: flex;
+    font-size: 1.05rem;
+    font-weight: 800;
+    justify-content: space-between;
+    list-style: none;
+    padding: 1.25rem .25rem;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    span {
+      color: $blue;
+      font-size: 1.6rem;
+      transition: transform .2s ease;
+    }
+  }
+
+  details[open] summary span {
+    transform: rotate(45deg);
+  }
+
+  p {
+    color: #52677a;
+    line-height: 1.65;
+    margin: -.35rem 3rem 1.35rem .25rem;
+    max-width: 80ch;
+  }
 }
 
 .recentList {
@@ -672,11 +832,24 @@ a {
   50% {
     transform: rotate(12deg) scale(1.15);
   }
+
+  @keyframes cardReveal {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @media (max-width: 900px) {
   .summaryGrid,
-  .ticketGrid {
+  .ticketGrid,
+  .resourceGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -704,6 +877,7 @@ a {
 
   .summaryGrid,
   .ticketGrid,
+  .resourceGrid,
   .formGrid {
     grid-template-columns: 1fr;
   }
@@ -739,7 +913,8 @@ a {
   }
 
   .hero::before,
-  .heroBackdrop {
+  .heroBackdrop,
+  .heroContent {
     transform: none;
   }
 }

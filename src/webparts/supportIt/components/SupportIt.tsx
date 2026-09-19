@@ -14,6 +14,83 @@ import { formatDate, summarizeTickets } from '../utils/ticketUtils';
 
 type View = 'dashboard' | 'create' | 'tickets';
 
+const resources = [
+  {
+    label: 'Account',
+    title: 'Reset your password',
+    description: 'Recover access to your Microsoft 365 account securely.',
+    href: 'https://passwordreset.microsoftonline.com/',
+    accent: 'yellow'
+  },
+  {
+    label: 'Collaboration',
+    title: 'Microsoft Teams help',
+    description: 'Find guidance for meetings, chat, calls and collaboration.',
+    href: 'https://support.microsoft.com/teams',
+    accent: 'sky'
+  },
+  {
+    label: 'Email',
+    title: 'Outlook support',
+    description: 'Resolve common email, calendar and mailbox issues.',
+    href: 'https://support.microsoft.com/outlook',
+    accent: 'blue'
+  },
+  {
+    label: 'Files',
+    title: 'OneDrive essentials',
+    description: 'Sync, share and recover your work files.',
+    href: 'https://support.microsoft.com/onedrive',
+    accent: 'mint'
+  },
+  {
+    label: 'Security',
+    title: 'Protect your account',
+    description: 'Recognise phishing and keep your devices secure.',
+    href: 'https://support.microsoft.com/security',
+    accent: 'coral'
+  },
+  {
+    label: 'Self-service',
+    title: 'Microsoft 365 help',
+    description: 'Browse product documentation and troubleshooting guides.',
+    href: 'https://support.microsoft.com/microsoft-365',
+    accent: 'navy'
+  }
+] as const;
+
+const resourceAccentClass: Record<typeof resources[number]['accent'], string> = {
+  yellow: styles.resourceYellow,
+  sky: styles.resourceSky,
+  blue: styles.resourceBlue,
+  mint: styles.resourceMint,
+  coral: styles.resourceCoral,
+  navy: styles.resourceNavy
+};
+
+const faqs = [
+  {
+    question: 'How quickly will Support IT respond?',
+    answer: 'Critical incidents are prioritised immediately. Normal requests are reviewed during business hours and tracked in this portal.'
+  },
+  {
+    question: 'What should I include in a ticket?',
+    answer: 'Describe what you were doing, what happened, any error message, the affected device or service, and the impact on your work.'
+  },
+  {
+    question: 'Can I follow the progress of my request?',
+    answer: 'Yes. Open My tickets to see the current status, latest update, assignment and due date for every request you created.'
+  },
+  {
+    question: 'When should I choose Critical priority?',
+    answer: 'Use Critical only for widespread outages, security incidents, or issues preventing essential work with no available workaround.'
+  },
+  {
+    question: 'Can other users see my tickets?',
+    answer: 'Standard users can only access tickets they created. Authorised Support IT agents can access all tickets to investigate and resolve them.'
+  }
+] as const;
+
 const initialTicket: INewTicket = {
   subject: '',
   description: '',
@@ -82,8 +159,11 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     const updateParallax = (): void => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        const offset = Math.max(-32, Math.min(32, -hero.getBoundingClientRect().top * 0.14));
-        hero.style.setProperty('--hero-parallax', `${offset}px`);
+        const top = hero.getBoundingClientRect().top;
+        const backgroundOffset = Math.max(-32, Math.min(32, -top * 0.14));
+        const textOffset = Math.max(0, Math.min(92, -top));
+        hero.style.setProperty('--hero-parallax', `${backgroundOffset}px`);
+        hero.style.setProperty('--hero-text-lock', `${textOffset}px`);
       });
     };
 
@@ -365,6 +445,41 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
               <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>Recent activity</span><h2 id="recent-title">Latest tickets</h2></div><button className={styles.textButton} onClick={() => navigate('tickets')}>View all →</button></div>
               {tickets.length === 0 ? <div className={styles.emptyState}><h3>No tickets</h3><p>Create your first request to get started.</p></div> :
                 <div className={styles.recentList}>{tickets.slice(0, 3).map(ticket => <button key={ticket.id} onClick={() => setSelectedTicket(ticket)}><span className={styles.ticketNumber}>#{ticket.id}</span><strong>{ticket.subject}</strong>{renderStatus(ticket)}<span>{formatDate(ticket.modified)}</span></button>)}</div>}
+            </section>
+            <section className={styles.resources} aria-labelledby="resources-title">
+              <div className={styles.sectionHeading}>
+                <div><span className={styles.eyebrow}>Self-service</span><h2 id="resources-title">Useful resources</h2></div>
+              </div>
+              <div className={styles.resourceGrid}>
+                {resources.map((resource, index) => (
+                  <a
+                    className={`${styles.resourceCard} ${resourceAccentClass[resource.accent]}`}
+                    href={resource.href}
+                    key={resource.title}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ '--card-delay': `${index * 70}ms` } as React.CSSProperties}
+                  >
+                    <span>{resource.label}</span>
+                    <strong>{resource.title}</strong>
+                    <p>{resource.description}</p>
+                    <b aria-hidden="true">↗</b>
+                  </a>
+                ))}
+              </div>
+            </section>
+            <section className={styles.faq} aria-labelledby="faq-title">
+              <div className={styles.sectionHeading}>
+                <div><span className={styles.eyebrow}>Good to know</span><h2 id="faq-title">Frequently asked questions</h2></div>
+              </div>
+              <div className={styles.faqList}>
+                {faqs.map((faq, index) => (
+                  <details key={faq.question} style={{ '--card-delay': `${index * 60}ms` } as React.CSSProperties}>
+                    <summary>{faq.question}<span aria-hidden="true">+</span></summary>
+                    <p>{faq.answer}</p>
+                  </details>
+                ))}
+              </div>
             </section>
           </>
         )}
