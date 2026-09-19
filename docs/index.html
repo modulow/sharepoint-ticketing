@@ -8,20 +8,12 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="demo-notice">
-    <strong>Interactive demo</strong>
-    <span>Sample data only — no information is sent to SharePoint.</span>
-    <button id="reset-demo" type="button">Reset demo</button>
-  </div>
-
   <header class="hero">
     <div class="hero-copy">
       <img class="institution-logo" src="./assets/ep-logo-en-landscape.png" alt="European Parliament">
-      <span class="kicker">Learn IT · Helpdesk portal</span>
       <h1><span>Hello Laurent,</span>welcome to Learn IT Helpdesk</h1>
       <p>Fast, simple support for every question, incident and request.</p>
     </div>
-    <span class="agent-pill">Demo mode</span>
   </header>
 
   <nav class="main-nav" aria-label="Demo navigation">
@@ -47,7 +39,11 @@
       <li><b class="blue">SB</b><span><strong>Sophia Brown</strong><small>Security analyst</small></span></li>
       <li><b class="white">LW</b><span><strong>Lucas Wilson</strong><small>Support technician</small></span></li>
     </ul>
-    <div class="footer-bottom"><span>European Parliament · Support IT</span><span>Here when technology gets in the way.</span></div>
+    <div class="footer-bottom">
+      <span>European Parliament · Support IT</span>
+      <span>Here when technology gets in the way.</span>
+      <button id="reset-demo" type="button">Reset demo data</button>
+    </div>
   </footer>
 
   <script src="./app.js"></script>
