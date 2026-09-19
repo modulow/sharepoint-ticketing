@@ -7,7 +7,7 @@ connect to SharePoint or expose tenant data. for SharePoint Online
 
 Responsive SPFx ticket portal for `https://modulow.sharepoint.com/sites/support-it`. The visual system follows the European Parliament Brand Book 2.0 guidance applicable to digital interfaces: Reflex Blue `#0C4DA2`, Yellow `#FDE021`, official neutral colours, purposeful dialogue-line elements, clear typographic hierarchy, simple geometry, restrained motion, and accessible contrast.
 
-The interface includes the official English landscape logo supplied through the European Parliament Download Centre, following confirmation from the repository owner that its use is authorised. It uses a locally installed Myriad Pro when available and the prescribed native Arial fallback.
+The agent workspace includes the official English landscape logo supplied through the European Parliament Download Centre, following confirmation from the repository owner that its use is authorised. The end-user portal keeps the lighter logo-free hero requested for the public experience. Both interfaces use a locally installed Myriad Pro when available and the prescribed native Arial fallback.
 
 Design reference: [European Parliament Brand Book 2.0 (abridged version for partners and contractors)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/tender-details/docs/1e4d944e-1589-4496-964f-548ff156dc49-CN/Annex%20VIII%20-%20European%20Parliament%20Brand%20Book_V1.pdf).
 
