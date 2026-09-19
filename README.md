@@ -5,9 +5,11 @@
 The GitHub Pages demo uses sample data stored only in the visitor's browser. It does not
 connect to SharePoint or expose tenant data. for SharePoint Online
 
-Responsive SPFx ticket portal for `https://modulow.sharepoint.com/sites/support-it`. The visual language follows the public `modulow/ep-l-d-brochure` reference—large uppercase headings, modular color blocks, `#1559a4` blue, `#fff000` yellow, pale backgrounds, angled details, and restrained motion—without modifying that repository.
+Responsive SPFx ticket portal for `https://modulow.sharepoint.com/sites/support-it`. The visual system follows the European Parliament Brand Book 2.0 guidance applicable to digital interfaces: Reflex Blue `#0C4DA2`, Yellow `#FDE021`, official neutral colours, purposeful dialogue-line elements, clear typographic hierarchy, simple geometry, restrained motion, and accessible contrast.
 
-The Europea font files are **not copied** because the reference repository does not publish an explicit reusable font license. The stylesheet uses a local `Europea` installation when available and falls back to Aptos/Segoe UI.
+The Brand Book's protected artwork and logo are not copied into this repository. The interface uses a locally installed Myriad Pro when available and the prescribed native Arial fallback. An authorised owner must add an approved European Parliament logo asset before representing this portal as an official institutional publication.
+
+Design reference: [European Parliament Brand Book 2.0 (abridged version for partners and contractors)](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/tender-details/docs/1e4d944e-1589-4496-964f-548ff156dc49-CN/Annex%20VIII%20-%20European%20Parliament%20Brand%20Book_V1.pdf).
 
 ## Toolchain
 

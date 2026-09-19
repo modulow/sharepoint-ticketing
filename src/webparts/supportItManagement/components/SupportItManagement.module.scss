@@ -1,17 +1,17 @@
-$blue: #1559a4;
-$navy: #12345b;
-$yellow: #fff000;
-$sky: #8ecaf0;
-$pale: #eef6fc;
-$ink: #102a43;
-$coral: #ff6b4a;
-$green: #1f8a5b;
-$border: #c9dced;
+$blue: #0c4da2;
+$navy: #1e1e1e;
+$yellow: #fde021;
+$sky: #65e2ff;
+$pale: #f5f5f5;
+$ink: #1e1e1e;
+$coral: #fc5000;
+$green: #007800;
+$border: #c8c8c8;
 
 .management {
   background: $pale;
   color: $ink;
-  font-family: "Europea", "Aptos", "Segoe UI", sans-serif;
+  font-family: "Myriad Pro", Arial, sans-serif;
   min-height: 680px;
   padding-bottom: 3rem;
 
@@ -22,21 +22,37 @@ $border: #c9dced;
     font: inherit;
 
     &:focus-visible {
-      outline: 3px solid $yellow;
-      outline-offset: 2px;
+      outline: 3px solid $ink;
+      outline-offset: 3px;
+      box-shadow: 0 0 0 6px $yellow;
     }
   }
 }
 
 .header {
   align-items: flex-end;
-  background:
-    linear-gradient(135deg, rgba(21, 89, 164, .2), transparent 50%),
-    $navy;
+  background: $blue;
   color: #fff;
   display: flex;
   justify-content: space-between;
+  overflow: hidden;
   padding: clamp(2rem, 5vw, 4rem);
+  position: relative;
+
+  &::after {
+    background: $yellow;
+    bottom: 2.25rem;
+    content: "";
+    height: 10px;
+    position: absolute;
+    right: 0;
+    width: 16%;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 
   > div > span {
     color: $yellow;
@@ -51,7 +67,19 @@ $border: #c9dced;
     letter-spacing: -.045em;
     line-height: .95;
     margin: .75rem 0 1rem;
+    padding-left: clamp(1.5rem, 3vw, 2.75rem);
+    position: relative;
     text-transform: uppercase;
+
+    &::before {
+      background: #fff;
+      content: "";
+      height: .12em;
+      left: 0;
+      position: absolute;
+      top: .36em;
+      width: clamp(1rem, 2vw, 2rem);
+    }
   }
 
   p {
@@ -80,7 +108,6 @@ $border: #c9dced;
   div {
     background: #fff;
     border-top: 6px solid $blue;
-    box-shadow: 0 8px 24px rgba(18, 52, 91, .1);
     display: flex;
     flex-direction: column;
     padding: 1.2rem;
@@ -296,7 +323,7 @@ $border: #c9dced;
     }
 
     &.selected {
-      background: #e6f2fb;
+      background: #edf3fa;
       box-shadow: inset 5px 0 $blue;
     }
 
@@ -332,7 +359,7 @@ $border: #c9dced;
 
   em[data-priority="Critical"] {
     background: #ffe2dc;
-    color: #9d241b;
+    color: #7f2323;
   }
 
   em[data-priority="High"] {
@@ -516,8 +543,8 @@ $border: #c9dced;
 
 .alert {
   background: #fff0ed;
-  border-left: 5px solid #c43125;
-  color: #8c211a;
+  border-left: 5px solid #7f2323;
+  color: #7f2323;
   justify-content: space-between;
 
   button {

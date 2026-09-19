@@ -395,7 +395,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       <a className={styles.skipLink} href="#support-content">Skip to content</a>
       <header className={styles.hero}>
         <div className={styles.heroContent}>
-          <span className={styles.heroLabel}>Learn IT · Helpdesk portal</span>
+          <span className={styles.heroLabel}>European Parliament · Learn IT</span>
           <h1>
             <span>Hello {firstName},</span>
             welcome to Learn IT Helpdesk
@@ -493,7 +493,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           ))}
         </ul>
         <div className={styles.footerBottom}>
-          <span>Support IT</span>
+          <span>European Parliament · Support IT</span>
           <span>Here when technology gets in the way.</span>
         </div>
       </footer>

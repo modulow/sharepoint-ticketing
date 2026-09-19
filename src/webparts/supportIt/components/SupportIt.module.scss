@@ -1,23 +1,23 @@
 @font-face {
-  font-family: "Europea Local";
-  src: local("Europea");
+  font-family: "Myriad Pro Local";
+  src: local("Myriad Pro");
   font-display: swap;
 }
 
-$blue: #1559a4;
-$navy: #12345b;
-$yellow: #fff000;
-$sky: #8ecaf0;
-$pale: #eef6fc;
-$ink: #102a43;
-$coral: #ff6b4a;
-$green: #1f8a5b;
-$border: #c9dced;
+$blue: #0c4da2;
+$navy: #1e1e1e;
+$yellow: #fde021;
+$sky: #65e2ff;
+$pale: #f5f5f5;
+$ink: #1e1e1e;
+$coral: #fc5000;
+$green: #007800;
+$border: #c8c8c8;
 
 .supportIt {
-  background: linear-gradient(180deg, #f7fbff 0%, $pale 100%);
+  background: $pale;
   color: $ink;
-  font-family: "Europea Local", "Aptos", "Segoe UI", sans-serif;
+  font-family: "Myriad Pro Local", Arial, sans-serif;
   min-height: 620px;
   overflow: clip;
 }
@@ -38,12 +38,7 @@ $border: #c9dced;
 
 .hero {
   align-items: center;
-  background-color: #f8fbff;
-  background-image:
-    linear-gradient(118deg, transparent 0 60%, rgba(21, 89, 164, .97) 60% 76%, transparent 76%),
-    linear-gradient(118deg, transparent 0 72%, rgba(255, 240, 0, .94) 72% 80%, transparent 80%),
-    radial-gradient(circle at 88% 46%, rgba(142, 202, 240, .9) 0 9%, transparent 9.4%),
-    linear-gradient(125deg, #fff 0%, #edf7fe 100%);
+  background: #fff;
   background-attachment: fixed;
   background-position: center top;
   background-size: 100vw 100vh;
@@ -56,16 +51,11 @@ $border: #c9dced;
   position: relative;
 
   &::before {
-    background-image:
-      linear-gradient(rgba(21, 89, 164, .06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(21, 89, 164, .06) 1px, transparent 1px);
+    background: $blue;
     background-attachment: fixed;
     background-position: center top;
-    background-size: 42px 42px;
     content: "";
-    inset: 0;
-    mask-image: linear-gradient(90deg, #000, transparent 72%);
-    opacity: .8;
+    inset: 0 0 0 72%;
     pointer-events: none;
     position: absolute;
     z-index: -1;
@@ -73,13 +63,12 @@ $border: #c9dced;
 
   &::after {
     background: $yellow;
-    border-radius: 999px;
     content: "";
-    height: 8px;
-    left: clamp(1.25rem, 5vw, 4.5rem);
+    height: 12px;
+    right: 7%;
     position: absolute;
-    top: 0;
-    width: 112px;
+    bottom: 14%;
+    width: 14%;
   }
 
   h1 {
@@ -88,7 +77,19 @@ $border: #c9dced;
     line-height: .96;
     margin: .5rem 0 1rem;
     max-width: 900px;
+    padding-left: clamp(1.6rem, 3vw, 3rem);
+    position: relative;
     text-transform: uppercase;
+
+    &::before {
+      background: $blue;
+      content: "";
+      height: .12em;
+      left: 0;
+      position: absolute;
+      top: .36em;
+      width: clamp(1rem, 2vw, 2rem);
+    }
 
     span {
       color: $blue;
@@ -108,7 +109,9 @@ $border: #c9dced;
 }
 
 .heroContent {
+  max-width: 900px;
   position: relative;
+  width: 100%;
   z-index: 1;
 }
 
@@ -120,6 +123,10 @@ $border: #c9dced;
   text-transform: uppercase;
 }
 
+.heroLabel {
+  color: $blue;
+}
+
 .agentBadge {
   background: $yellow;
   color: $ink;
@@ -127,13 +134,14 @@ $border: #c9dced;
   font-weight: 800;
   margin-left: auto;
   padding: .55rem .8rem;
+  position: relative;
   text-transform: uppercase;
+  z-index: 1;
 }
 
 .nav {
   background: #fff;
   border-bottom: 1px solid $border;
-  box-shadow: 0 5px 18px rgba(18, 52, 91, .08);
   display: flex;
   gap: .25rem;
   overflow-x: auto;
@@ -206,7 +214,7 @@ $border: #c9dced;
   padding: .9rem 1.25rem;
 
   &:hover {
-    background: #0e477f;
+    background: $ink;
     transform: translateY(-1px);
   }
 
@@ -290,7 +298,6 @@ $border: #c9dced;
 .yellowCard {
   background: $yellow;
   color: $ink;
-  clip-path: polygon(0 0, 100% 0, 100% 88%, 90% 100%, 0 100%);
 }
 
 .skyCard {
@@ -300,6 +307,7 @@ $border: #c9dced;
 
 .coralCard {
   background: $coral;
+  color: $ink;
 }
 
 .recent {
@@ -371,8 +379,8 @@ $border: #c9dced;
   }
 
   &:hover {
-    box-shadow: 0 15px 32px rgba(21, 89, 164, .14);
-    transform: translateY(-5px) rotate(-.25deg);
+    border-color: $blue;
+    transform: translateY(-3px);
   }
 }
 
@@ -389,7 +397,7 @@ $border: #c9dced;
 }
 
 .resourceMint::before {
-  background: #56c596;
+  background: #00b464;
 }
 
 .resourceCoral::before {
@@ -451,9 +459,7 @@ $border: #c9dced;
 }
 
 .teamFooter {
-  background:
-    linear-gradient(135deg, rgba(21, 89, 164, .2), transparent 48%),
-    $navy;
+  background: $blue;
   color: #fff;
   margin-top: 5rem;
   overflow: hidden;
@@ -461,14 +467,14 @@ $border: #c9dced;
   position: relative;
 
   &::after {
-    border: 2px solid rgba(255, 240, 0, .35);
+    background: $yellow;
+    border: 0;
     content: "";
-    height: 170px;
+    height: 12px;
     position: absolute;
-    right: -55px;
-    top: -70px;
-    transform: rotate(28deg);
-    width: 170px;
+    right: 0;
+    top: 3rem;
+    width: 18%;
   }
 }
 
@@ -516,8 +522,9 @@ $border: #c9dced;
     align-items: center;
     animation: cardReveal .55s ease both;
     animation-delay: var(--card-delay);
-    background: rgba(255, 255, 255, .08);
-    border: 1px solid rgba(255, 255, 255, .15);
+    background: #fff;
+    border: 1px solid #fff;
+    color: $ink;
     display: flex;
     gap: 1rem;
     min-width: 0;
@@ -525,7 +532,7 @@ $border: #c9dced;
     transition: background .2s ease, transform .2s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, .13);
+      background: $pale;
       transform: translateY(-3px);
     }
   }
@@ -534,7 +541,6 @@ $border: #c9dced;
 .teamAvatar {
   align-items: center;
   border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, .12);
   color: $navy;
   display: inline-flex;
   flex: 0 0 58px;
@@ -559,11 +565,11 @@ $border: #c9dced;
 }
 
 .avatarMint {
-  background: #56c596;
+  background: #28dc78;
 }
 
 .avatarBlue {
-  background: #6caee6;
+  background: #65e2ff;
 }
 
 .avatarWhite {
@@ -583,7 +589,7 @@ $border: #c9dced;
   }
 
   small {
-    color: rgba(255, 255, 255, .68);
+    color: #4a4a4a;
     font-size: .78rem;
     margin-top: .3rem;
   }
@@ -652,8 +658,8 @@ $border: #c9dced;
 }
 
 .statusNew {
-  background: #d9ecff;
-  color: #09549c;
+  background: #dce8f7;
+  color: $blue;
 }
 
 .statusActive {
@@ -662,13 +668,13 @@ $border: #c9dced;
 }
 
 .statusWaiting {
-  background: #ffe2d8;
-  color: #8d2d16;
+  background: #fff0df;
+  color: #7a3200;
 }
 
 .statusResolved {
-  background: #d8f4e6;
-  color: #126642;
+  background: #e1f4e7;
+  color: #005c00;
 }
 
 .statusClosed {
@@ -702,7 +708,6 @@ $border: #c9dced;
   }
 
   &:hover {
-    box-shadow: 0 12px 28px rgba(21, 89, 164, .12);
     transform: translateY(-2px);
   }
 }
@@ -953,11 +958,11 @@ $border: #c9dced;
 
 .error {
   background: #fff0ed;
-  border-left: 5px solid #c43125;
+  border-left: 5px solid #7f2323;
 
   button {
     background: transparent;
-    color: #9d241b;
+    color: #7f2323;
     margin-left: auto;
     text-decoration: underline;
   }
@@ -1014,7 +1019,19 @@ a {
 @media (max-width: 600px) {
   .hero {
     align-items: flex-start;
+    flex-direction: column;
+    gap: 1.5rem;
     padding: 2.25rem 1.25rem;
+
+    &::before {
+      inset: 0 0 0 calc(100% - 10px);
+    }
+
+    &::after {
+      bottom: 1.5rem;
+      right: 0;
+      width: 70px;
+    }
   }
 
   .agentBadge {
