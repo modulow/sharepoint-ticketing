@@ -30,20 +30,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .hero {
-  align-items: center;
+  align-items: flex-start;
   background-color: #fff;
   background-image:
     linear-gradient(var(--yellow), var(--yellow)),
     linear-gradient(90deg, #fff 0 72%, var(--blue) 72% 100%);
   background-attachment: fixed, fixed;
-  background-position: right 7vw top 468px, center top;
+  background-position: right 7vw top 245px, center top;
   background-repeat: no-repeat, no-repeat;
   background-size: 14vw 12px, 100vw 100vh;
   display: flex;
   justify-content: space-between;
-  min-height: 330px;
+  min-height: 300px;
   overflow: hidden;
-  padding: 3.5rem clamp(1.25rem, 6vw, 5rem);
+  padding: 2rem clamp(1.25rem, 6vw, 5rem) 2.5rem;
   position: relative;
 }
 
@@ -57,13 +57,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .hero-copy { max-width: 800px; width: 100%; }
 .hero-copy { position: relative; z-index: 1; }
-.institution-logo {
-  display: block;
-  height: auto;
-  margin-bottom: clamp(1.75rem, 3vw, 2.75rem);
-  max-width: 100%;
-  width: clamp(190px, 22vw, 280px);
-}
 .hero h1 {
   color: var(--navy);
   font-size: clamp(2.4rem, 6vw, 5rem);
