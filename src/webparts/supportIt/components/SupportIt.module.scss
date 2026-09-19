@@ -454,6 +454,161 @@ $border: #c9dced;
   }
 }
 
+.teamFooter {
+  background:
+    linear-gradient(135deg, rgba(21, 89, 164, .2), transparent 48%),
+    $navy;
+  color: #fff;
+  margin-top: 5rem;
+  overflow: hidden;
+  padding: clamp(2.5rem, 6vw, 5rem) clamp(1.25rem, 5vw, 4.5rem) 1.5rem;
+  position: relative;
+
+  &::after {
+    border: 2px solid rgba(255, 240, 0, .35);
+    content: "";
+    height: 170px;
+    position: absolute;
+    right: -55px;
+    top: -70px;
+    transform: rotate(28deg);
+    width: 170px;
+  }
+}
+
+.teamIntro {
+  max-width: 720px;
+  position: relative;
+  z-index: 1;
+
+  h2 {
+    font-size: clamp(2rem, 4vw, 3.6rem);
+    letter-spacing: -.035em;
+    line-height: .98;
+    margin: .65rem 0 1rem;
+    text-transform: uppercase;
+  }
+
+  p {
+    color: rgba(255, 255, 255, .78);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+.footerEyebrow {
+  color: $yellow;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.teamList {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 2.75rem 0 3.5rem;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+
+  li {
+    --card-delay: 0ms;
+    align-items: center;
+    animation: cardReveal .55s ease both;
+    animation-delay: var(--card-delay);
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .15);
+    display: flex;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1rem;
+    transition: background .2s ease, transform .2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, .13);
+      transform: translateY(-3px);
+    }
+  }
+}
+
+.teamAvatar {
+  align-items: center;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .12);
+  color: $navy;
+  display: inline-flex;
+  flex: 0 0 58px;
+  font-size: .9rem;
+  font-weight: 900;
+  height: 58px;
+  justify-content: center;
+  letter-spacing: .04em;
+  width: 58px;
+}
+
+.avatarYellow {
+  background: $yellow;
+}
+
+.avatarSky {
+  background: $sky;
+}
+
+.avatarCoral {
+  background: $coral;
+}
+
+.avatarMint {
+  background: #56c596;
+}
+
+.avatarBlue {
+  background: #6caee6;
+}
+
+.avatarWhite {
+  background: #fff;
+}
+
+.teamMember {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: rgba(255, 255, 255, .68);
+    font-size: .78rem;
+    margin-top: .3rem;
+  }
+}
+
+.footerBottom {
+  border-top: 1px solid rgba(255, 255, 255, .18);
+  display: flex;
+  font-size: .75rem;
+  font-weight: 700;
+  justify-content: space-between;
+  letter-spacing: .06em;
+  padding-top: 1.25rem;
+  text-transform: uppercase;
+
+  span:last-child {
+    color: rgba(255, 255, 255, .6);
+    font-weight: 500;
+  }
+}
+
 .recentList {
   background: #fff;
   border-top: 5px solid $blue;
@@ -849,7 +1004,8 @@ a {
 @media (max-width: 900px) {
   .summaryGrid,
   .ticketGrid,
-  .resourceGrid {
+  .resourceGrid,
+  .teamList {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -878,8 +1034,19 @@ a {
   .summaryGrid,
   .ticketGrid,
   .resourceGrid,
+  .teamList,
   .formGrid {
-    grid-template-columns: 1fr;
+  grid-template-columns: 1fr;
+  }
+
+  .teamFooter {
+  margin-top: 3.5rem;
+  }
+
+  .footerBottom {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: .5rem;
   }
 
   .recentList button {
@@ -908,7 +1075,8 @@ a {
 
   .primaryButton:hover,
   .summaryCard:hover,
-  .ticketCard:hover {
+  .ticketCard:hover,
+  .teamList li:hover {
     transform: none;
   }
 

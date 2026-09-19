@@ -91,6 +91,24 @@ const faqs = [
   }
 ] as const;
 
+const supportTeam = [
+  { name: 'Olivia Martin', role: 'Service desk lead', initials: 'OM', accent: 'yellow' },
+  { name: 'Noah Williams', role: 'Workplace specialist', initials: 'NW', accent: 'sky' },
+  { name: 'Emma Davis', role: 'Microsoft 365 expert', initials: 'ED', accent: 'coral' },
+  { name: 'Liam Anderson', role: 'Network engineer', initials: 'LA', accent: 'mint' },
+  { name: 'Sophia Brown', role: 'Security analyst', initials: 'SB', accent: 'blue' },
+  { name: 'Lucas Wilson', role: 'Support technician', initials: 'LW', accent: 'white' }
+] as const;
+
+const teamAccentClass: Record<typeof supportTeam[number]['accent'], string> = {
+  yellow: styles.avatarYellow,
+  sky: styles.avatarSky,
+  coral: styles.avatarCoral,
+  mint: styles.avatarMint,
+  blue: styles.avatarBlue,
+  white: styles.avatarWhite
+};
+
 const initialTicket: INewTicket = {
   subject: '',
   description: '',
@@ -484,6 +502,30 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           </>
         )}
       </div>
+      <footer className={styles.teamFooter} aria-labelledby="team-title">
+        <div className={styles.teamIntro}>
+          <span className={styles.footerEyebrow}>People behind the helpdesk</span>
+          <h2 id="team-title">Meet the Support IT team</h2>
+          <p>Six specialists working together to keep your digital workplace moving.</p>
+        </div>
+        <ul className={styles.teamList}>
+          {supportTeam.map((member, index) => (
+            <li key={member.name} style={{ '--card-delay': `${index * 65}ms` } as React.CSSProperties}>
+              <span className={`${styles.teamAvatar} ${teamAccentClass[member.accent]}`} aria-hidden="true">
+                {member.initials}
+              </span>
+              <span className={styles.teamMember}>
+                <strong>{member.name}</strong>
+                <small>{member.role}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className={styles.footerBottom}>
+          <span>Support IT</span>
+          <span>Here when technology gets in the way.</span>
+        </div>
+      </footer>
     </main>
   );
 };
