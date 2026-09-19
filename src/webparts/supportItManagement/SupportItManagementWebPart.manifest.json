@@ -1,0 +1,19 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "2fa58b43-786f-40e9-9fc2-2608969d64d7",
+  "alias": "SupportItManagementWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart", "SharePointFullPage"],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [{
+    "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+    "group": { "default": "Advanced" },
+    "title": { "default": "Support IT Management" },
+    "description": { "default": "Manage, assign and resolve Support IT tickets." },
+    "officeFabricIconFontName": "WorkItem",
+    "properties": {}
+  }]
+}

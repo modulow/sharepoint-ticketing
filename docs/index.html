@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive demonstration of the Support IT SharePoint ticketing portal.">
+  <title>Support IT — Interactive demo</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-copy">
+      <h1><span>Hello Laurent,</span>welcome to Learn IT Helpdesk</h1>
+      <p>Fast, simple support for every question, incident and request.</p>
+    </div>
+  </header>
+
+  <nav class="main-nav" aria-label="Demo navigation">
+    <button class="active" data-view="dashboard" type="button">Dashboard</button>
+    <button data-view="create" type="button">Create a ticket</button>
+    <button data-view="tickets" type="button">All tickets</button>
+    <button data-view="management" type="button">Agent management</button>
+  </nav>
+
+  <main id="app" tabindex="-1"></main>
+
+  <footer class="team-footer">
+    <div class="footer-intro">
+      <span>People behind the helpdesk</span>
+      <h2>Meet the Support IT team</h2>
+      <p>Six specialists working together to keep your digital workplace moving.</p>
+    </div>
+    <ul class="team">
+      <li><b class="yellow">OM</b><span><strong>Olivia Martin</strong><small>Service desk lead</small></span></li>
+      <li><b class="sky">NW</b><span><strong>Noah Williams</strong><small>Workplace specialist</small></span></li>
+      <li><b class="coral">ED</b><span><strong>Emma Davis</strong><small>Microsoft 365 expert</small></span></li>
+      <li><b class="mint">LA</b><span><strong>Liam Anderson</strong><small>Network engineer</small></span></li>
+      <li><b class="blue">SB</b><span><strong>Sophia Brown</strong><small>Security analyst</small></span></li>
+      <li><b class="white">LW</b><span><strong>Lucas Wilson</strong><small>Support technician</small></span></li>
+    </ul>
+    <div class="footer-bottom">
+      <span>European Parliament · Support IT</span>
+      <span>Here when technology gets in the way.</span>
+      <button id="reset-demo" type="button">Reset demo data</button>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
