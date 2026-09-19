@@ -397,11 +397,11 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
         <div className={styles.heroContent}>
           <h1>
             <span>Hello {firstName},</span>
-            welcome to Learn IT Helpdesk
+            <span>welcome to Learn IT</span>
+            <span>Helpdesk</span>
           </h1>
           <p>Fast, simple support for every question, incident and request.</p>
         </div>
-        {context?.isAgent && <span className={styles.agentBadge}>Agent mode</span>}
       </header>
       <nav className={styles.nav} aria-label="Portal navigation">
         <button aria-current={view === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}>Dashboard</button>

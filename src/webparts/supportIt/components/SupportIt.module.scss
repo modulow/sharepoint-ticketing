@@ -118,18 +118,6 @@ $border: #c8c8c8;
   color: $blue;
 }
 
-.agentBadge {
-  background: $yellow;
-  color: $ink;
-  font-size: .75rem;
-  font-weight: 800;
-  margin-left: auto;
-  padding: .55rem .8rem;
-  position: relative;
-  text-transform: uppercase;
-  z-index: 1;
-}
-
 .nav {
   background: #fff;
   border-bottom: 1px solid $border;
@@ -1018,10 +1006,6 @@ a {
       linear-gradient(90deg, #fff 0 calc(100% - 10px), $blue calc(100% - 10px) 100%);
     background-position: right top 260px, center top;
     background-size: 70px 12px, 100vw 100vh;
-  }
-
-  .agentBadge {
-    margin-left: 0;
   }
 
   .sectionHeading,
