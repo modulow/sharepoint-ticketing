@@ -85,6 +85,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .hero-copy { max-width: 800px; width: 100%; }
 .hero-copy, .agent-pill { position: relative; z-index: 1; }
+.institution-logo {
+  display: block;
+  height: auto;
+  margin-bottom: clamp(1.75rem, 3vw, 2.75rem);
+  max-width: 100%;
+  width: clamp(190px, 22vw, 280px);
+}
 .kicker {
   color: var(--blue);
   font-size: .76rem;

@@ -97,6 +97,14 @@ $border: #c8c8c8;
   }
 }
 
+.institutionLogo {
+  display: block;
+  height: auto;
+  margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  max-width: 100%;
+  width: clamp(190px, 22vw, 270px);
+}
+
 .metrics {
   display: grid;
   gap: 1rem;

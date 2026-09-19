@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styles from './SupportItManagement.module.scss';
+import epLogoNegative from '../../supportIt/assets/ep-logo-en-landscape-negative.png';
 import type { ISupportItManagementProps } from './ISupportItManagementProps';
 import {
   ticketCategories,
@@ -203,7 +204,8 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
     <main className={styles.management}>
       <header className={styles.header}>
         <div>
-          <span>European Parliament · Agent workspace</span>
+          <img className={styles.institutionLogo} src={epLogoNegative} alt="European Parliament" />
+          <span>Learn IT · Agent workspace</span>
           <h1>Support IT Management</h1>
           <p>Prioritise, assign and resolve requests from one operational view.</p>
         </div>

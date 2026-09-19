@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styles from './SupportIt.module.scss';
+import epLogo from '../assets/ep-logo-en-landscape.png';
 import type { ISupportItProps } from './ISupportItProps';
 import {
   ticketCategories,
@@ -395,7 +396,8 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       <a className={styles.skipLink} href="#support-content">Skip to content</a>
       <header className={styles.hero}>
         <div className={styles.heroContent}>
-          <span className={styles.heroLabel}>European Parliament · Learn IT</span>
+          <img className={styles.institutionLogo} src={epLogo} alt="European Parliament" />
+          <span className={styles.heroLabel}>Learn IT · Helpdesk portal</span>
           <h1>
             <span>Hello {firstName},</span>
             welcome to Learn IT Helpdesk

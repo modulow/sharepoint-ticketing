@@ -115,6 +115,14 @@ $border: #c8c8c8;
   z-index: 1;
 }
 
+.institutionLogo {
+  display: block;
+  height: auto;
+  margin-bottom: clamp(1.75rem, 3vw, 2.75rem);
+  max-width: 100%;
+  width: clamp(190px, 22vw, 280px);
+}
+
 .heroLabel,
 .eyebrow {
   font-size: .76rem;
