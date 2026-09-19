@@ -41,6 +41,9 @@ $border: #c9dced;
   --hero-text-lock: 0px;
   align-items: center;
   background: linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
+  background-attachment: fixed;
+  background-position: center top;
+  background-size: cover;
   color: #fff;
   display: flex;
   isolation: isolate;
@@ -1084,5 +1087,9 @@ a {
   .heroBackdrop,
   .heroContent {
     transform: none;
+  }
+
+  .hero {
+    background-attachment: scroll;
   }
 }
