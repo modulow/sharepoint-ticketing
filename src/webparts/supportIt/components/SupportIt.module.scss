@@ -19,7 +19,7 @@ $border: #c9dced;
   color: $ink;
   font-family: "Europea Local", "Aptos", "Segoe UI", sans-serif;
   min-height: 620px;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .skipLink {
@@ -38,7 +38,6 @@ $border: #c9dced;
 
 .hero {
   --hero-parallax: 0px;
-  --hero-text-lock: 0px;
   align-items: center;
   background: linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
   background-attachment: fixed;
@@ -106,8 +105,6 @@ $border: #c9dced;
 
 .heroContent {
   position: relative;
-  transform: translate3d(0, var(--hero-text-lock), 0);
-  will-change: transform;
   z-index: 1;
 }
 
@@ -144,10 +141,14 @@ $border: #c9dced;
 .nav {
   background: #fff;
   border-bottom: 1px solid $border;
+  box-shadow: 0 5px 18px rgba(18, 52, 91, .08);
   display: flex;
   gap: .25rem;
   overflow-x: auto;
   padding: 0 clamp(1rem, 5vw, 4.5rem);
+  position: sticky;
+  top: 0;
+  z-index: 15;
 
   button {
     background: transparent;

@@ -179,9 +179,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       frame = window.requestAnimationFrame(() => {
         const top = hero.getBoundingClientRect().top;
         const backgroundOffset = Math.max(-32, Math.min(32, -top * 0.14));
-        const textOffset = Math.max(0, Math.min(92, -top));
         hero.style.setProperty('--hero-parallax', `${backgroundOffset}px`);
-        hero.style.setProperty('--hero-text-lock', `${textOffset}px`);
       });
     };
 
