@@ -37,6 +37,10 @@ const priorityClass: Record<ITicket['priority'], string> = {
 };
 
 const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
+  const firstName = userDisplayName
+    .trim()
+    .split(/\s+/)[0]
+    .replace(/^./, character => character.toUpperCase());
   const [view, setView] = React.useState<View>('dashboard');
   const [context, setContext] = React.useState<IUserContext>();
   const [tickets, setTickets] = React.useState<ITicket[]>([]);
@@ -295,11 +299,14 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     <main className={styles.supportIt}>
       <a className={styles.skipLink} href="#support-content">Skip to content</a>
       <header className={styles.hero}>
-        <div className={styles.heroMark} aria-hidden="true"><span /><span /><span /></div>
-        <div>
-          <span className={styles.heroLabel}>Support IT · modulow</span>
-          <h1>Hello {userDisplayName.split(' ')[0]}</h1>
-          <p>A question, an incident, a request? Manage everything in one place.</p>
+        <div className={styles.heroGlow} aria-hidden="true" />
+        <div className={styles.heroContent}>
+          <span className={styles.heroLabel}>Learn IT · Helpdesk portal</span>
+          <h1>
+            <span>Hello {firstName},</span>
+            welcome to Learn IT Helpdesk
+          </h1>
+          <p>Fast, simple support for every question, incident and request.</p>
         </div>
         {context?.isAgent && <span className={styles.agentBadge}>Agent mode</span>}
       </header>

@@ -37,33 +37,60 @@ $border: #c9dced;
 }
 
 .hero {
-  align-items: flex-end;
-  background: $blue;
+  align-items: center;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 240, 0, .2) 0, rgba(255, 240, 0, 0) 24%),
+    radial-gradient(circle at 12% 110%, rgba(142, 202, 240, .42) 0, rgba(142, 202, 240, 0) 38%),
+    linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
   color: #fff;
   display: flex;
-  gap: 2rem;
-  min-height: 230px;
+  isolation: isolate;
+  min-height: 290px;
   overflow: hidden;
   padding: 3.25rem clamp(1.25rem, 5vw, 4.5rem);
   position: relative;
 
+  &::before {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px);
+    background-size: 42px 42px;
+    content: "";
+    inset: 0;
+    mask-image: linear-gradient(90deg, #000, transparent 72%);
+    opacity: .55;
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
+  }
+
   &::after {
     background: $yellow;
-    clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%);
+    border-radius: 999px;
     content: "";
-    height: 18px;
+    height: 8px;
+    left: clamp(1.25rem, 5vw, 4.5rem);
     position: absolute;
-    right: 6%;
     top: 0;
-    width: 150px;
+    width: 112px;
   }
 
   h1 {
-    font-size: clamp(2.4rem, 6vw, 5rem);
+    font-size: clamp(2.25rem, 5.5vw, 4.6rem);
     letter-spacing: -.045em;
-    line-height: .94;
+    line-height: .96;
     margin: .5rem 0 1rem;
+    max-width: 900px;
     text-transform: uppercase;
+
+    span {
+      color: $yellow;
+      display: block;
+      font-size: .46em;
+      letter-spacing: .04em;
+      line-height: 1.4;
+      margin-bottom: .25rem;
+    }
   }
 
   p {
@@ -73,32 +100,41 @@ $border: #c9dced;
   }
 }
 
+.heroContent {
+  position: relative;
+  z-index: 1;
+}
+
+.heroGlow {
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 50%;
+  height: 360px;
+  pointer-events: none;
+  position: absolute;
+  right: -80px;
+  top: -145px;
+  width: 360px;
+
+  &::before,
+  &::after {
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: inherit;
+    content: "";
+    inset: 38px;
+    position: absolute;
+  }
+
+  &::after {
+    inset: 86px;
+  }
+}
+
 .heroLabel,
 .eyebrow {
   font-size: .76rem;
   font-weight: 700;
   letter-spacing: .15em;
   text-transform: uppercase;
-}
-
-.heroMark {
-  display: grid;
-  grid-template-columns: repeat(2, 42px);
-  grid-template-rows: repeat(2, 42px);
-  transform: rotate(-7deg);
-
-  span {
-    background: $yellow;
-
-    &:nth-child(2) {
-      background: $sky;
-    }
-
-    &:nth-child(3) {
-      background: $coral;
-      grid-column: 2;
-    }
-  }
 }
 
 .agentBadge {
@@ -665,13 +701,12 @@ a {
 @media (max-width: 600px) {
   .hero {
     align-items: flex-start;
-    flex-direction: column;
     padding: 2.25rem 1.25rem;
   }
 
-  .heroMark {
-    grid-template-columns: repeat(2, 24px);
-    grid-template-rows: repeat(2, 24px);
+  .heroGlow {
+    opacity: .55;
+    right: -210px;
   }
 
   .agentBadge {
