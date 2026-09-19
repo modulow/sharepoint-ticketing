@@ -57,7 +57,8 @@ It exits with an explicit error if prerequisites or SharePoint operations fail. 
 2. Open the tenant App Catalog (`https://modulow.sharepoint.com/sites/appcatalog`, or the configured tenant catalog).
 3. Upload `sharepoint/solution/support-it-ticketing.sppkg`.
 4. Select **Enable this app and add it to all sites** only if tenant-wide availability is intended; otherwise deploy normally and add the app on the Support IT site.
-5. Add the **Support IT** web part to the home page and publish it. You can use the page editor, or the reliable PnP.PowerShell sequence below.
+5. Add the **Support IT** web part to the home page and publish it.
+6. For agents, create a restricted page and add the **Support IT Management** web part. The management component only loads ticket data for members of the `Support IT Agents` group.
 
 The page must contain a section before a web part can be added. After the app is installed on the site, run:
 
@@ -80,6 +81,28 @@ Set-PnPPage -Identity "Home" -Publish
 
 Remove the provisioning placeholder text in the page editor after confirming that the web part loads. Run `Add-PnPPageWebPart` only once unless you intentionally want another instance.
 
+The same `.sppkg` includes the agent backend. Add it to an agent page with component ID
+`2fa58b43-786f-40e9-9fc2-2608969d64d7`:
+
+```powershell
+Add-PnPPage -Name "Support-Management" -LayoutType Article -ErrorAction SilentlyContinue
+$managementPage = Get-PnPPage -Identity "Support-Management.aspx"
+if (@($managementPage.Sections).Count -eq 0) {
+  Add-PnPPageSection -Page "Support-Management" -SectionTemplate OneColumn -Order 1
+}
+
+Add-PnPPageWebPart `
+  -Page "Support-Management" `
+  -Component "2fa58b43-786f-40e9-9fc2-2608969d64d7" `
+  -Section 1 `
+  -Column 1
+Set-PnPPage -Identity "Support-Management" -Publish
+```
+
+Restrict the `Support-Management.aspx` page item to the Support IT Agents group and site
+owners before adding it to navigation. The web part also performs an authorization check,
+but page permissions avoid advertising the agent workspace to standard users.
+
 The solution requests no Microsoft Graph or SharePoint API permission grant because it uses the current user's SharePoint session through `SPHttpClient`.
 
 ## Permissions and agents
@@ -89,6 +112,7 @@ Defense in depth is applied:
 - SharePoint list settings restrict standard users to reading and editing only items they created.
 - The client additionally filters non-agent REST queries with `AuthorId eq <current user ID>`.
 - The web part exposes all-ticket queries and management controls only when the current user belongs to **Support IT Agents**.
+- The separate **Support IT Management** web part provides global metrics, search and filters, assignment, priority, status, due-date and resolution editing for agents.
 - Standard internal users receive Read—not Edit—at web scope and list-scoped contributor rights without Manage Lists.
 
 To add an authorized agent:

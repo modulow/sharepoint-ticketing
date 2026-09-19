@@ -9,6 +9,14 @@
           "manifest": "./src/webparts/supportIt/SupportItWebPart.manifest.json"
         }
       ]
+    },
+    "support-it-management-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/supportItManagement/SupportItManagementWebPart.js",
+          "manifest": "./src/webparts/supportItManagement/SupportItManagementWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},

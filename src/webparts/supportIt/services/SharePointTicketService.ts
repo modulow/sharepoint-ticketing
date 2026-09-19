@@ -89,16 +89,31 @@ export class SharePointTicketService implements ITicketService {
     return this.getTicket(response.Id);
   }
 
+  public async getAssignableUsers(): Promise<IUserSummary[]> {
+    const response = await this.get<IODataCollection<ISharePointUser>>(
+      '/_api/web/siteusers?$select=Id,Title,EMail&$orderby=Title&$top=500'
+    );
+    return response.value
+      .filter(user => Boolean(user.EMail))
+      .map(user => this.mapUser(user));
+  }
+
   public async updateTicket(id: number, update: ITicketUpdate): Promise<void> {
     const endpoint = `/_api/web/lists/getbytitle('${LIST_TITLE}')/items(${id})`;
+    const body: Record<string, string | number | null> = {
+      Status: update.status,
+      Priority: update.priority,
+      DueDate: update.dueDate ? new Date(`${update.dueDate}T12:00:00`).toISOString() : null,
+      Resolution: update.resolution?.trim() || null
+    };
+    if (update.clearAssignment) {
+      body.AssignedToId = null;
+    } else if (update.assignedToId !== undefined) {
+      body.AssignedToId = update.assignedToId;
+    }
     await this.post<void>(
       endpoint,
-      {
-        Status: update.status,
-        Priority: update.priority,
-        DueDate: update.dueDate ? new Date(`${update.dueDate}T12:00:00`).toISOString() : null,
-        Resolution: update.resolution?.trim() || null
-      },
+      body,
       { 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' }
     );
   }
