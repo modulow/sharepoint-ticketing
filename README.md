@@ -1,5 +1,10 @@
 # Support IT Ticketing for SharePoint Online
 
+**Live interactive demo:** https://modulow.github.io/sharepoint-ticketing/
+
+The GitHub Pages demo uses sample data stored only in the visitor's browser. It does not
+connect to SharePoint or expose tenant data. for SharePoint Online
+
 Responsive SPFx ticket portal for `https://modulow.sharepoint.com/sites/support-it`. The visual language follows the public `modulow/ep-l-d-brochure` reference—large uppercase headings, modular color blocks, `#1559a4` blue, `#fff000` yellow, pale backgrounds, angled details, and restrained motion—without modifying that repository.
 
 The Europea font files are **not copied** because the reference repository does not publish an explicit reusable font license. The stylesheet uses a local `Europea` installation when available and falls back to Aptos/Segoe UI.
