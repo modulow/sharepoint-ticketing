@@ -19,7 +19,7 @@ interface IODataCollection<T> {
 interface ISharePointUser {
   Id: number;
   Title: string;
-  Email?: string;
+  EMail?: string;
 }
 
 interface ISharePointGroup {
@@ -64,8 +64,8 @@ export class SharePointTicketService implements ITicketService {
   public async getTickets(context: IUserContext): Promise<ITicket[]> {
     const select = [
       'Id', 'Title', 'Description', 'Category', 'Priority', 'Status',
-      'AssignedTo/Id', 'AssignedTo/Title', 'AssignedTo/Email',
-      'DueDate', 'Resolution', 'Author/Id', 'Author/Title', 'Author/Email',
+      'AssignedTo/Id', 'AssignedTo/Title', 'AssignedTo/EMail',
+      'DueDate', 'Resolution', 'Author/Id', 'Author/Title', 'Author/EMail',
       'Created', 'Modified', 'Attachments', 'AttachmentFiles'
     ].join(',');
     const filter = context.isAgent ? '' : `&$filter=AuthorId eq ${context.user.id}`;
@@ -107,7 +107,7 @@ export class SharePointTicketService implements ITicketService {
     const endpoint =
       `/_api/web/lists/getbytitle('${LIST_TITLE}')/items(${id})` +
       '?$select=Id,Title,Description,Category,Priority,Status,AssignedTo/Id,AssignedTo/Title,' +
-      'AssignedTo/Email,DueDate,Resolution,Author/Id,Author/Title,Author/Email,Created,Modified,' +
+      'AssignedTo/EMail,DueDate,Resolution,Author/Id,Author/Title,Author/EMail,Created,Modified,' +
       'Attachments,AttachmentFiles&$expand=Author,AssignedTo,AttachmentFiles';
     return this.mapTicket(await this.get<ISharePointTicket>(endpoint));
   }
@@ -184,7 +184,7 @@ export class SharePointTicketService implements ITicketService {
     return {
       id: user.Id,
       displayName: user.Title,
-      email: user.Email || ''
+      email: user.EMail || ''
     };
   }
 }
