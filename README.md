@@ -119,10 +119,16 @@ Set-PnPListItemPermission -List "Site Pages" -Identity $pageItem.Id `
   -Group $owners -AddRole $adminRole.Name -ClearExisting
 Set-PnPListItemPermission -List "Site Pages" -Identity $pageItem.Id `
   -Group "Support IT Agents" -AddRole $readRole.Name
+if (-not (Get-PnPNavigationNode -Location QuickLaunch |
+    Where-Object { $_.Title -eq "Ticket Management" })) {
+  Add-PnPNavigationNode -Location QuickLaunch -Title "Ticket Management" `
+    -Url "/sites/support-it/SitePages/Support-Management.aspx"
+}
 ```
 
 The commands restrict `Support-Management.aspx` to the Support IT Agents group and site
-owners. The web part also performs an authorization check.
+owners, then expose it as **Ticket Management** in the site navigation. The web part also
+performs an authorization check.
 
 The solution requests no Microsoft Graph or SharePoint API permission grant because it uses the current user's SharePoint session through `SPHttpClient`.
 

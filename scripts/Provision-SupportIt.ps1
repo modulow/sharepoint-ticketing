@@ -217,6 +217,10 @@ try {
     if (-not (Get-PnPNavigationNode -Location QuickLaunch | Where-Object { $_.Title -eq "Tickets" })) {
         Add-PnPNavigationNode -Location QuickLaunch -Title "Tickets" -Url "$SiteUrl/Lists/Tickets/AllItems.aspx" | Out-Null
     }
+    $managementPage = Get-PnPPage -Identity "Support-Management.aspx" -ErrorAction SilentlyContinue
+    if ($managementPage -and -not (Get-PnPNavigationNode -Location QuickLaunch | Where-Object { $_.Title -eq "Ticket Management" })) {
+        Add-PnPNavigationNode -Location QuickLaunch -Title "Ticket Management" -Url "$SiteUrl/SitePages/Support-Management.aspx" | Out-Null
+    }
 
     Write-Host "`nProvisioning completed successfully: $SiteUrl" -ForegroundColor Green
     Write-Host "The '$agentsGroup' group is intentionally empty. Add authorized agents explicitly."
