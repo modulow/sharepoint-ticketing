@@ -40,7 +40,7 @@ interface ISharePointTicket {
   Created: string;
   Modified: string;
   Attachments: boolean;
-  AttachmentFiles?: IODataCollection<unknown>;
+  AttachmentFiles?: unknown[];
 }
 
 const LIST_TITLE = 'Tickets';
@@ -52,7 +52,7 @@ export class SharePointTicketService implements ITicketService {
   public async getUserContext(): Promise<IUserContext> {
     const userResponse = await this.get<ISharePointUser>('/_api/web/currentuser');
     const groupsResponse = await this.get<IODataCollection<ISharePointGroup>>(
-      `/_api/web/currentuser/groups?$select=Title&$filter=Title eq '${encodeURIComponent(AGENTS_GROUP)}'`
+      `/_api/web/currentuser/groups?$select=Title&$filter=Title eq '${AGENTS_GROUP.replace(/'/g, "''")}'`
     );
 
     return {
@@ -176,7 +176,7 @@ export class SharePointTicketService implements ITicketService {
       author: this.mapUser(item.Author),
       created: item.Created,
       modified: item.Modified,
-      attachmentCount: item.AttachmentFiles?.value.length ?? (item.Attachments ? 1 : 0)
+      attachmentCount: item.AttachmentFiles?.length ?? (item.Attachments ? 1 : 0)
     };
   }
 
