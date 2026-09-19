@@ -37,7 +37,7 @@ $border: #c9dced;
 }
 
 .hero {
-  --hero-parallax: 0px;
+  --hero-background-lock: 0px;
   align-items: center;
   background: linear-gradient(125deg, #0b315d 0%, $blue 52%, #2478c5 100%);
   background-attachment: fixed;
@@ -112,10 +112,10 @@ $border: #c9dced;
   background:
     linear-gradient(118deg, transparent 0 58%, rgba(142, 202, 240, .2) 58% 72%, transparent 72%),
     linear-gradient(118deg, transparent 0 71%, rgba(255, 240, 0, .16) 71% 78%, transparent 78%);
-  inset: -70px -30px;
+  inset: -320px -30px;
   pointer-events: none;
   position: absolute;
-  transform: translate3d(0, var(--hero-parallax), 0);
+  transform: translate3d(0, var(--hero-background-lock), 0);
   will-change: transform;
   z-index: -1;
 }

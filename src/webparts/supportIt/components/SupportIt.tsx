@@ -178,8 +178,8 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         const top = hero.getBoundingClientRect().top;
-        const backgroundOffset = Math.max(-32, Math.min(32, -top * 0.14));
-        hero.style.setProperty('--hero-parallax', `${backgroundOffset}px`);
+        const backgroundLock = Math.max(0, Math.min(hero.offsetHeight, -top));
+        hero.style.setProperty('--hero-background-lock', `${backgroundLock}px`);
       });
     };
 
