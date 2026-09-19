@@ -91,17 +91,38 @@ if (@($managementPage.Sections).Count -eq 0) {
   Add-PnPPageSection -Page "Support-Management" -SectionTemplate OneColumn -Order 1
 }
 
+$managementComponent = Get-PnPAvailablePageComponents -Page $managementPage |
+  Where-Object {
+    $_.Id.ToString().Trim("{}") -eq "2fa58b43-786f-40e9-9fc2-2608969d64d7"
+  } |
+  Select-Object -First 1
+if (-not $managementComponent) {
+  throw "Support IT Management is not available. Deploy the latest .sppkg first."
+}
+
 Add-PnPPageWebPart `
   -Page "Support-Management" `
-  -Component "2fa58b43-786f-40e9-9fc2-2608969d64d7" `
+  -Component $managementComponent `
   -Section 1 `
   -Column 1
 Set-PnPPage -Identity "Support-Management" -Publish
+
+$pageItem = Get-PnPFile -Url "SitePages/Support-Management.aspx" -AsListItem
+$owners = Get-PnPGroup -AssociatedOwnerGroup
+$readRole = Get-PnPRoleDefinition |
+  Where-Object { $_.RoleTypeKind.ToString() -eq "Reader" } |
+  Select-Object -First 1
+$adminRole = Get-PnPRoleDefinition |
+  Where-Object { $_.RoleTypeKind.ToString() -eq "Administrator" } |
+  Select-Object -First 1
+Set-PnPListItemPermission -List "Site Pages" -Identity $pageItem.Id `
+  -Group $owners -AddRole $adminRole.Name -ClearExisting
+Set-PnPListItemPermission -List "Site Pages" -Identity $pageItem.Id `
+  -Group "Support IT Agents" -AddRole $readRole.Name
 ```
 
-Restrict the `Support-Management.aspx` page item to the Support IT Agents group and site
-owners before adding it to navigation. The web part also performs an authorization check,
-but page permissions avoid advertising the agent workspace to standard users.
+The commands restrict `Support-Management.aspx` to the Support IT Agents group and site
+owners. The web part also performs an authorization check.
 
 The solution requests no Microsoft Graph or SharePoint API permission grant because it uses the current user's SharePoint session through `SPHttpClient`.
 
