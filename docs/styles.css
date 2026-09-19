@@ -32,10 +32,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .hero {
   align-items: center;
   background-color: #fff;
-  background-image: linear-gradient(90deg, #fff 0 72%, var(--blue) 72% 100%);
-  background-attachment: fixed;
-  background-position: center top;
-  background-size: 100vw 100vh;
+  background-image:
+    linear-gradient(var(--yellow), var(--yellow)),
+    linear-gradient(90deg, #fff 0 72%, var(--blue) 72% 100%);
+  background-attachment: fixed, fixed;
+  background-position: right 7vw top 468px, center top;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 14vw 12px, 100vw 100vh;
   display: flex;
   justify-content: space-between;
   min-height: 330px;
@@ -49,13 +52,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .hero::after {
-  background: var(--yellow);
-  bottom: 14%;
-  content: "";
-  height: 12px;
-  position: absolute;
-  right: 7%;
-  width: 14%;
+  content: none;
 }
 
 .hero-copy { max-width: 800px; width: 100%; }
@@ -331,8 +328,13 @@ textarea { resize: vertical; }
 
 @media (max-width: 600px) {
   .hero { align-items: flex-start; flex-direction: column; gap: 1.5rem; min-height: 300px; }
-  .hero { background-image: linear-gradient(90deg, #fff 0 calc(100% - 10px), var(--blue) calc(100% - 10px) 100%); }
-  .hero::after { bottom: 1.5rem; right: 0; width: 70px; }
+  .hero {
+    background-image:
+      linear-gradient(var(--yellow), var(--yellow)),
+      linear-gradient(90deg, #fff 0 calc(100% - 10px), var(--blue) calc(100% - 10px) 100%);
+    background-position: right top 260px, center top;
+    background-size: 70px 12px, 100vw 100vh;
+  }
   .hero-copy { min-width: 0; }
   .section-heading { align-items: stretch; flex-direction: column; }
   .summary-grid, .resource-grid, .ticket-grid, .team, .form-grid, .filters { grid-template-columns: 1fr; }
