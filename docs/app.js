@@ -32,6 +32,7 @@ let tickets = JSON.parse(localStorage.getItem('support-it-demo') || 'null') || s
 let view = 'dashboard';
 let selectedId = tickets[0]?.id;
 let agentFilter = 'all';
+let ticketFilter = 'all';
 
 const saveTickets = () => localStorage.setItem('support-it-demo', JSON.stringify(tickets));
 const openTickets = () => tickets.filter(ticket => !['Resolved', 'Closed'].includes(ticket.status));
@@ -53,19 +54,20 @@ function renderDashboard() {
     <section>
       <div class="section-heading"><div><span class="eyebrow">Overview</span><h2>Your requests at a glance</h2></div><button class="primary" data-go="create">+ Create a ticket</button></div>
       <div class="summary-grid">
-        <article class="summary-card"><span>Open tickets</span><strong>${open.length}</strong><small>Needs attention</small></article>
-        <article class="summary-card"><span>Waiting</span><strong>${waiting}</strong><small>Action required</small></article>
-        <article class="summary-card"><span>Resolved</span><strong>${resolved}</strong><small>Requests completed</small></article>
-        <article class="summary-card"><span>Critical</span><strong>${critical}</strong><small>Immediate priority</small></article>
+        <button class="summary-card" data-ticket-filter="open" type="button"><span>Open tickets</span><strong>${open.length}</strong><small>Needs attention</small></button>
+        <button class="summary-card" data-ticket-filter="waiting" type="button"><span>Waiting</span><strong>${waiting}</strong><small>Action required</small></button>
+        <button class="summary-card" data-ticket-filter="resolved" type="button"><span>Resolved</span><strong>${resolved}</strong><small>Requests completed</small></button>
+        <button class="summary-card" data-ticket-filter="critical" type="button"><span>Critical</span><strong>${critical}</strong><small>Immediate priority</small></button>
       </div>
     </section>
-    <section class="panel"><div class="section-heading"><div><span class="eyebrow">Recent activity</span><h2>Latest tickets</h2></div><button class="primary" data-go="tickets">View all</button></div><div class="recent-list">${tickets.slice(0, 4).map(ticketRow).join('')}</div></section>
+    <section class="panel"><div class="section-heading"><div><span class="eyebrow">Recent activity</span><h2>Latest tickets</h2></div><button class="primary" data-go="tickets">View all</button></div><div class="recent-list">${tickets.slice(0, 4).map(ticket => ticketRow(ticket, true)).join('')}</div></section>
     <section class="panel"><div class="section-heading"><div><span class="eyebrow">Self-service</span><h2>Useful resources</h2></div></div><div class="resource-grid">${resources.map(resource => `<a class="resource-card" href="${resource[3]}" target="_blank" rel="noreferrer"><span>${resource[0]}</span><strong>${resource[1]} ↗</strong><p>${resource[2]}</p></a>`).join('')}</div></section>
     <section class="panel faq"><div class="section-heading"><div><span class="eyebrow">Good to know</span><h2>Frequently asked questions</h2></div></div>${faqs.map(item => `<details><summary>${item[0]}</summary><p>${item[1]}</p></details>`).join('')}</section>`;
 }
 
-function ticketRow(ticket) {
-  return `<button class="ticket-row" data-ticket="${Number(ticket.id)}"><span class="ticket-id">#${Number(ticket.id)}</span><strong>${escapeHtml(ticket.subject)}</strong>${badge(ticket)}<span>${escapeHtml(ticket.modified)}</span></button>`;
+function ticketRow(ticket, opensList = false) {
+  const attribute = opensList ? 'data-ticket-list' : 'data-ticket';
+  return `<button class="ticket-row" ${attribute}="${Number(ticket.id)}"><span class="ticket-id">#${Number(ticket.id)}</span><strong>${escapeHtml(ticket.subject)}</strong>${badge(ticket)}<span>${escapeHtml(ticket.modified)}</span></button>`;
 }
 
 function renderCreate() {
@@ -104,7 +106,19 @@ function renderCreate() {
 }
 
 function renderTickets() {
-  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Requests</span><h2>All demo tickets</h2></div><button class="primary" data-go="create">+ Create a ticket</button></div><div class="ticket-grid">${tickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('')}</div></section>`;
+  const filters = {
+    all: ['All demo tickets', () => true],
+    open: ['Open tickets', ticket => !['Resolved', 'Closed'].includes(ticket.status)],
+    waiting: ['Waiting tickets', ticket => ticket.status === 'Waiting'],
+    resolved: ['Resolved tickets', ticket => ['Resolved', 'Closed'].includes(ticket.status)],
+    critical: ['Critical open tickets', ticket => ticket.priority === 'Critical' && !['Resolved', 'Closed'].includes(ticket.status)]
+  };
+  const exactId = ticketFilter.startsWith('ticket:') ? Number(ticketFilter.split(':')[1]) : undefined;
+  const [title, predicate] = exactId
+    ? ['Selected ticket', ticket => ticket.id === exactId]
+    : (filters[ticketFilter] || filters.all);
+  const visibleTickets = tickets.filter(predicate);
+  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Requests</span><h2>${title}</h2></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}<button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
 }
 
 function renderManagement() {
@@ -171,7 +185,20 @@ function bindManagement() {
 
 function bindCommon() {
   document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.go === 'tickets') ticketFilter = 'all';
     view = button.dataset.go;
+    render();
+    window.scrollTo({ top: document.querySelector('.main-nav').offsetTop, behavior: 'smooth' });
+  }));
+  document.querySelectorAll('[data-ticket-filter]').forEach(button => button.addEventListener('click', () => {
+    ticketFilter = button.dataset.ticketFilter;
+    view = 'tickets';
+    render();
+    window.scrollTo({ top: document.querySelector('.main-nav').offsetTop, behavior: 'smooth' });
+  }));
+  document.querySelectorAll('[data-ticket-list]').forEach(button => button.addEventListener('click', () => {
+    ticketFilter = `ticket:${Number(button.dataset.ticketList)}`;
+    view = 'tickets';
     render();
     window.scrollTo({ top: document.querySelector('.main-nav').offsetTop, behavior: 'smooth' });
   }));
@@ -193,6 +220,7 @@ function render() {
 }
 
 document.querySelectorAll('.main-nav button').forEach(button => button.addEventListener('click', () => {
+  if (button.dataset.view === 'tickets') ticketFilter = 'all';
   view = button.dataset.view;
   render();
 }));
@@ -202,6 +230,7 @@ document.querySelector('#reset-demo').addEventListener('click', () => {
   tickets = structuredClone(seedTickets);
   view = 'dashboard';
   agentFilter = 'all';
+  ticketFilter = 'all';
   render();
 });
 
