@@ -36,7 +36,7 @@
     if (createNav) createNav.textContent = "Create a ticket";
     if (ticketsNav) ticketsNav.textContent = "View my tickets";
     document.querySelectorAll('[data-go="tickets"]').forEach(button => {
-      button.textContent = "View my tickets";
+      if (button.textContent !== "View my tickets") button.textContent = "View my tickets";
     });
   }
 
