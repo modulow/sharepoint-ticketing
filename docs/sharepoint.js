@@ -69,5 +69,21 @@
   const observer = new MutationObserver(syncLabels);
   observer.observe(document.querySelector("#app"), { childList: true, subtree: true });
   syncLabels();
-  setStatus("Create and manage your tickets securely with your Microsoft 365 account.");
+  const requestedAction = new URL(window.location.href).searchParams.get("action");
+  const requestedButton = requestedAction === "create"
+    ? document.querySelector('.main-nav [data-view="create"]')
+    : requestedAction === "tickets"
+      ? document.querySelector('.main-nav [data-view="tickets"]')
+      : null;
+  if (requestedButton) {
+    requestedButton.focus();
+    setStatus(
+      requestedAction === "create"
+        ? "Select Create a ticket to open the secure Microsoft 365 form."
+        : "Select View my tickets to open your secure SharePoint list."
+    );
+    window.history.replaceState({}, "", window.location.pathname);
+  } else {
+    setStatus("Create and manage your tickets securely with your Microsoft 365 account.");
+  }
 })();
