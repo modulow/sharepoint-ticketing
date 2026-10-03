@@ -32,7 +32,29 @@
     if (element && element.textContent !== text) element.textContent = text;
   }
 
+  function syncDashboard() {
+    const app = document.querySelector("#app");
+    const dashboard = document.querySelector('.main-nav [data-view="dashboard"]');
+    if (!app || !dashboard?.classList.contains("active") || app.querySelector("#sharepoint-ticket-source")) return;
+    app.innerHTML = `
+      <section id="sharepoint-ticket-source" class="panel">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Microsoft 365</span>
+            <h2>Your SharePoint tickets</h2>
+          </div>
+        </div>
+        <p>Your live ticket list is stored securely in EuropaTickets. Sign in with your Microsoft 365 account to see only the tickets you are allowed to access.</p>
+        <div class="actions">
+          <button class="primary" data-go="tickets" type="button">View my tickets</button>
+          <button class="secondary" data-go="create" type="button">Create a ticket</button>
+        </div>
+      </section>
+    `;
+  }
+
   function syncInterface() {
+    syncDashboard();
     setText(document.querySelector('.main-nav [data-view="create"]'), "Create a ticket");
     setText(document.querySelector('.main-nav [data-view="tickets"]'), "View my tickets");
     setText(document.querySelector('.main-nav [data-view="management"]'), "Authorised agents");
@@ -52,7 +74,7 @@
 
   document.addEventListener("click", event => {
     if (!(event.target instanceof Element)) return;
-    const action = event.target.closest('[data-view="create"], [data-go="create"], [data-view="tickets"], [data-go="tickets"], [data-view="management"]');
+    const action = event.target.closest('[data-view="create"], [data-go="create"], [data-view="tickets"], [data-go="tickets"], [data-view="management"], [data-ticket-list], [data-ticket]');
     if (!action) return;
     event.preventDefault();
     event.stopImmediatePropagation();
