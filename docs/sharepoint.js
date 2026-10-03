@@ -1,4 +1,102 @@
 (() => {
+  const SITE_ROOT = "https://europarl.sharepoint.com/sites/learn.IT-Kiwi/";
+  const TICKETS_ROOT = new URL("Lists/EuropaTickets/", SITE_ROOT);
+  const CREATE_URL = new URL("NewForm.aspx", TICKETS_ROOT);
+  CREATE_URL.searchParams.set("Source", new URL("/ticket-sent.html", window.location.origin).href);
+  const LIST_URL = new URL("AllItems.aspx", TICKETS_ROOT).href;
+  const AGENTS_URL = new URL("_layouts/15/people.aspx?MembershipGroupId=5", SITE_ROOT).href;
+
+  function setStatus(message) {
+    let status = document.querySelector("#sharepoint-ticket-status");
+    if (!status) {
+      status = document.createElement("p");
+      status.id = "sharepoint-ticket-status";
+      status.className = "notice";
+      status.setAttribute("role", "status");
+      document.querySelector(".main-nav")?.after(status);
+    }
+    if (status.textContent !== message) status.textContent = message;
+  }
+
+  function openSharePoint(url, name, message) {
+    const popup = window.open(url, name, "popup=yes,width=760,height=860,resizable=yes,scrollbars=yes");
+    if (!popup) {
+      setStatus("Your browser blocked the secure SharePoint window. Allow pop-ups and try again.");
+      return;
+    }
+    popup.focus();
+    setStatus(message);
+  }
+
+  function setText(element, text) {
+    if (element && element.textContent !== text) element.textContent = text;
+  }
+
+  function syncInterface() {
+    setText(document.querySelector('.main-nav [data-view="create"]'), "Create a ticket");
+    setText(document.querySelector('.main-nav [data-view="tickets"]'), "View my tickets");
+    setText(document.querySelector('.main-nav [data-view="management"]'), "Authorised agents");
+    document.querySelectorAll('[data-go="tickets"]').forEach(button => setText(button, "View my tickets"));
+
+    const footer = document.querySelector(".team-footer");
+    if (footer) {
+      setText(footer.querySelector(".footer-intro span"), "Authorised agents");
+      setText(footer.querySelector(".footer-intro h2"), "SharePoint support group");
+      setText(footer.querySelector(".footer-intro p"), "Agents are managed in the learn.IT-Kiwi Members SharePoint group.");
+      const team = footer.querySelector(".team");
+      if (team && !team.hidden) team.hidden = true;
+      const reset = footer.querySelector("#reset-demo");
+      if (reset && !reset.hidden) reset.hidden = true;
+    }
+  }
+
+  document.addEventListener("click", event => {
+    if (!(event.target instanceof Element)) return;
+    const action = event.target.closest('[data-view="create"], [data-go="create"], [data-view="tickets"], [data-go="tickets"], [data-view="management"]');
+    if (!action) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const isCreate = action.matches('[data-view="create"], [data-go="create"]');
+    const isAgents = action.matches('[data-view="management"]');
+    openSharePoint(
+      isCreate ? CREATE_URL.href : isAgents ? AGENTS_URL : LIST_URL,
+      isCreate ? "kiwi-ticket-form" : isAgents ? "kiwi-authorised-agents" : "kiwi-ticket-list",
+      isCreate
+        ? "The secure Microsoft 365 ticket form is open."
+        : isAgents
+          ? "The authorised SharePoint agent group is open."
+          : "Your secure SharePoint ticket list is open."
+    );
+  }, true);
+
+  window.addEventListener("message", event => {
+    if (event.origin !== window.location.origin || event.data?.type !== "kiwi-ticket-created") return;
+    setStatus("Your ticket was submitted successfully.");
+    window.focus();
+  });
+
+  const observer = new MutationObserver(syncInterface);
+  observer.observe(document.querySelector("#app"), { childList: true, subtree: true });
+  syncInterface();
+
+  const requestedAction = new URL(window.location.href).searchParams.get("action");
+  const requestedButton = requestedAction === "create"
+    ? document.querySelector('.main-nav [data-view="create"]')
+    : requestedAction === "tickets"
+      ? document.querySelector('.main-nav [data-view="tickets"]')
+      : null;
+  if (requestedButton) {
+    requestedButton.focus();
+    setStatus(requestedAction === "create"
+      ? "Select Create a ticket to open the secure Microsoft 365 form."
+      : "Select View my tickets to open your secure SharePoint list.");
+    window.history.replaceState({}, "", window.location.pathname);
+  } else {
+    setStatus("Create and manage your tickets securely with your Microsoft 365 account.");
+  }
+})();
+(() => {
   const TICKETS_ROOT = "https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/EuropaTickets/";
   const CREATE_URL = new URL("NewForm.aspx", TICKETS_ROOT);
   CREATE_URL.searchParams.set("Source", new URL("/ticket-sent.html", window.location.origin).href);
