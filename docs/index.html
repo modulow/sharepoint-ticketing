@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Interactive demonstration of the Support IT SharePoint ticketing portal.">
-  <title>Support IT — Interactive demo</title>
+  <meta name="description" content="Support IT ticketing portal. Live tracking requires Microsoft authentication and authorized agent access.">
+  <title>Support IT — Kiwi</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
     </div>
   </header>
 
-  <nav class="main-nav" aria-label="Demo navigation">
+  <nav class="main-nav" aria-label="Ticket navigation">
     <button class="active" data-view="dashboard" type="button">Dashboard</button>
     <button data-view="create" type="button">Create a ticket</button>
     <button data-demo-create type="button" aria-haspopup="dialog">Try sample form</button>
@@ -55,6 +55,7 @@
     </div>
   </footer>
 
+  <script src="./ticket-data.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
