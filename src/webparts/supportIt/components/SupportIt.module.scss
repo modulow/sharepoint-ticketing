@@ -22,6 +22,65 @@ $border: #c8c8c8;
   overflow: clip;
 }
 
+.ticketDialog:global(.ms-Modal-main) {
+  background: $pale;
+  color: $ink;
+  display: flex;
+  flex-direction: column;
+  font-family: "Myriad Pro Local", Arial, sans-serif;
+  width: min(760px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialogContent:global(.ms-Modal-scrollableContent) {
+    display: flex;
+    flex-direction: column;
+    max-height: inherit;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .detailHero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.dialogHeader {
+  align-items: center;
+  background: #fff;
+  border-top: 6px solid $yellow;
+  display: flex;
+  flex-shrink: 0;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+
+  h2 {
+    font-size: 1.4rem;
+    margin: 0;
+  }
+}
+
+.dialogBody {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+
+  a {
+    color: $blue;
+  }
+}
+
 .skipLink {
   background: #fff;
   color: $blue;

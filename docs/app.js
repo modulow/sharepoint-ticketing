@@ -30,6 +30,9 @@ const categories = ['Hardware', 'Software', 'Access', 'Network', 'Telephony', 'O
 const kiwiIntakeFormUrl = 'https://europarl.sharepoint.com/:l:/s/learn.IT-Kiwi/JAAt_nP2M5fdRpr-S_YUyZICAaohrMu1P2lFpVhNeblaX-k?nav=Nzk3NjUwYjUtNmViMi00YzE1LTlhM2EtMDg4MzY3ZjlmZDBh';
 const kiwiTicketListUrl = 'https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/EuropaTickets/AllItems.aspx';
 const app = document.querySelector('#app');
+const dialog = document.querySelector('#ticket-dialog');
+const dialogBody = document.querySelector('#dialog-body');
+let intakePopup;
 let tickets = JSON.parse(localStorage.getItem('support-it-demo') || 'null') || structuredClone(seedTickets);
 let view = 'dashboard';
 let selectedId = tickets[0]?.id;
@@ -46,6 +49,30 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character =>
   "'": '&#39;'
 })[character]);
 const badge = ticket => `<span class="badge ${ticket.priority === 'Critical' ? 'critical' : ''}">${escapeHtml(ticket.status)}</span>`;
+
+function openLiveIntake() {
+  if (intakePopup && !intakePopup.closed) {
+    intakePopup.focus();
+    return;
+  }
+  intakePopup = window.open('about:blank', '_blank', 'popup,width=520,height=720');
+  if (intakePopup) {
+    // Remove access to the ticketing page before navigating to the authenticated form.
+    intakePopup.opener = null;
+    intakePopup.location.replace(kiwiIntakeFormUrl);
+    const status = document.querySelector('#intake-status');
+    status.hidden = false;
+    status.textContent = 'The official Kiwi form is open in a small window. Submit there to create a real SharePoint ticket through the existing Kiwi workflow. The tickets shown on this page remain browser-only samples.';
+  } else {
+    document.querySelector('#dialog-title').textContent = 'Kiwi form window blocked';
+    dialogBody.innerHTML = `<p role="alert">Your browser blocked the form popup. Allow popups for this site and try again, or use the secure link below.</p><p>The official form requires your Microsoft account. Your ticketing page stays open; sample tickets on this public page are not connected to SharePoint.</p><div class="actions"><button id="retry-popup" class="secondary" type="button">Try popup again</button><a class="primary live-form-link" href="${kiwiIntakeFormUrl}" target="_blank" rel="noreferrer">Open secure Kiwi form</a></div>`;
+    dialog.showModal();
+    document.querySelector('#retry-popup').addEventListener('click', () => {
+      dialog.close();
+      openLiveIntake();
+    });
+  }
+}
 
 function renderDashboard() {
   const open = openTickets();
@@ -73,10 +100,8 @@ function ticketRow(ticket, opensList = false) {
 }
 
 function renderCreate() {
-  app.innerHTML = `<section class="form-panel"><span class="eyebrow">Kiwi intake</span><h2>Create a ticket</h2><p><strong>Live form:</strong> opens the organisation's secure Microsoft Lists intake form. This public demo never reads or stores private SharePoint data.</p>
-    <p><a class="primary live-form-link" href="${kiwiIntakeFormUrl}" target="_blank" rel="noreferrer">Open the secure Kiwi form ↗</a></p>
-    <hr>
-    <span class="eyebrow">Browser-only demo</span><h3>Try the sample workflow</h3><p>The form below stores sample data only in this browser.</p>
+  document.querySelector('#dialog-title').textContent = 'Try the sample workflow';
+  dialogBody.innerHTML = `<section><span class="eyebrow">Browser-only demo</span><p>This sample form stores data only in this browser. For a real request use Create a ticket.</p>
     <form id="ticket-form">
       <label class="field">Subject<input name="subject" required maxlength="120" placeholder="What can we help you with?"></label>
       <label class="field">Description<textarea name="description" rows="7" required placeholder="Context, error message, impact…"></textarea></label>
@@ -106,8 +131,10 @@ function renderCreate() {
     selectedId = newTicket.id;
     saveTickets();
     view = 'tickets';
+    dialog.close();
     render();
   });
+  dialog.showModal();
 }
 
 function renderTickets() {
@@ -190,6 +217,10 @@ function bindManagement() {
 
 function bindCommon() {
   document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.go === 'create') {
+      openLiveIntake();
+      return;
+    }
     if (button.dataset.go === 'tickets') ticketFilter = 'all';
     view = button.dataset.go;
     render();
@@ -216,8 +247,7 @@ function bindCommon() {
 
 function render() {
   document.querySelectorAll('.main-nav button').forEach(button => button.classList.toggle('active', button.dataset.view === view));
-  if (view === 'create') renderCreate();
-  else if (view === 'tickets') renderTickets();
+  if (view === 'tickets') renderTickets();
   else if (view === 'management') renderManagement();
   else renderDashboard();
   bindCommon();
@@ -225,10 +255,21 @@ function render() {
 }
 
 document.querySelectorAll('.main-nav button').forEach(button => button.addEventListener('click', () => {
+  if (button.hasAttribute('data-demo-create')) {
+    renderCreate();
+    return;
+  }
+  if (button.dataset.view === 'create') {
+    openLiveIntake();
+    return;
+  }
   if (button.dataset.view === 'tickets') ticketFilter = 'all';
   view = button.dataset.view;
   render();
 }));
+
+document.querySelector('#close-dialog').addEventListener('click', () => dialog.close());
+dialog.addEventListener('close', () => { dialogBody.innerHTML = ''; });
 
 document.querySelector('#reset-demo').addEventListener('click', () => {
   localStorage.removeItem('support-it-demo');
