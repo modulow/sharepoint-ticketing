@@ -73,7 +73,7 @@
           "FailedTerminal",
           "IgnoredInternal"
         ],
-        "status": "required"
+        "status": "existing-and-verified"
       }
     ]
   },
@@ -100,16 +100,17 @@
     "Ignore application/system/root messages",
     "Skip every SourceMessageId already present in TicketExchanges",
     "Resolve the human author with Office 365 Users and require accountEnabled plus userPrincipalName",
-    "Ensure the SharePoint user and require effective EditListItems on EuropaTickets",
+    "Ensure the SharePoint user and require effective EditListItems on the exact EuropaTickets item",
     "Convert Teams HTML with Content Conversion before classification",
     "Treat only literal case-sensitive @user followed by end, space, LF or CRLF as public",
     "Record all other human replies once as Internal and never dispatch them",
     "Reject empty or greater-than-255 public text visibly without truncation",
     "Create the unique Processing exchange before staging requester fields",
-    "Reject a later public reply while the same ticket has an AwaitingNativeRule exchange",
+    "Reject a later public reply while the same ticket has a Processing or AwaitingNativeRule exchange",
     "Write TeamsReplyText and TeamsReplyAgent, then re-read requester, thread, text and agent",
     "Change only TeamsReplyDispatchToken after the re-read matches",
-    "Mark the exchange AwaitingNativeRule after the token update"
+    "Mark the exchange AwaitingNativeRule after the token update",
+    "Set serial failure variables inside loops and perform any Terminate only after the loops"
   ],
   "failureSemantics": {
     "Processing": "No token is known to have been committed. Inspect the failed run and ticket before any manual recovery.",
@@ -126,7 +127,8 @@
     "SourceMessageId is the durable unique dedupe key",
     "All loops and trigger runs are serial",
     "No historical reply can run with the packaged sentinel cutoff",
-    "No page is silently truncated",
+    "No page is silently truncated; a thread with 50 or more replies blocks every future run until pagination is implemented or the mapping is retired",
+    "Terminate actions are never nested in Foreach actions",
     "Queued native rules are never labelled delivered"
   ]
 }

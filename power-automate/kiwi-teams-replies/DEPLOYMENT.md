@@ -22,8 +22,8 @@ These `EuropaTickets` fields and rules are already live:
 - enabled rule when `TeamsReplyDispatchToken` changes -> `TeamsReplyAgent`, message token
   `TeamsReplyText`.
 
-`TicketExchanges.SourceMessageId` already has **Enforce unique values** enabled. Create
-one additional column before import:
+`TicketExchanges.SourceMessageId` already has **Enforce unique values** enabled, and the
+following state column is live and reopen-verified:
 
 | Internal name | Type | Choices |
 | --- | --- | --- |
@@ -55,8 +55,8 @@ is read. Replies older than the deployment cutoff never create ledger rows.
 
 For each mapped ticket, the flow obtains Teams replies through the supported Teams
 connector Graph action. It resolves the author through Office 365 Users, ensures that
-user in SharePoint, and checks effective `EditListItems` on `EuropaTickets`. Laurent is
-not excluded merely because he owns the connections.
+user in SharePoint, and checks effective `EditListItems` on that exact ticket item.
+Laurent is not excluded merely because he owns the connections.
 
 HTML is converted with Content Conversion before classification. Only literal,
 case-sensitive `@user` followed by end-of-text, a space, LF or CRLF is public. The prefix
@@ -76,15 +76,22 @@ text and agent, and only then changes `TeamsReplyDispatchToken`. The exchange be
 - neither state proves email delivery;
 - there is no automatic retry after an uncertain token update.
 
-Only one public dispatch per ticket may remain `AwaitingNativeRule`. A later public reply
-is recorded as `FailedTerminal` and the run fails visibly, preventing a second token
-change from reusing stale staged values. After the agent confirms the earlier exchange,
-an operator may deliberately recover the blocked reply by deleting its failed ledger row;
-the flow never does that automatically.
+Only one unresolved public dispatch per ticket may remain `Processing` or
+`AwaitingNativeRule`. A later public reply is recorded as `FailedTerminal` and the run
+fails visibly, preventing a second token change from reusing stale staged values. After
+the operator resolves the earlier exchange (or the agent confirms it), an operator may
+deliberately recover the blocked reply by deleting its failed ledger row; the flow never
+does that automatically.
 
 The flow asks for 51 ticket roots and 50 replies as sentinels. It terminates before
 processing when either sentinel is reached or Teams returns `@odata.nextLink`; it never
-silently loses a later page.
+silently loses a later page. This is an explicit limitation: once a mapped Teams thread
+contains 50 or more replies, that thread will fail every scheduled run until proper
+pagination is implemented or the ticket-to-thread mapping is deliberately retired.
+
+Power Automate rejects `Terminate` inside `Foreach`. Nested failures therefore set serial
+`FailureCode` and `FailureMessage` variables. Remaining reply bodies are gated off, and a
+single top-level action terminates the run after both loops finish.
 
 ## Validation
 

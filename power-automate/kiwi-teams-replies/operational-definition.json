@@ -50,10 +50,44 @@
       "type": "Compose",
       "inputs": "2099-12-31T00:00:00Z"
     },
+    "Initialize_failure_code": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Deployment_cutoff_UTC": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "FailureCode",
+            "type": "string",
+            "value": ""
+          }
+        ]
+      }
+    },
+    "Initialize_failure_message": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_failure_code": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "FailureMessage",
+            "type": "string",
+            "value": ""
+          }
+        ]
+      }
+    },
     "Cutoff_must_be_activated": {
       "type": "If",
       "runAfter": {
-        "Deployment_cutoff_UTC": [
+        "Initialize_failure_message": [
           "Succeeded"
         ]
       },
@@ -132,7 +166,7 @@
                       "actions": {
                         "Reply_is_new_human_content": {
                           "type": "If",
-                          "expression": "@and(greaterOrEquals(ticks(coalesce(items('For_each_reply')?['createdDateTime'],'1900-01-01T00:00:00Z')),ticks(outputs('Deployment_cutoff_UTC'))),not(empty(items('For_each_reply')?['from']?['user']?['id'])),empty(items('For_each_reply')?['from']?['application']),equals(coalesce(items('For_each_reply')?['messageType'],'message'),'message'),not(equals(items('For_each_reply')?['id'],items('For_each_ticket')?['TeamsThreadId'])))",
+                          "expression": "@and(empty(variables('FailureCode')),greaterOrEquals(ticks(coalesce(items('For_each_reply')?['createdDateTime'],'1900-01-01T00:00:00Z')),ticks(outputs('Deployment_cutoff_UTC'))),not(empty(items('For_each_reply')?['from']?['user']?['id'])),empty(items('For_each_reply')?['from']?['application']),equals(coalesce(items('For_each_reply')?['messageType'],'message'),'message'),not(equals(items('For_each_reply')?['id'],items('For_each_ticket')?['TeamsThreadId'])),equals(items('For_each_reply')?['replyToId'],items('For_each_ticket')?['TeamsThreadId']))",
                           "actions": {
                             "Find_exchange": {
                               "type": "OpenApiConnection",
@@ -214,7 +248,7 @@
                                     "parameters": {
                                       "dataset": "@parameters('SiteUrl')",
                                       "parameters/method": "GET",
-                                      "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/getUserEffectivePermissions(@u)?@u=''',uriComponent(concat('i:0#.f|membership|',body('Get_Teams_author')?['userPrincipalName'])),'''')",
+                                      "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',items('For_each_ticket')?['Id'],')/getUserEffectivePermissions(@u)?@u=''',uriComponent(concat('i:0#.f|membership|',body('Get_Teams_author')?['userPrincipalName'])),'''')",
                                       "parameters/headers": {
                                         "Accept": "application/json;odata=nometadata"
                                       }
@@ -279,7 +313,7 @@
                                         "parameters": {
                                           "dataset": "@parameters('SiteUrl')",
                                           "parameters/method": "GET",
-                                          "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('ExchangesListId'),''')/items?$select=Id,SourceMessageId,DeliveryState&$filter=TicketId eq ',items('For_each_ticket')?['Id'],' and DeliveryState eq ''AwaitingNativeRule''&$top=1')",
+                                          "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('ExchangesListId'),''')/items?$select=Id,SourceMessageId,DeliveryState&$filter=TicketId eq ',items('For_each_ticket')?['Id'],' and (DeliveryState eq ''AwaitingNativeRule'' or DeliveryState eq ''Processing'')&$top=1')",
                                           "parameters/headers": {
                                             "Accept": "application/json;odata=nometadata"
                                           }
@@ -380,7 +414,7 @@
                                                   "Succeeded"
                                                 ]
                                               },
-                                              "expression": "@and(equals(body('Re_read_staged_ticket')?['TeamsThreadId'],items('For_each_ticket')?['TeamsThreadId']),equals(string(body('Re_read_staged_ticket')?['Demandeur0']?['Id']),string(items('For_each_ticket')?['Demandeur0Id'])),equals(body('Re_read_staged_ticket')?['TeamsReplyText'],outputs('Public_reply_text')),equals(toLower(body('Re_read_staged_ticket')?['TeamsReplyAgent']?['Email']),toLower(body('Get_Teams_author')?['userPrincipalName'])))",
+                                              "expression": "@and(equals(items('For_each_reply')?['replyToId'],items('For_each_ticket')?['TeamsThreadId']),equals(body('Re_read_staged_ticket')?['TeamsThreadId'],items('For_each_ticket')?['TeamsThreadId']),equals(string(body('Re_read_staged_ticket')?['Demandeur0']?['Id']),string(items('For_each_ticket')?['Demandeur0Id'])),equals(body('Re_read_staged_ticket')?['TeamsReplyText'],outputs('Public_reply_text')),equals(toLower(body('Re_read_staged_ticket')?['TeamsReplyAgent']?['Email']),toLower(body('Get_Teams_author')?['userPrincipalName'])))",
                                               "actions": {
                                                 "Commit_dispatch_token_only": {
                                                   "type": "OpenApiConnection",
@@ -443,19 +477,28 @@
                                                       "authentication": "@parameters('$authentication')"
                                                     }
                                                   },
-                                                  "Fail_staging_mismatch": {
-                                                    "type": "Terminate",
+                                                  "Set_staging_failure_code": {
+                                                    "type": "SetVariable",
                                                     "runAfter": {
                                                       "Mark_staging_mismatch": [
                                                         "Succeeded"
                                                       ]
                                                     },
                                                     "inputs": {
-                                                      "runStatus": "Failed",
-                                                      "runError": {
-                                                        "code": "StagingMismatch",
-                                                        "message": "Ticket requester, thread, agent or staged text changed before dispatch. No dispatch token was written."
-                                                      }
+                                                      "name": "FailureCode",
+                                                      "value": "@if(empty(variables('FailureCode')),'StagingMismatch',variables('FailureCode'))"
+                                                    }
+                                                  },
+                                                  "Set_staging_failure_message": {
+                                                    "type": "SetVariable",
+                                                    "runAfter": {
+                                                      "Set_staging_failure_code": [
+                                                        "Succeeded"
+                                                      ]
+                                                    },
+                                                    "inputs": {
+                                                      "name": "FailureMessage",
+                                                      "value": "@if(empty(variables('FailureMessage')),'Ticket requester, reply correlation, thread, agent or staged text changed before dispatch. No dispatch token was written.',variables('FailureMessage'))"
                                                     }
                                                   }
                                                 }
@@ -470,7 +513,7 @@
                                                   "parameters": {
                                                     "dataset": "@parameters('SiteUrl')",
                                                     "table": "@parameters('ExchangesListId')",
-                                                    "item/Title": "@if(greater(length(body('Find_pending_dispatch')?['value']),0),'Public Teams reply blocked - prior dispatch awaiting agent confirmation','Public Teams reply rejected - authorization')",
+                                                    "item/Title": "@if(greater(length(body('Find_pending_dispatch')?['value']),0),'Public Teams reply blocked - prior dispatch unresolved','Public Teams reply rejected - authorization')",
                                                     "item/TicketId": "@items('For_each_ticket')?['Id']",
                                                     "item/Message": "@outputs('Public_reply_text')",
                                                     "item/Visibility/Value": "Public",
@@ -487,19 +530,28 @@
                                                   "authentication": "@parameters('$authentication')"
                                                 }
                                               },
-                                              "Fail_unauthorized_reply": {
-                                                "type": "Terminate",
+                                              "Set_authorization_failure_code": {
+                                                "type": "SetVariable",
                                                 "runAfter": {
                                                   "Record_unauthorized_reply": [
                                                     "Succeeded"
                                                   ]
                                                 },
                                                 "inputs": {
-                                                  "runStatus": "Failed",
-                                                  "runError": {
-                                                    "code": "UnauthorizedTeamsAuthor",
-                                                    "message": "@if(greater(length(body('Find_pending_dispatch')?['value']),0),'A prior public reply for this ticket is still AwaitingNativeRule. Confirm it before manually recovering this reply.','The Teams author is disabled, unresolved, lacks effective EditListItems, or the ticket has no requester.')"
-                                                  }
+                                                  "name": "FailureCode",
+                                                  "value": "@if(empty(variables('FailureCode')),if(greater(length(body('Find_pending_dispatch')?['value']),0),'PriorDispatchUnresolved','UnauthorizedTeamsAuthor'),variables('FailureCode'))"
+                                                }
+                                              },
+                                              "Set_authorization_failure_message": {
+                                                "type": "SetVariable",
+                                                "runAfter": {
+                                                  "Set_authorization_failure_code": [
+                                                    "Succeeded"
+                                                  ]
+                                                },
+                                                "inputs": {
+                                                  "name": "FailureMessage",
+                                                  "value": "@if(empty(variables('FailureMessage')),if(greater(length(body('Find_pending_dispatch')?['value']),0),'A prior public reply for this ticket is still Processing or AwaitingNativeRule. Resolve it before manually recovering this reply.','The Teams author is disabled, unresolved, lacks effective EditListItems on this ticket, or the ticket has no requester.'),variables('FailureMessage'))"
                                                 }
                                               }
                                             }
@@ -531,19 +583,28 @@
                                               "authentication": "@parameters('$authentication')"
                                             }
                                           },
-                                          "Fail_invalid_public_length": {
-                                            "type": "Terminate",
+                                          "Set_length_failure_code": {
+                                            "type": "SetVariable",
                                             "runAfter": {
                                               "Record_invalid_public_length": [
                                                 "Succeeded"
                                               ]
                                             },
                                             "inputs": {
-                                              "runStatus": "Failed",
-                                              "runError": {
-                                                "code": "InvalidPublicReplyLength",
-                                                "message": "@concat('Public @user reply has ',length(outputs('Public_reply_text')),' characters; allowed range is 1-255. Nothing was truncated or dispatched.')"
-                                              }
+                                              "name": "FailureCode",
+                                              "value": "@if(empty(variables('FailureCode')),'InvalidPublicReplyLength',variables('FailureCode'))"
+                                            }
+                                          },
+                                          "Set_length_failure_message": {
+                                            "type": "SetVariable",
+                                            "runAfter": {
+                                              "Set_length_failure_code": [
+                                                "Succeeded"
+                                              ]
+                                            },
+                                            "inputs": {
+                                              "name": "FailureMessage",
+                                              "value": "@if(empty(variables('FailureMessage')),concat('Public @user reply has ',length(outputs('Public_reply_text')),' characters; allowed range is 1-255. Nothing was truncated or dispatched.'),variables('FailureMessage'))"
                                             }
                                           }
                                         }
@@ -594,14 +655,23 @@
                   },
                   "else": {
                     "actions": {
-                      "Fail_reply_page_limit": {
-                        "type": "Terminate",
+                      "Set_reply_page_failure_code": {
+                        "type": "SetVariable",
                         "inputs": {
-                          "runStatus": "Failed",
-                          "runError": {
-                            "code": "ReplyPaginationRequired",
-                            "message": "A Teams reply page reached 50 items or returned @odata.nextLink. No partial page was processed."
-                          }
+                          "name": "FailureCode",
+                          "value": "@if(empty(variables('FailureCode')),'ReplyPaginationRequired',variables('FailureCode'))"
+                        }
+                      },
+                      "Set_reply_page_failure_message": {
+                        "type": "SetVariable",
+                        "runAfter": {
+                          "Set_reply_page_failure_code": [
+                            "Succeeded"
+                          ]
+                        },
+                        "inputs": {
+                          "name": "FailureMessage",
+                          "value": "@if(empty(variables('FailureMessage')),'A Teams thread reached 50 replies or returned @odata.nextLink. No reply from that page was processed; this thread will block each scheduled run until pagination support is added or the mapped thread is retired.',variables('FailureMessage'))"
                         }
                       }
                     }
@@ -639,6 +709,30 @@
             }
           }
         }
+      }
+    },
+    "Terminate_after_processing_failure": {
+      "type": "If",
+      "runAfter": {
+        "Cutoff_must_be_activated": [
+          "Succeeded"
+        ]
+      },
+      "expression": "@not(empty(variables('FailureCode')))",
+      "actions": {
+        "Fail_run_after_serial_processing": {
+          "type": "Terminate",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "@variables('FailureCode')",
+              "message": "@variables('FailureMessage')"
+            }
+          }
+        }
+      },
+      "else": {
+        "actions": {}
       }
     }
   },

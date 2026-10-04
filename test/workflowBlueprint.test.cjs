@@ -19,11 +19,12 @@ const definition = JSON.parse(fs.readFileSync(
 ));
 const serialized = JSON.stringify(definition);
 
-function visitActions(actions, visitor) {
+function visitActions(actions, visitor, insideForeach = false) {
   for (const [name, action] of Object.entries(actions || {})) {
-    visitor(name, action);
-    visitActions(action.actions, visitor);
-    visitActions(action.else?.actions, visitor);
+    const nestedInForeach = insideForeach || action.type === 'Foreach';
+    visitor(name, action, insideForeach);
+    visitActions(action.actions, visitor, nestedInForeach);
+    visitActions(action.else?.actions, visitor, nestedInForeach);
   }
 }
 
@@ -105,7 +106,11 @@ test('ticket and reply pages fail closed rather than truncate', () => {
   assert.equal(actionNamed('For_each_ticket').runtimeConfiguration.concurrency.repetitions, 1);
   assert.equal(actionNamed('For_each_reply').runtimeConfiguration.concurrency.repetitions, 1);
   assert.equal(actionNamed('Fail_ticket_page_limit').inputs.runStatus, 'Failed');
-  assert.equal(actionNamed('Fail_reply_page_limit').inputs.runStatus, 'Failed');
+  assert.match(
+    actionNamed('Set_reply_page_failure_message').inputs.value,
+    /block each scheduled run/
+  );
+  assert.equal(actionNamed('Fail_run_after_serial_processing').inputs.runStatus, 'Failed');
 });
 
 test('human identity and effective EditListItems are checked', () => {
@@ -117,7 +122,7 @@ test('human identity and effective EditListItems are checked', () => {
   );
   assert.match(
     actionNamed('Check_author_permission').inputs.parameters['parameters/uri'],
-    /getUserEffectivePermissions/
+    /items\(.*For_each_ticket.*getUserEffectivePermissions/
   );
   assert.match(actionNamed('Author_and_requester_are_authorized').expression, /div\(int.*4/);
   assert.doesNotMatch(serialized, /laurent\.anciaux/i);
@@ -141,14 +146,14 @@ test('SourceMessageId is checked before durable processing', () => {
 test('a pending native-rule dispatch blocks a later public reply on the ticket', () => {
   assert.match(
     actionNamed('Find_pending_dispatch').inputs.parameters['parameters/uri'],
-    /DeliveryState eq ''AwaitingNativeRule''/
+    /DeliveryState eq ''AwaitingNativeRule'' or DeliveryState eq ''Processing''/
   );
   assert.match(
     actionNamed('Author_and_requester_are_authorized').expression,
     /Find_pending_dispatch/
   );
   assert.match(
-    actionNamed('Fail_unauthorized_reply').inputs.runError.message,
+    actionNamed('Set_authorization_failure_message').inputs.value,
     /prior public reply/
   );
 });
@@ -166,9 +171,8 @@ test('public replies outside 1-255 fail visibly and are never truncated', () => 
   const expression = actionNamed('Public_reply_length_is_valid').expression;
   assert.match(expression, /greater\(length/);
   assert.match(expression, /lessOrEquals\(length.*255/);
-  assert.equal(actionNamed('Fail_invalid_public_length').inputs.runStatus, 'Failed');
   assert.match(
-    actionNamed('Fail_invalid_public_length').inputs.runError.message,
+    actionNamed('Set_length_failure_message').inputs.value,
     /Nothing was truncated or dispatched/
   );
 });
@@ -181,6 +185,7 @@ test('dispatch stages and re-reads fields before token-only commit', () => {
   );
   assert.match(actionNamed('Staged_values_are_current').expression, /Demandeur0/);
   assert.match(actionNamed('Staged_values_are_current').expression, /TeamsThreadId/);
+  assert.match(actionNamed('Staged_values_are_current').expression, /replyToId/);
   assert.deepEqual(
     Object.keys(actionNamed('Commit_dispatch_token_only').inputs.parameters).sort(),
     ['dataset', 'id', 'item/TeamsReplyDispatchToken', 'table']
@@ -190,6 +195,18 @@ test('dispatch stages and re-reads fields before token-only commit', () => {
     { Commit_dispatch_token_only: ['Succeeded'] }
   );
   assert.doesNotMatch(serialized, /R_x00e9_ponseaudemandeur/);
+});
+
+test('Terminate actions are never nested in a foreach', () => {
+  const invalid = [];
+  visitActions(definition.actions, (name, action, insideForeach) => {
+    if (insideForeach && action.type === 'Terminate') {
+      invalid.push(name);
+    }
+  });
+  assert.deepEqual(invalid, []);
+  assert.equal(actionNamed('Terminate_after_processing_failure').type, 'If');
+  assert.equal(actionNamed('Fail_run_after_serial_processing').type, 'Terminate');
 });
 
 test('contract exposes only the minimum additional state column', () => {
@@ -210,7 +227,7 @@ test('contract exposes only the minimum additional state column', () => {
         'FailedTerminal',
         'IgnoredInternal'
       ],
-      status: 'required'
+      status: 'existing-and-verified'
     }
   ]);
   assert.match(contract.failureSemantics.AwaitingNativeRule, /not proven delivered/);
