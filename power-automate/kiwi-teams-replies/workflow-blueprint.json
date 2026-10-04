@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 2,
+  "kind": "PowerAutomateCloudFlowContract",
+  "name": "Kiwi - Teams replies to requester",
+  "operationalDefinition": "operational-definition.json",
+  "ordinaryPackageAvailablePrivately": true,
+  "existingIntakeFlow": {
+    "id": "dada6a44-429e-4d4e-95c0-f2bf5c87e033",
+    "mustNotModifyOrDuplicate": true
+  },
+  "parameters": {
+    "siteUrl": "https://europarl.sharepoint.com/sites/learn.IT-Kiwi",
+    "ticketsListId": "f673fe2d-9733-46dd-9afe-4bf614c99202",
+    "exchangesListId": "58aa42f2-6fa0-4df2-9a76-90189fece896",
+    "teamId": "435074fb-2e8d-4c67-b06a-0359ddc5a939",
+    "channelId": "19:BM44z26OAyIXfxi0S1s4L4m5T2obLQX1-tAeZVxJ5gE1@thread.tacv2",
+    "activationCutoffDefault": "2099-12-31T00:00:00Z",
+    "pollIntervalMinutes": 5,
+    "maximumTicketRoots": 50,
+    "maximumRepliesPerRoot": 49,
+    "maximumControlNesting": 8
+  },
+  "connections": [
+    "shared_sharepointonline",
+    "shared_teams",
+    "shared_office365users",
+    "shared_conversionservice"
+  ],
+  "requiredColumns": {
+    "EuropaTickets": [
+      {
+        "internalName": "TeamsThreadId",
+        "type": "Text",
+        "status": "existing"
+      },
+      {
+        "internalName": "Demandeur0",
+        "type": "User",
+        "status": "existing"
+      },
+      {
+        "internalName": "TeamsReplyText",
+        "type": "Text",
+        "maxLength": 255,
+        "status": "created"
+      },
+      {
+        "internalName": "TeamsReplyAgent",
+        "type": "User",
+        "allowGroups": false,
+        "status": "created"
+      },
+      {
+        "internalName": "TeamsReplyDispatchToken",
+        "type": "Text",
+        "maxLength": 255,
+        "status": "created"
+      },
+      {
+        "internalName": "Assigned_x0020_to",
+        "displayName": "Assigned to",
+        "type": "User",
+        "allowMultipleValues": false,
+        "status": "existing-and-verified"
+      }
+    ],
+    "TicketExchanges": [
+      {
+        "internalName": "SourceMessageId",
+        "type": "Text",
+        "enforceUniqueValues": true,
+        "status": "existing-and-verified"
+      },
+      {
+        "internalName": "DeliveryState",
+        "type": "Choice",
+        "choices": [
+          "Processing",
+          "AwaitingNativeRule",
+          "AgentConfirmed",
+          "FailedTerminal",
+          "IgnoredInternal"
+        ],
+        "status": "existing-and-verified"
+      }
+    ]
+  },
+  "verifiedNativeCreateItemKeys": {
+    "item/Title": "literal title",
+    "item/Ticket/Id": "ticket lookup ID expression",
+    "item/Message": "message expression",
+    "item/Visibility/Value": "choice value",
+    "item/Author0/Claims": "membership claim expression",
+    "item/ExchangeDate": "Teams createdDateTime expression",
+    "item/Source": "plain text value",
+    "item/SourceMessageId": "Teams reply ID expression",
+    "item/DeliveryState/Value": "choice value"
+  },
+  "nativeRules": [
+    {
+      "trigger": "TeamsReplyDispatchToken changes",
+      "recipient": "Demandeur0",
+      "messageToken": "TeamsReplyText",
+      "status": "enabled-and-verified"
+    },
+    {
+      "trigger": "TeamsReplyDispatchToken changes",
+      "recipient": "TeamsReplyAgent",
+      "messageToken": "TeamsReplyText",
+      "status": "enabled-and-verified"
+    }
+  ],
+  "execution": [
+    "Reject the sentinel or future ActivationCutoffUtc before reading any tickets",
+    "Run cutoff and ticket-page checks as top-level preflights rather than ancestor containers",
+    "Read at most 51 mapped ticket roots and fail before processing if 51 are returned",
+    "Read replies with Teams Graph through the Teams connector using top=50",
+    "Fail before processing a reply page when @odata.nextLink exists or 50 replies are returned",
+    "Ignore replies older than ActivationCutoffUtc and messages without a non-empty human from.user.id",
+    "Ignore application/system/root messages",
+    "Skip every SourceMessageId already present in TicketExchanges",
+    "Resolve the human author with Office 365 Users and require accountEnabled plus userPrincipalName",
+    "Read the SharePoint PeopleManager FirstName profile property and fail closed when it is absent",
+    "Ensure the SharePoint user and require effective EditListItems on the exact EuropaTickets item",
+    "Convert Teams HTML with Content Conversion before classification",
+    "Treat only literal case-sensitive @user followed by end, space, LF or CRLF as public",
+    "Record all other human replies once as Internal and never dispatch them",
+    "Reject empty or greater-than-255 public text visibly without truncation",
+    "Append LF, the verified FirstName profile value, LF and learn.IT; validate the complete signed text within 255 characters",
+    "Create the unique Processing exchange before staging requester fields",
+    "Reject a later public reply while the same ticket has a Processing or AwaitingNativeRule exchange",
+    "Re-read Assigned_x0020_toId and assign the responder with an ETag-protected MERGE only when it is empty",
+    "Preserve every existing assignee and fail rather than overwrite a concurrent assignment",
+    "Write signed TeamsReplyText and TeamsReplyAgent, then re-read requester, thread, text, agent and assignee",
+    "Re-read staged requester and agent through SharePoint REST lookup-ID fields because native GetItem omits Person Id values",
+    "Change only TeamsReplyDispatchToken after the re-read matches",
+    "Mark the exchange AwaitingNativeRule after the token update",
+    "Set serial failure variables inside loops and perform any Terminate only after the loops"
+  ],
+  "failureSemantics": {
+    "Processing": "No token is known to have been committed. Inspect the failed run and ticket before any manual recovery.",
+    "AwaitingNativeRule": "The token changed and SharePoint accepted the update. Native rules are queued, not proven delivered.",
+    "AgentConfirmed": "The actual Teams agent received and checked the rule copy, then manually confirmed this exact exchange.",
+    "FailedTerminal": "Validation failed; the reply is not retried automatically.",
+    "IgnoredInternal": "The reply was recorded as internal and can never be promoted automatically.",
+    "uncertainDispatch": "Never delete or replay a Processing exchange until an operator verifies the ticket token and native-rule history."
+  },
+  "invariants": [
+    "The flow never writes R_x00e9_ponseaudemandeur",
+    "The flow never sends Outlook or SMTP mail",
+    "The flow never excludes Laurent solely because he owns the connections",
+    "SourceMessageId is the durable unique dedupe key",
+    "All loops and trigger runs are serial",
+    "No historical reply can run with the packaged sentinel cutoff",
+    "No page is silently truncated; a thread with 50 or more replies blocks every future run until pagination is implemented or the mapping is retired",
+    "Terminate actions are never nested in Foreach actions",
+    "SetVariable values never reference the variable being assigned; first-failure guards prevent later overwrites",
+    "Numeric SharePoint identity fields are validated with greater(int(coalesce(value,0)),0), never empty(), because the cloud runtime rejects empty(Integer)",
+    "Staged requester and agent correlation uses REST Demandeur0Id and TeamsReplyAgentId, not absent IDs inside native SPListExpandedUser objects",
+    "Agent signatures use PeopleManager FirstName and never infer a first name from displayName or userPrincipalName",
+    "Assigned_x0020_to is set only from an unassigned ETag snapshot; a pre-existing or concurrent assignee is never overwritten",
+    "Native TicketExchanges CreateItem actions use item/Ticket/Id for the lookup and plain item/Source; REST filters continue to use the TicketId internal lookup-ID property",
+    "The deepest concrete action path has exactly eight control parents, within the Power Automate save limit",
+    "Queued native rules are never labelled delivered"
+  ]
+}

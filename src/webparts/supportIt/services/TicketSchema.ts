@@ -66,7 +66,7 @@ export const resolveTicketSchema = (fields: ISharePointFieldMetadata[]): ITicket
     status: findField(fields, ['Statut', 'Status'], ['Statut', 'Status'], ['Choice', 'Text']),
     assignedTo: findField(
       fields,
-      ['AssignedTo', 'AssigneA', 'Agent'],
+      ['Assigned_x0020_to', 'AssignedTo', 'AssigneA', 'Agent'],
       ['Assigné à', 'Assigne a', 'Assigned to', 'Agent'],
       ['User']
     ),
