@@ -92,6 +92,10 @@ pagination is implemented or the ticket-to-thread mapping is deliberately retire
 Power Automate rejects `Terminate` inside `Foreach`. Nested failures therefore set serial
 `FailureCode` and `FailureMessage` variables. Remaining reply bodies are gated off, and a
 single top-level action terminates the run after both loops finish.
+Power Automate also rejects assigning a variable from an expression that reads that same
+variable. Each `SetVariable` therefore writes a literal or an expression independent of
+its target; the surrounding condition requires `FailureCode` to be empty so the first
+failure cannot be overwritten by a later ticket.
 
 Power Automate also limits control nesting to eight. The cutoff and ticket-page checks
 are top-level preflights, and the reply-page check is a sibling of the reply loop. The

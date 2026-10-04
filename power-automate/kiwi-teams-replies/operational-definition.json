@@ -188,13 +188,13 @@
               "Succeeded"
             ]
           },
-          "expression": "@or(not(empty(body('List_Teams_replies')?['@odata.nextLink'])),greaterOrEquals(length(body('List_Teams_replies')?['value']),50))",
+          "expression": "@and(empty(variables('FailureCode')),or(not(empty(body('List_Teams_replies')?['@odata.nextLink'])),greaterOrEquals(length(body('List_Teams_replies')?['value']),50)))",
           "actions": {
             "Set_reply_page_failure_code": {
               "type": "SetVariable",
               "inputs": {
                 "name": "FailureCode",
-                "value": "@if(empty(variables('FailureCode')),'ReplyPaginationRequired',variables('FailureCode'))"
+                "value": "ReplyPaginationRequired"
               }
             },
             "Set_reply_page_failure_message": {
@@ -206,7 +206,7 @@
               },
               "inputs": {
                 "name": "FailureMessage",
-                "value": "@if(empty(variables('FailureMessage')),'A Teams thread reached 50 replies or returned @odata.nextLink. No reply from that page was processed; this thread will block each scheduled run until pagination support is added or the mapped thread is retired.',variables('FailureMessage'))"
+                "value": "A Teams thread reached 50 replies or returned @odata.nextLink. No reply from that page was processed; this thread will block each scheduled run until pagination support is added or the mapped thread is retired."
               }
             }
           },
@@ -545,7 +545,7 @@
                                         },
                                         "inputs": {
                                           "name": "FailureCode",
-                                          "value": "@if(empty(variables('FailureCode')),'StagingMismatch',variables('FailureCode'))"
+                                          "value": "StagingMismatch"
                                         }
                                       },
                                       "Set_staging_failure_message": {
@@ -557,7 +557,7 @@
                                         },
                                         "inputs": {
                                           "name": "FailureMessage",
-                                          "value": "@if(empty(variables('FailureMessage')),'Ticket requester, reply correlation, thread, agent or staged text changed before dispatch. No dispatch token was written.',variables('FailureMessage'))"
+                                          "value": "Ticket requester, reply correlation, thread, agent or staged text changed before dispatch. No dispatch token was written."
                                         }
                                       }
                                     }
@@ -598,7 +598,7 @@
                                     },
                                     "inputs": {
                                       "name": "FailureCode",
-                                      "value": "@if(empty(variables('FailureCode')),if(greater(length(body('Find_pending_dispatch')?['value']),0),'PriorDispatchUnresolved','UnauthorizedTeamsAuthor'),variables('FailureCode'))"
+                                      "value": "@if(greater(length(body('Find_pending_dispatch')?['value']),0),'PriorDispatchUnresolved','UnauthorizedTeamsAuthor')"
                                     }
                                   },
                                   "Set_authorization_failure_message": {
@@ -610,7 +610,7 @@
                                     },
                                     "inputs": {
                                       "name": "FailureMessage",
-                                      "value": "@if(empty(variables('FailureMessage')),if(greater(length(body('Find_pending_dispatch')?['value']),0),'A prior public reply for this ticket is still Processing or AwaitingNativeRule. Resolve it before manually recovering this reply.','The Teams author is disabled, unresolved, lacks effective EditListItems on this ticket, or the ticket has no requester.'),variables('FailureMessage'))"
+                                      "value": "@if(greater(length(body('Find_pending_dispatch')?['value']),0),'A prior public reply for this ticket is still Processing or AwaitingNativeRule. Resolve it before manually recovering this reply.','The Teams author is disabled, unresolved, lacks effective EditListItems on this ticket, or the ticket has no requester.')"
                                     }
                                   }
                                 }
@@ -651,7 +651,7 @@
                                 },
                                 "inputs": {
                                   "name": "FailureCode",
-                                  "value": "@if(empty(variables('FailureCode')),'InvalidPublicReplyLength',variables('FailureCode'))"
+                                  "value": "InvalidPublicReplyLength"
                                 }
                               },
                               "Set_length_failure_message": {
@@ -663,7 +663,7 @@
                                 },
                                 "inputs": {
                                   "name": "FailureMessage",
-                                  "value": "@if(empty(variables('FailureMessage')),concat('Public @user reply has ',length(outputs('Public_reply_text')),' characters; allowed range is 1-255. Nothing was truncated or dispatched.'),variables('FailureMessage'))"
+                                  "value": "@concat('Public @user reply has ',length(outputs('Public_reply_text')),' characters; allowed range is 1-255. Nothing was truncated or dispatched.')"
                                 }
                               }
                             }

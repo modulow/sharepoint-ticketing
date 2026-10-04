@@ -12,6 +12,7 @@
 | Historical processing is unauthorized | The package has a future cutoff sentinel and fails before reading tickets until deployment supplies a current UTC cutoff. |
 | No silent page loss | The flow fails before processing when it receives 51 roots, 50 replies, or any Teams `@odata.nextLink`; a 50-reply thread remains a persistent blocker until pagination is implemented or its mapping is retired. |
 | Power Automate forbids nested termination | Loop failures set serial error variables; the only processing `Terminate` runs at top level after both loops. |
+| Power Automate forbids SetVariable self-reference | Failure assignments never read their own target; an empty-code guard preserves the first error across serial tickets. |
 | Power Automate limits control nesting to eight | Cutoff/ticket-page checks are top-level preflights and reply-page failure is a sibling guard; the measured deepest path has exactly eight control parents. |
 | Dedupe is durable | `SourceMessageId` is unique and queried before any exchange or dispatch write. All execution is serial. |
 | Native rule invocation is not delivery proof | State advances only to `AwaitingNativeRule`; the implementation has no `Delivered` state. |

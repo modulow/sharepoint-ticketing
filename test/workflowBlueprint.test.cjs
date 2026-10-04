@@ -236,6 +236,23 @@ test('Terminate actions are never nested in a foreach', () => {
   assert.equal(actionNamed('Fail_run_after_serial_processing').type, 'Terminate');
 });
 
+test('SetVariable actions never reference their assigned variable', () => {
+  const violations = [];
+  visitActions(definition.actions, (name, action) => {
+    if (action.type !== 'SetVariable') {
+      return;
+    }
+    const variableName = action.inputs.name;
+    const value = String(action.inputs.value);
+    if (value.includes(`variables('${variableName}')`)) {
+      violations.push(name);
+    }
+  });
+  assert.deepEqual(violations, []);
+  assert.match(actionNamed('Reply_page_limit_reached').expression, /empty\(variables\('FailureCode'\)\)/);
+  assert.match(actionNamed('Reply_is_new_human_content').expression, /empty\(variables\('FailureCode'\)\)/);
+});
+
 test('control nesting stays within the Power Automate limit', () => {
   const deepest = deepestControlPath(definition.actions);
   assert.equal(deepest.depth, 8);
