@@ -17,6 +17,7 @@ These `EuropaTickets` fields and rules are already live:
 - `TeamsReplyText`: single-line text, maximum 255;
 - `TeamsReplyAgent`: one Person, groups disabled;
 - `TeamsReplyDispatchToken`: single-line text, maximum 255;
+- `Assigned_x0020_to` (`Assigned to`): one Person, groups disabled;
 - enabled rule when `TeamsReplyDispatchToken` changes -> `Demandeur0`, message token
   `TeamsReplyText`;
 - enabled rule when `TeamsReplyDispatchToken` changes -> `TeamsReplyAgent`, message token
@@ -59,12 +60,16 @@ user in SharePoint, and checks effective `EditListItems` on that exact ticket it
 Laurent is not excluded merely because he owns the connections.
 SharePoint identity IDs are numeric at runtime. The authorization guard treats only
 `greater(int(coalesce(id, 0)), 0)` as present; it never calls `empty()` on an integer.
+The signature first name comes only from the verified SharePoint PeopleManager
+`UserProfileProperties` entry whose key is `FirstName`. The flow never guesses from
+`displayName` or the UPN, and fails closed when `FirstName` is absent or empty.
 
 HTML is converted with Content Conversion before classification. Only literal,
 case-sensitive `@user` followed by end-of-text, a space, LF or CRLF is public. The prefix
-is removed exactly once. Empty text and text over 255 characters are recorded as
-`FailedTerminal`, the run fails visibly, and nothing is truncated or dispatched. Other
-human replies are recorded once as `IgnoredInternal`.
+is removed exactly once. The requester-facing text is the unchanged reply followed by LF,
+the PeopleManager first name, LF and `learn.IT`. Empty replies or a complete signed text
+over 255 characters are recorded as `FailedTerminal`; the run fails visibly and nothing
+is truncated or dispatched. Other human replies are recorded once as `IgnoredInternal`.
 
 For a valid public reply, the flow creates a unique `Processing` exchange, writes
 `TeamsReplyText` and `TeamsReplyAgent`, re-reads and compares the requester, Teams thread,
@@ -72,8 +77,15 @@ text and agent, and only then changes `TeamsReplyDispatchToken`. The exchange be
 `AwaitingNativeRule` after that token update.
 
 The staged re-read uses SharePoint REST and explicitly selects `Demandeur0Id` and
-`TeamsReplyAgentId`. The native `Get item` action returns Person values without their
-numeric IDs in this tenant and must not be used for this correlation.
+`TeamsReplyAgentId`. It also selects `Assigned_x0020_toId`. The native `Get item` action
+returns Person values without their numeric IDs in this tenant and must not be used for
+this correlation.
+
+Before staging the reply, the flow reads `Assigned_x0020_toId`. If it is already
+positive, no assignment write occurs. If it is empty, an `IF-MATCH` MERGE using that
+read's ETag assigns the actual responder. A concurrent assignment makes the MERGE fail
+rather than overwrite another agent. The final correlation requires either the preserved
+existing assignee or the newly assigned first responder.
 
 This means:
 

@@ -16,7 +16,7 @@ test('resolves Kiwi fields from internal names and localized labels', () => {
     field('Descriptif', 'Descriptif', 'Note'),
     field('Demandeur0', 'Demandeur', 'User'),
     field('LegacyCategoryName', 'Catégorie', 'Choice'),
-    field('AssignedTo', 'Assigné à', 'User'),
+    field('Assigned_x0020_to', 'Assigned to', 'User'),
     field('R_x00e9_ponseaudemandeur', 'Réponse au demandeur', 'Text')
   ]), {
     title: 'Title',
@@ -25,7 +25,7 @@ test('resolves Kiwi fields from internal names and localized labels', () => {
     category: 'LegacyCategoryName',
     priority: undefined,
     status: undefined,
-    assignedTo: 'AssignedTo',
+    assignedTo: 'Assigned_x0020_to',
     dueDate: undefined,
     resolution: 'R_x00e9_ponseaudemandeur'
   });

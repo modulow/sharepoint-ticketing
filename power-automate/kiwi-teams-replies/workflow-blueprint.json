@@ -55,6 +55,13 @@
         "type": "Text",
         "maxLength": 255,
         "status": "created"
+      },
+      {
+        "internalName": "Assigned_x0020_to",
+        "displayName": "Assigned to",
+        "type": "User",
+        "allowMultipleValues": false,
+        "status": "existing-and-verified"
       }
     ],
     "TicketExchanges": [
@@ -113,14 +120,18 @@
     "Ignore application/system/root messages",
     "Skip every SourceMessageId already present in TicketExchanges",
     "Resolve the human author with Office 365 Users and require accountEnabled plus userPrincipalName",
+    "Read the SharePoint PeopleManager FirstName profile property and fail closed when it is absent",
     "Ensure the SharePoint user and require effective EditListItems on the exact EuropaTickets item",
     "Convert Teams HTML with Content Conversion before classification",
     "Treat only literal case-sensitive @user followed by end, space, LF or CRLF as public",
     "Record all other human replies once as Internal and never dispatch them",
     "Reject empty or greater-than-255 public text visibly without truncation",
+    "Append LF, the verified FirstName profile value, LF and learn.IT; validate the complete signed text within 255 characters",
     "Create the unique Processing exchange before staging requester fields",
     "Reject a later public reply while the same ticket has a Processing or AwaitingNativeRule exchange",
-    "Write TeamsReplyText and TeamsReplyAgent, then re-read requester, thread, text and agent",
+    "Re-read Assigned_x0020_toId and assign the responder with an ETag-protected MERGE only when it is empty",
+    "Preserve every existing assignee and fail rather than overwrite a concurrent assignment",
+    "Write signed TeamsReplyText and TeamsReplyAgent, then re-read requester, thread, text, agent and assignee",
     "Re-read staged requester and agent through SharePoint REST lookup-ID fields because native GetItem omits Person Id values",
     "Change only TeamsReplyDispatchToken after the re-read matches",
     "Mark the exchange AwaitingNativeRule after the token update",
@@ -146,6 +157,8 @@
     "SetVariable values never reference the variable being assigned; first-failure guards prevent later overwrites",
     "Numeric SharePoint identity fields are validated with greater(int(coalesce(value,0)),0), never empty(), because the cloud runtime rejects empty(Integer)",
     "Staged requester and agent correlation uses REST Demandeur0Id and TeamsReplyAgentId, not absent IDs inside native SPListExpandedUser objects",
+    "Agent signatures use PeopleManager FirstName and never infer a first name from displayName or userPrincipalName",
+    "Assigned_x0020_to is set only from an unassigned ETag snapshot; a pre-existing or concurrent assignee is never overwritten",
     "Native TicketExchanges CreateItem actions use item/Ticket/Id for the lookup and plain item/Source; REST filters continue to use the TicketId internal lookup-ID property",
     "The deepest concrete action path has exactly eight control parents, within the Power Automate save limit",
     "Queued native rules are never labelled delivered"

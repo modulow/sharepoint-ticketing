@@ -154,6 +154,35 @@ test('human identity and effective EditListItems are checked', () => {
   assert.doesNotMatch(serialized, /laurent\.anciaux/i);
 });
 
+test('requester communication uses verified PeopleManager first name signature', () => {
+  const profile = actionNamed('Get_agent_profile_properties');
+  assert.equal(profile.inputs.host.operationId, 'HttpRequest');
+  assert.match(
+    profile.inputs.parameters['parameters/uri'],
+    /PeopleManager\/GetPropertiesFor/
+  );
+  assert.match(
+    actionNamed('Filter_agent_first_name').inputs.where,
+    /FirstName/
+  );
+  assert.match(
+    actionNamed('Agent_first_name').inputs,
+    /empty\(body\('Filter_agent_first_name'\)\)/
+  );
+  assert.match(
+    actionNamed('Author_and_requester_are_authorized').expression,
+    /not\(empty\(outputs\('Agent_first_name'\)\)\)/
+  );
+  assert.equal(
+    actionNamed('Requester_reply_text').inputs,
+    "@concat(outputs('Public_reply_text'),decodeUriComponent('%0A'),outputs('Agent_first_name'),decodeUriComponent('%0A'),'learn.IT')"
+  );
+  assert.doesNotMatch(
+    actionNamed('Requester_reply_text').inputs,
+    /displayName|userPrincipalName/
+  );
+});
+
 test('numeric SharePoint identity IDs fail closed without empty(Integer)', () => {
   const authorization = actionNamed('Author_and_requester_are_authorized').expression;
   assert.match(
@@ -245,8 +274,8 @@ test('classification happens after HtmlToText with exact case-sensitive prefix',
 
 test('public replies outside 1-255 fail visibly and are never truncated', () => {
   const expression = actionNamed('Public_reply_length_is_valid').expression;
-  assert.match(expression, /greater\(length/);
-  assert.match(expression, /lessOrEquals\(length.*255/);
+  assert.match(expression, /greater\(length\(outputs\('Public_reply_text'\)\)/);
+  assert.match(expression, /lessOrEquals\(length\(outputs\('Requester_reply_text'\)\),255/);
   assert.match(
     actionNamed('Set_length_failure_message').inputs.value,
     /Nothing was truncated or dispatched/
@@ -264,7 +293,7 @@ test('dispatch stages and re-reads fields before token-only commit', () => {
   assert.equal(reread.inputs.parameters['parameters/method'], 'GET');
   assert.match(
     reread.inputs.parameters['parameters/uri'],
-    /\$select=Id,TeamsThreadId,Demandeur0Id,TeamsReplyText,TeamsReplyAgentId/
+    /\$select=Id,TeamsThreadId,Demandeur0Id,TeamsReplyText,TeamsReplyAgentId,Assigned_x0020_toId/
   );
   assert.equal(
     reread.inputs.parameters['parameters/headers'].Accept,
@@ -273,6 +302,7 @@ test('dispatch stages and re-reads fields before token-only commit', () => {
   const correlation = actionNamed('Staged_values_are_current').expression;
   assert.match(correlation, /Demandeur0Id/);
   assert.match(correlation, /TeamsReplyAgentId/);
+  assert.match(correlation, /Assigned_x0020_toId/);
   assert.match(correlation, /Ensure_SharePoint_author.*\?\['Id'\]/);
   assert.doesNotMatch(
     correlation,
@@ -293,6 +323,38 @@ test('dispatch stages and re-reads fields before token-only commit', () => {
     { Commit_dispatch_token_only: ['Succeeded'] }
   );
   assert.doesNotMatch(serialized, /R_x00e9_ponseaudemandeur/);
+});
+
+test('first responder assignment preserves existing or concurrent assignees', () => {
+  const reread = actionNamed('Re_read_assignment_before_stage');
+  assert.equal(reread.inputs.host.operationId, 'HttpRequest');
+  assert.match(
+    reread.inputs.parameters['parameters/uri'],
+    /\$select=Id,Assigned_x0020_toId/
+  );
+  const unassigned = actionNamed('Ticket_is_unassigned');
+  assert.match(unassigned.expression, /Assigned_x0020_toId/);
+  assert.match(unassigned.expression, /equals\(int\(coalesce/);
+
+  const assign = actionNamed('Assign_first_agent');
+  assert.equal(assign.inputs.host.operationId, 'HttpRequest');
+  assert.equal(assign.inputs.parameters['parameters/method'], 'POST');
+  assert.equal(
+    assign.inputs.parameters['parameters/headers']['IF-MATCH'],
+    "@body('Re_read_assignment_before_stage')?['@odata.etag']"
+  );
+  assert.equal(
+    assign.inputs.parameters['parameters/headers']['X-HTTP-Method'],
+    'MERGE'
+  );
+  assert.match(
+    assign.inputs.parameters['parameters/body'],
+    /Assigned_x0020_toId/
+  );
+  assert.deepEqual(
+    actionNamed('Stage_ticket_reply').runAfter,
+    { Ticket_is_unassigned: ['Succeeded'] }
+  );
 });
 
 test('Terminate actions are never nested in a foreach', () => {
@@ -335,8 +397,8 @@ test('control nesting stays within the Power Automate limit', () => {
     'Reply_is_public',
     'Public_reply_length_is_valid',
     'Author_and_requester_are_authorized',
-    'Staged_values_are_current',
-    'Commit_dispatch_token_only'
+    'Ticket_is_unassigned',
+    'Assign_first_agent'
   ]);
 });
 
