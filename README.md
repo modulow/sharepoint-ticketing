@@ -87,6 +87,18 @@ Members group.
 
 No package deployment or API approval is performed automatically by this repository.
 
+## Teams reply automation blueprint
+
+`power-automate/kiwi-teams-replies/` contains the validated implementation contract for
+polling Kiwi Teams thread replies and staging only literal `@user` replies for the
+requester. It includes durable `SourceMessageId` deduplication, effective-permission
+checks, activation cutoff, pagination, concurrency control, retry/terminal failure
+states, and an actual-agent/native-rule confirmation handshake.
+
+It is intentionally not presented as an importable ZIP: a valid Power Automate package
+must be exported from a solution with real connection references and Team/Channel IDs.
+See its `DEPLOYMENT.md` for the exact tenant-side build, validation and export steps.
+
 ## Legacy modulow provisioning reference
 
 The remaining provisioning instructions describe the original demonstration tenant.
