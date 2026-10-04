@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive demonstration of the Support IT SharePoint ticketing portal.">
+  <title>Support IT — Interactive demo</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-copy">
+      <h1><span>Hello,</span>welcome to Learn IT Helpdesk</h1>
+      <p>Fast, simple support for every question, incident and request.</p>
+    </div>
+  </header>
+
+  <nav class="main-nav" aria-label="Demo navigation">
+    <button class="active" data-view="dashboard" type="button">Dashboard</button>
+    <button data-view="create" type="button">Create a ticket</button>
+    <button data-view="tickets" type="button">All tickets</button>
+    <button data-view="management" type="button">Agent management</button>
+  </nav>
+
+  <main id="app" tabindex="-1"></main>
+
+  <footer class="team-footer">
+    <div class="footer-intro">
+      <span>People behind the helpdesk</span>
+      <h2>Meet the Support IT team</h2>
+      <p>Generic sample roles for this browser-only demonstration.</p>
+    </div>
+    <ul class="team">
+      <li><b class="yellow">A1</b><span><strong>Demo agent 1</strong><small>Service desk lead</small></span></li>
+      <li><b class="sky">A2</b><span><strong>Demo agent 2</strong><small>Workplace specialist</small></span></li>
+      <li><b class="coral">A3</b><span><strong>Demo agent 3</strong><small>Microsoft 365 expert</small></span></li>
+      <li><b class="mint">A4</b><span><strong>Demo agent 4</strong><small>Network engineer</small></span></li>
+      <li><b class="blue">A5</b><span><strong>Demo agent 5</strong><small>Security analyst</small></span></li>
+      <li><b class="white">A6</b><span><strong>Demo agent 6</strong><small>Support technician</small></span></li>
+    </ul>
+    <div class="footer-bottom">
+      <span>European Parliament · Support IT demo</span>
+      <span>No private tenant data is loaded on this page.</span>
+      <button id="reset-demo" type="button">Reset demo data</button>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
