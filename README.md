@@ -96,6 +96,26 @@ page and point the portal at that page; the public static demo cannot supply tho
 without a separately approved authenticated architecture. No portal/tenant changes,
 live writes, flow toggles or live reply tests are performed by this repository change.
 
+The portal deep link `?action=create` immediately renders the **Create a ticket** landing
+view with the secure native intake link. Arrival itself does not attempt a popup; Microsoft
+authentication opens only after an explicit click. Ordinary creation buttons still open
+intake directly without replacing the current dashboard or list.
+
+The static queue and sample agent workspace also expose **Open Kiwi agent queue** and
+**Open reply exchanges** links to the real `EuropaTickets` and `TicketExchanges` lists.
+Intake and these live tools reuse the named `kiwi-ticket-form` popup where the retained
+window handle permits it; the same destination only refocuses it. Switching destinations
+navigates that window and may discard unsaved native form changes. Browser isolation,
+closing the window, or reloading the landing page may require a new popup. Each blocked
+action has an accessible fallback link to its exact destination. These links do not
+grant permissions, read list contents into the public UI, or dispatch Teams replies.
+
+This reconciles the earlier popup proposal's deep-link, named-window, queue and exchange
+links without copying its stale baseline. Its automatic view replacement after ordinary
+creation clicks, mixed live/sample creation form, and post-navigation opener clearing
+are intentionally not retained: the current UI preserves its landing view, separates
+sample submission, and clears the opener before initial authenticated navigation.
+
 The assignment selector expands transitive user members of the real learn.IT Microsoft
 365 group through Microsoft Graph, then calls SharePoint `ensureuser` so updates use the
 correct site user IDs. It never adds members. If expansion is unavailable, the management

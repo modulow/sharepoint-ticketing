@@ -24,9 +24,9 @@ const makePopup = () => {
   return popup;
 };
 
-function staticPage(t, popup) {
+function staticPage(t, popup, search = '') {
   const dom = new JSDOM(fs.readFileSync(path.join(root, 'docs', 'index.html'), 'utf8'), {
-    url: 'https://example.test/sharepoint-ticketing/',
+    url: `https://example.test/sharepoint-ticketing/${search}`,
     runScripts: 'outside-only'
   });
   t.after(() => dom.window.close());
@@ -52,7 +52,7 @@ test('SPFx popup opens compact isolated window and preserves the exact native fo
   global.window = { open: (...args) => { calls.push(args); return popup; } };
   t.after(() => { global.window = originalWindow; });
   assert.equal(openIntakePopup(KIWI_INTAKE_FORM_URL), popup);
-  assert.deepEqual(calls, [['about:blank', '_blank', 'popup,width=520,height=720']]);
+  assert.deepEqual(calls, [['about:blank', 'kiwi-ticket-form', 'popup,width=520,height=720,resizable=yes,scrollbars=yes']]);
   assert.deepEqual(popup.locations, [KIWI_INTAKE_FORM_URL]);
 });
 
@@ -70,7 +70,7 @@ test('all static Create controls open native intake synchronously without replac
   const dashboard = app.innerHTML;
   page.document.querySelector('[data-view="create"]').click();
   assert.equal(page.calls.length, 1);
-  assert.deepEqual(page.calls[0], ['about:blank', '_blank', 'popup,width=520,height=720']);
+  assert.deepEqual(page.calls[0], ['about:blank', 'kiwi-ticket-form', 'popup,width=520,height=720,resizable=yes,scrollbars=yes']);
   assert.equal(app.innerHTML, dashboard);
   assert.deepEqual(popup.locations, [KIWI_INTAKE_FORM_URL]);
   page.document.querySelector('[data-go="create"]').click();
@@ -122,6 +122,66 @@ test('sample form opens in a labelled modal, cancels without writes, and only sa
   assert.equal(page.dialog.hasAttribute('open'), false);
   assert.equal(JSON.parse(page.window.localStorage.getItem('support-it-demo'))[0].subject, 'Local sample only');
   assert.equal(page.calls.length, 0);
+});
+
+test('action=create renders live intake landing immediately without attempting an automatic popup', t => {
+  const page = staticPage(t, makePopup(), '?source=portal&action=create');
+  assert.equal(page.document.querySelector('#app h2').textContent, 'Create a ticket');
+  assert.ok(page.document.querySelector('[data-view="create"]').classList.contains('active'));
+  assert.equal(page.document.querySelector('#ticket-form'), null, 'no ambiguous demo intake on arrival');
+  assert.equal(page.calls.length, 0, 'authentication popup requires an explicit click');
+  const link = page.document.querySelector('[data-live-tool]');
+  assert.equal(link.href, KIWI_INTAKE_FORM_URL);
+  link.click();
+  assert.equal(page.calls.length, 1);
+  assert.equal(page.document.querySelector('#app h2').textContent, 'Create a ticket');
+  page.document.querySelector('[data-sample-form]').click();
+  assert.ok(page.document.querySelector('#ticket-form'));
+  assert.equal(page.window.localStorage.getItem('support-it-demo'), null);
+});
+
+test('unknown action keeps dashboard landing', t => {
+  const page = staticPage(t, null, '?action=tickets');
+  assert.ok(page.document.querySelector('#app .summary-grid'));
+  assert.equal(page.calls.length, 0);
+});
+
+test('queue and exchanges reuse native intake window across demo queue and agent rerenders', t => {
+  const popup = makePopup();
+  const page = staticPage(t, popup);
+  page.document.querySelector('[data-view="create"]').click();
+  page.document.querySelector('[data-view="tickets"]').click();
+  const queue = page.document.querySelector('#app').innerHTML;
+  const links = page.document.querySelectorAll('[data-live-tool]');
+  links[0].click();
+  assert.equal(popup.locations.at(-1), 'https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/EuropaTickets/AllItems.aspx');
+  links[1].click();
+  assert.equal(popup.locations.at(-1), 'https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/TicketExchanges/AllItems.aspx');
+  assert.equal(page.document.querySelector('#app').innerHTML, queue);
+  page.document.querySelector('[data-view="management"]').click();
+  page.document.querySelector('[data-agent="unassigned"]').click();
+  page.document.querySelector('[data-live-tool]').click();
+  page.document.querySelector('[data-view="create"]').click();
+  assert.equal(popup.locations.at(-1), KIWI_INTAKE_FORM_URL, 'intake retargets the shared window after a list action');
+  assert.equal(page.calls.length, 1);
+  assert.equal(page.window.localStorage.getItem('support-it-demo'), null);
+});
+
+test('blocked queue and exchange popups retain exact live destination fallback', t => {
+  const page = staticPage(t, null);
+  page.document.querySelector('[data-view="tickets"]').click();
+  const links = [...page.document.querySelectorAll('[data-live-tool]')];
+  for (const link of links) {
+    link.click();
+    assert.ok(page.dialog.hasAttribute('open'));
+    assert.equal(page.dialog.querySelector('a').href, link.href);
+    assert.equal(page.dialog.querySelector('a').rel, 'noreferrer');
+    page.document.querySelector('#retry-popup').click();
+    assert.equal(page.dialog.querySelector('a').href, link.href);
+    page.document.querySelector('#close-dialog').click();
+  }
+  assert.equal(page.calls.length, 4);
+  assert.equal(page.window.localStorage.getItem('support-it-demo'), null);
 });
 
 test('SharePoint UI preserves landing view, refreshes on popup closure, and opens ticket detail in a modal', async t => {
