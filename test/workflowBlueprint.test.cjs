@@ -124,7 +124,14 @@ test('human identity and effective EditListItems are checked', () => {
     actionNamed('Check_author_permission').inputs.parameters['parameters/uri'],
     /items\(.*For_each_ticket.*getUserEffectivePermissions/
   );
-  assert.match(actionNamed('Author_and_requester_are_authorized').expression, /div\(int.*4/);
+  const authorization = actionNamed('Author_and_requester_are_authorized').expression;
+  assert.match(authorization, /div\(int.*4/);
+  assert.match(authorization, /\?\['Low'\]/);
+  assert.match(authorization, /\?\['GetUserEffectivePermissions'\]\?\['Low'\]/);
+  assert.match(
+    authorization,
+    /\?\['d'\]\?\['GetUserEffectivePermissions'\]\?\['Low'\]/
+  );
   assert.doesNotMatch(serialized, /laurent\.anciaux/i);
 });
 

@@ -337,7 +337,7 @@
                                       "actions": {
                                         "Author_and_requester_are_authorized": {
                                           "type": "If",
-                                          "expression": "@and(equals(length(body('Find_pending_dispatch')?['value']),0),equals(body('Get_Teams_author')?['accountEnabled'],true),not(empty(body('Get_Teams_author')?['userPrincipalName'])),greater(int(coalesce(body('Ensure_SharePoint_author')?['Id'],0)),0),not(empty(items('For_each_ticket')?['Demandeur0Id'])),equals(mod(div(int(coalesce(body('Check_author_permission')?['Low'],body('Check_author_permission')?['d']?['GetUserEffectivePermissions']?['Low'],0)),4),2),1))",
+                                          "expression": "@and(equals(length(body('Find_pending_dispatch')?['value']),0),equals(body('Get_Teams_author')?['accountEnabled'],true),not(empty(body('Get_Teams_author')?['userPrincipalName'])),greater(int(coalesce(body('Ensure_SharePoint_author')?['Id'],0)),0),not(empty(items('For_each_ticket')?['Demandeur0Id'])),equals(mod(div(int(coalesce(body('Check_author_permission')?['Low'],body('Check_author_permission')?['GetUserEffectivePermissions']?['Low'],body('Check_author_permission')?['d']?['GetUserEffectivePermissions']?['Low'],0)),4),2),1))",
                                           "actions": {
                                             "Create_processing_exchange": {
                                               "type": "OpenApiConnection",
