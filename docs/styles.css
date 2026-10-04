@@ -24,6 +24,35 @@ body {
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 .live-form-link { display: inline-block; text-decoration: none; }
+[hidden] { display: none !important; }
+.ticket-dialog {
+  background: var(--pale);
+  border: 0;
+  border-top: 6px solid var(--yellow);
+  color: var(--ink);
+  padding: 0;
+  width: min(720px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+}
+.ticket-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.dialog-header {
+  align-items: center;
+  background: #fff;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+  position: sticky;
+  top: 0;
+}
+.dialog-header h2 { font-size: 1.4rem; margin: 0; }
+.dialog-body { padding: 1rem; overflow-wrap: anywhere; }
+.dialog-body .actions { flex-wrap: wrap; }
+.dialog-body a { color: var(--blue); }
+.dialog-body a.primary { color: #fff; }
+#intake-status { margin: 1rem auto; max-width: 1100px; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 3px;

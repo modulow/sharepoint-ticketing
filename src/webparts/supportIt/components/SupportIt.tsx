@@ -9,8 +9,10 @@ import {
   type IUserContext
 } from '../models/Ticket';
 import { formatDate, summarizeTickets } from '../utils/ticketUtils';
+import TicketDialog from './TicketDialog';
+import { openIntakePopup } from '../utils/intakePopup';
 
-type View = 'dashboard' | 'create' | 'tickets';
+type View = 'dashboard' | 'tickets';
 
 const resources = [
   {
@@ -128,6 +130,8 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     .split(/\s+/)[0]
     .replace(/^./, character => character.toUpperCase());
   const [view, setView] = React.useState<View>('dashboard');
+  const [intakeBlocked, setIntakeBlocked] = React.useState(false);
+  const [intakePopup, setIntakePopup] = React.useState<Window>();
   const [context, setContext] = React.useState<IUserContext>();
   const [tickets, setTickets] = React.useState<ITicket[]>([]);
   const [selectedTicket, setSelectedTicket] = React.useState<ITicket>();
@@ -136,8 +140,8 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   const [error, setError] = React.useState<string>();
   const [notice, setNotice] = React.useState<string>();
 
-  const load = React.useCallback(async (): Promise<void> => {
-    setLoading(true);
+  const load = React.useCallback(async (background = false): Promise<void> => {
+    if (!background) setLoading(true);
     setError(undefined);
     try {
       const currentContext = await service.getUserContext();
@@ -154,6 +158,18 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   React.useEffect(() => {
     load().catch(() => undefined);
   }, [load]);
+
+  React.useEffect(() => {
+    if (!intakePopup) return;
+    const timer = window.setInterval(() => {
+      if (intakePopup.closed) {
+        setIntakePopup(undefined);
+        setNotice(undefined);
+        load(true).catch(() => undefined);
+      }
+    }, 750);
+    return () => window.clearInterval(timer);
+  }, [intakePopup, load]);
 
   const summary = React.useMemo(() => summarizeTickets(tickets), [tickets]);
 
@@ -205,6 +221,23 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     setError(undefined);
   };
 
+  const openIntake = (): void => {
+    setError(undefined);
+    if (intakePopup && !intakePopup.closed) {
+      intakePopup.focus();
+      return;
+    }
+    const popup = openIntakePopup(service.getIntakeFormUrl());
+    setIntakePopup(popup);
+    setIntakeBlocked(!popup);
+    if (popup) setNotice('The secure Kiwi form is open in a small window. Submit there, then close it to refresh your tickets.');
+  };
+
+  const closeIntakeFallback = (): void => {
+    setIntakeBlocked(false);
+    load(true).catch(() => undefined);
+  };
+
   const renderStatus = (ticket: ITicket): React.ReactElement => (
     <span className={`${styles.badge} ${statusClass[ticket.status]}`}>{ticket.status}</span>
   );
@@ -216,7 +249,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           <span className={styles.eyebrow}>{context?.isAgent ? 'Team view' : 'Personal tracking'}</span>
           <h2 id="tickets-title">{context?.isAgent ? 'All tickets' : 'My tickets'}</h2>
         </div>
-        <button className={styles.primaryButton} type="button" onClick={() => navigate('create')}>
+        <button className={styles.primaryButton} type="button" onClick={openIntake}>
           + Create a ticket
         </button>
       </div>
@@ -257,7 +290,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
 
   const renderDetail = (ticket: ITicket): React.ReactElement => (
     <section aria-labelledby="detail-title" className={styles.detail}>
-      <button className={styles.backButton} type="button" onClick={() => setSelectedTicket(undefined)}>
+      <button className={styles.backButton} type="button" disabled={saving} onClick={() => setSelectedTicket(undefined)}>
         ← Back to tickets
       </button>
       <div className={styles.detailHero}>
@@ -285,6 +318,8 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           </dl>
         </aside>
       </div>
+      {error && <div className={styles.error} role="alert">{error}</div>}
+      {notice && <div className={styles.notice} role="status">{notice}</div>}
       {context?.isAgent && (
         <form className={styles.agentForm} onSubmit={event => { updateTicket(event, ticket).catch(() => undefined); }}>
           <div className={styles.sectionHeading}>
@@ -316,22 +351,6 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     </section>
   );
 
-  const renderCreate = (): React.ReactElement => (
-    <section className={styles.createPanel} aria-labelledby="create-title">
-      <div>
-        <span className={styles.eyebrow}>Kiwi intake</span>
-        <h2 id="create-title">Create a Kiwi ticket</h2>
-        <p>The official Microsoft Lists form records you as the author and supports file attachments.</p>
-      </div>
-      <div className={styles.formActions}>
-        <button className={styles.secondaryButton} type="button" onClick={() => navigate('dashboard')}>Cancel</button>
-        <a className={styles.primaryButton} href={service.getIntakeFormUrl()} target="_blank" rel="noreferrer">
-          Open the secure Kiwi form ↗
-        </a>
-      </div>
-    </section>
-  );
-
   return (
     <main className={styles.supportIt}>
       <a className={styles.skipLink} href="#support-content">Skip to content</a>
@@ -347,22 +366,23 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       </header>
       <nav className={styles.nav} aria-label="Portal navigation">
         <button aria-current={view === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}>Dashboard</button>
-        <button aria-current={view === 'create' ? 'page' : undefined} onClick={() => navigate('create')}>Create a ticket</button>
+        <button onClick={openIntake}>Create a ticket</button>
         <button aria-current={view === 'tickets' ? 'page' : undefined} onClick={() => navigate('tickets')}>
           {context?.isAgent ? 'All tickets' : 'My tickets'}
         </button>
+        <button type="button" disabled={loading} onClick={() => { load(true).catch(() => undefined); }}>Refresh tickets</button>
       </nav>
       <div id="support-content" className={styles.content} tabIndex={-1}>
-        {error && <div className={styles.error} role="alert"><strong>Something went wrong.</strong><span>{error}</span><button type="button" onClick={() => { load().catch(() => undefined); }}>Try again</button></div>}
-        {notice && <div className={styles.notice} role="status">{notice}</div>}
+        {error && !selectedTicket && <div className={styles.error} role="alert"><strong>Something went wrong.</strong><span>{error}</span><button type="button" onClick={() => { load().catch(() => undefined); }}>Try again</button></div>}
+        {notice && !selectedTicket && <div className={styles.notice} role="status">{notice}</div>}
         {loading ? (
           <div className={styles.loading} role="status"><span /><p>Loading your support workspace…</p></div>
-        ) : selectedTicket ? renderDetail(selectedTicket) : view === 'create' ? renderCreate() : view === 'tickets' ? renderTickets() : (
+        ) : view === 'tickets' ? renderTickets() : (
           <>
             <section className={styles.summary} aria-labelledby="summary-title">
               <div className={styles.sectionHeading}>
                 <div><span className={styles.eyebrow}>Overview</span><h2 id="summary-title">Your requests at a glance</h2></div>
-                <button className={styles.primaryButton} type="button" onClick={() => navigate('create')}>+ Create a ticket</button>
+                <button className={styles.primaryButton} type="button" onClick={openIntake}>+ Create a ticket</button>
               </div>
               <div className={styles.summaryGrid}>
                 <button className={styles.summaryCard} onClick={() => navigate('tickets')}><span>Open tickets</span><strong>{summary.open}</strong><small>Needs attention</small></button>
@@ -438,6 +458,21 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           <span>Here when technology gets in the way.</span>
         </div>
       </footer>
+      {intakeBlocked && (
+        <TicketDialog title="Kiwi form window blocked" onDismiss={closeIntakeFallback}>
+          <p role="alert">Your browser blocked the form popup. Allow popups for this site and try again, or use the secure link below.</p>
+          <p>Submit your request in the official form before closing it. Your ticketing page stays open; closing this dialog refreshes tickets but does not submit a request.</p>
+          <div className={styles.formActions}>
+            <button className={styles.secondaryButton} type="button" onClick={() => { setIntakeBlocked(false); openIntake(); }}>Try popup again</button>
+            <a className={styles.primaryButton} href={service.getIntakeFormUrl()} target="_blank" rel="noreferrer">Open secure Kiwi form</a>
+          </div>
+        </TicketDialog>
+      )}
+      {selectedTicket && (
+        <TicketDialog title={`Ticket #${selectedTicket.id}`} dismissDisabled={saving} onDismiss={() => setSelectedTicket(undefined)}>
+          {renderDetail(selectedTicket)}
+        </TicketDialog>
+      )}
     </main>
   );
 };

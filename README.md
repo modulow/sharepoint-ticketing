@@ -60,10 +60,61 @@ authored by the signed-in user. This covers email-created requests whose technic
 is the flow owner and form-created requests whose Author is the requester. The displayed
 requester likewise prefers `Demandeur0` and falls back to Author.
 
-Ticket creation deliberately opens the existing modern Lists form rather than posting a
+Ticket creation deliberately opens the existing modern Lists form in a compact browser
+popup (520 x 720 requested; browsers may choose a tab on mobile) rather than posting a
 partial item through REST. This preserves attachments, actual `Author`, native rules and
-the existing creation flow. The form currently does not populate `Demandeur0` or
-`TeamsThreadId`; wiring those fields into the form/flow remains a tenant-side task.
+the existing creation flow. Every existing **Create a ticket** button opens the popup
+synchronously from the click, leaving the dashboard/list and current filters in place.
+The form is not embedded in an iframe: Microsoft sign-in is unreliable in cross-domain
+frames. The popup's opener is cleared before it navigates to the authenticated form.
+A blocked popup displays an accessible dialog with a normal secure-form link; that
+fallback may open a tab. No ticket creation or reply is performed by the client.
+
+The SharePoint web part refreshes ticket reads after the popup closes, without treating
+closure as successful submission. Submission is performed only inside the native form.
+If the fallback link is used, close the fallback dialog after submitting to refresh.
+**Refresh tickets** also performs a read-only refresh, including when browser isolation
+prevents reliable popup-closure tracking.
+Ticket cards open details and existing agent updates in a responsive, focus-trapped
+Fluent UI modal with Close and Escape dismissal and focus restoration. Closing is
+disabled while an agent save is in progress.
+
+### Europa portal landing page
+
+`https://ep.europa.kiwi/sharepoint-ticketing/` currently serves the static `docs/`
+browser-only demonstration, **not** the authenticated SharePoint web part. Its existing
+**Create a ticket** buttons now open the real Kiwi intake popup directly. **Try sample
+form** opens an explicitly labelled local-only modal; ticket lists and agent management
+remain sample data and do not read private SharePoint data. Real intake goes through the
+existing SharePoint/Teams automation; this UI does not send Teams replies or modify flows.
+
+The Europa portal's link is maintained in a separate repository. It should open the above
+ticketing URL in the same tab, not navigate directly to the Lists form. Publish the updated
+`docs/` assets to the hosting pipeline serving that route. To provide authenticated live
+ticket tracking/agent management, deploy the SPFx package to the existing Kiwi SharePoint
+page and point the portal at that page; the public static demo cannot supply those features
+without a separately approved authenticated architecture. No portal/tenant changes,
+live writes, flow toggles or live reply tests are performed by this repository change.
+
+The portal deep link `?action=create` immediately renders the **Create a ticket** landing
+view with the secure native intake link. Arrival itself does not attempt a popup; Microsoft
+authentication opens only after an explicit click. Ordinary creation buttons still open
+intake directly without replacing the current dashboard or list.
+
+The static queue and sample agent workspace also expose **Open Kiwi agent queue** and
+**Open reply exchanges** links to the real `EuropaTickets` and `TicketExchanges` lists.
+Intake and these live tools reuse the named `kiwi-ticket-form` popup where the retained
+window handle permits it; the same destination only refocuses it. Switching destinations
+navigates that window and may discard unsaved native form changes. Browser isolation,
+closing the window, or reloading the landing page may require a new popup. Each blocked
+action has an accessible fallback link to its exact destination. These links do not
+grant permissions, read list contents into the public UI, or dispatch Teams replies.
+
+This reconciles the earlier popup proposal's deep-link, named-window, queue and exchange
+links without copying its stale baseline. Its automatic view replacement after ordinary
+creation clicks, mixed live/sample creation form, and post-navigation opener clearing
+are intentionally not retained: the current UI preserves its landing view, separates
+sample submission, and clears the opener before initial authenticated navigation.
 
 The assignment selector expands transitive user members of the real learn.IT Microsoft
 365 group through Microsoft Graph, then calls SharePoint `ensureuser` so updates use the
@@ -73,7 +124,7 @@ Members group.
 
 ### Deploy to Kiwi
 
-1. Upload `sharepoint/solution/support-it-ticketing.sppkg` version `1.8.0.0` to the
+1. Upload `sharepoint/solution/support-it-ticketing.sppkg` version `1.8.1.0` to the
    European Parliament tenant App Catalog and deploy it.
 2. In the SharePoint admin center, approve the package's pending Microsoft Graph
    `GroupMember.Read.All` API request.

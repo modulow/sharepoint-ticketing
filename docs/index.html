@@ -18,11 +18,21 @@
   <nav class="main-nav" aria-label="Demo navigation">
     <button class="active" data-view="dashboard" type="button">Dashboard</button>
     <button data-view="create" type="button">Create a ticket</button>
+    <button data-demo-create type="button" aria-haspopup="dialog">Try sample form</button>
     <button data-view="tickets" type="button">All tickets</button>
     <button data-view="management" type="button">Agent management</button>
   </nav>
 
+  <p id="intake-status" class="notice" role="status" hidden></p>
   <main id="app" tabindex="-1"></main>
+
+  <dialog id="ticket-dialog" class="ticket-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-header">
+      <h2 id="dialog-title"></h2>
+      <button id="close-dialog" class="secondary" type="button" aria-label="Close ticket window">Close</button>
+    </div>
+    <div id="dialog-body" class="dialog-body"></div>
+  </dialog>
 
   <footer class="team-footer">
     <div class="footer-intro">
