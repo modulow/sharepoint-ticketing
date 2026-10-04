@@ -1,13 +1,13 @@
 {
   "name": "support-it-ticketing",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "private": true,
   "engines": {
     "node": ">=22.14.0 < 23.0.0"
   },
   "scripts": {
     "build": "heft test --clean --production && heft package-solution --production",
-    "test": "heft test --clean && node --test test/ticketUtils.test.cjs test/ticketSchema.test.cjs test/permissionUtils.test.cjs test/workflowBlueprint.test.cjs",
+    "test": "heft test --clean && node --test test/ticketUtils.test.cjs test/ticketSchema.test.cjs test/permissionUtils.test.cjs test/workflowBlueprint.test.cjs test/publicPortal.test.cjs",
     "lint": "heft build --clean",
     "clean": "heft clean",
     "eject-webpack": "heft eject-webpack",
