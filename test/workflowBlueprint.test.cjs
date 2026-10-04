@@ -170,6 +170,36 @@ test('SourceMessageId is checked before durable processing', () => {
   assert.equal(source.enforceUniqueValues, true);
 });
 
+test('native TicketExchanges writes use the verified live connector keys', () => {
+  const createNames = [
+    'Create_processing_exchange',
+    'Record_unauthorized_reply',
+    'Record_invalid_public_length',
+    'Record_internal_exchange'
+  ];
+
+  for (const name of createNames) {
+    const parameters = actionNamed(name).inputs.parameters;
+    assert.equal(parameters['item/Ticket/Id'], "@items('For_each_ticket')?['Id']");
+    assert.equal(parameters['item/Source'], 'Teams');
+    assert.equal(parameters['item/TicketId'], undefined);
+    assert.equal(parameters['item/Source/Value'], undefined);
+  }
+
+  assert.equal(
+    contract.verifiedNativeCreateItemKeys['item/Ticket/Id'],
+    'ticket lookup ID expression'
+  );
+  assert.equal(
+    contract.verifiedNativeCreateItemKeys['item/Source'],
+    'plain text value'
+  );
+  assert.match(
+    actionNamed('Find_pending_dispatch').inputs.parameters['parameters/uri'],
+    /TicketId eq/
+  );
+});
+
 test('a pending native-rule dispatch blocks a later public reply on the ticket', () => {
   assert.match(
     actionNamed('Find_pending_dispatch').inputs.parameters['parameters/uri'],
