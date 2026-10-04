@@ -28,6 +28,7 @@ const statuses = ['New', 'In progress', 'Waiting', 'Resolved', 'Closed'];
 const priorities = ['Low', 'Normal', 'High', 'Critical'];
 const categories = ['Hardware', 'Software', 'Access', 'Network', 'Telephony', 'Other'];
 const kiwiIntakeFormUrl = 'https://europarl.sharepoint.com/:l:/s/learn.IT-Kiwi/JAAt_nP2M5fdRpr-S_YUyZICAaohrMu1P2lFpVhNeblaX-k?nav=Nzk3NjUwYjUtNmViMi00YzE1LTlhM2EtMDg4MzY3ZjlmZDBh';
+const kiwiTicketListUrl = 'https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/EuropaTickets/AllItems.aspx';
 const app = document.querySelector('#app');
 let tickets = JSON.parse(localStorage.getItem('support-it-demo') || 'null') || structuredClone(seedTickets);
 let view = 'dashboard';
@@ -122,7 +123,7 @@ function renderTickets() {
     ? ['Selected ticket', ticket => ticket.id === exactId]
     : (filters[ticketFilter] || filters.all);
   const visibleTickets = tickets.filter(predicate);
-  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Requests</span><h2>${title}</h2></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}<button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
+  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Sample requests</span><h2>${title}</h2><p>This list contains browser-only demo data.</p></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}<a class="secondary live-form-link" href="${kiwiTicketListUrl}" target="_blank" rel="noreferrer">Open my secure Kiwi list ↗</a><button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
 }
 
 function renderManagement() {
