@@ -122,6 +122,20 @@ const priorityClass: Record<ITicket['priority'], string> = {
   'Critical': styles.priorityCritical
 };
 
+const intakePopupName = 'kiwi-ticket-form';
+const intakePopupFeatures = 'popup=yes,width=520,height=720,resizable=yes,scrollbars=yes';
+
+const openIntakePopup = (url: string): boolean => {
+  const popup = window.open(url, intakePopupName, intakePopupFeatures);
+  if (!popup) {
+    return false;
+  }
+
+  popup.opener = null;
+  popup.focus();
+  return true;
+};
+
 const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   const firstName = userDisplayName
     .trim()
@@ -205,6 +219,14 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
     setError(undefined);
   };
 
+  const openCreateTicket = (): void => {
+    const opened = openIntakePopup(service.getIntakeFormUrl());
+    navigate('create');
+    if (!opened) {
+      setNotice('The popup was blocked. Use the secure form link below to continue.');
+    }
+  };
+
   const renderStatus = (ticket: ITicket): React.ReactElement => (
     <span className={`${styles.badge} ${statusClass[ticket.status]}`}>{ticket.status}</span>
   );
@@ -216,7 +238,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
           <span className={styles.eyebrow}>{context?.isAgent ? 'Team view' : 'Personal tracking'}</span>
           <h2 id="tickets-title">{context?.isAgent ? 'All tickets' : 'My tickets'}</h2>
         </div>
-        <button className={styles.primaryButton} type="button" onClick={() => navigate('create')}>
+        <button className={styles.primaryButton} type="button" onClick={openCreateTicket}>
           + Create a ticket
         </button>
       </div>
@@ -325,7 +347,17 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       </div>
       <div className={styles.formActions}>
         <button className={styles.secondaryButton} type="button" onClick={() => navigate('dashboard')}>Cancel</button>
-        <a className={styles.primaryButton} href={service.getIntakeFormUrl()} target="_blank" rel="noreferrer">
+        <a
+          className={styles.primaryButton}
+          href={service.getIntakeFormUrl()}
+          target={intakePopupName}
+          rel="noreferrer"
+          onClick={event => {
+            if (openIntakePopup(service.getIntakeFormUrl())) {
+              event.preventDefault();
+            }
+          }}
+        >
           Open the secure Kiwi form ↗
         </a>
       </div>
@@ -347,7 +379,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
       </header>
       <nav className={styles.nav} aria-label="Portal navigation">
         <button aria-current={view === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}>Dashboard</button>
-        <button aria-current={view === 'create' ? 'page' : undefined} onClick={() => navigate('create')}>Create a ticket</button>
+        <button aria-current={view === 'create' ? 'page' : undefined} onClick={openCreateTicket}>Create a ticket</button>
         <button aria-current={view === 'tickets' ? 'page' : undefined} onClick={() => navigate('tickets')}>
           {context?.isAgent ? 'All tickets' : 'My tickets'}
         </button>
@@ -362,7 +394,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
             <section className={styles.summary} aria-labelledby="summary-title">
               <div className={styles.sectionHeading}>
                 <div><span className={styles.eyebrow}>Overview</span><h2 id="summary-title">Your requests at a glance</h2></div>
-                <button className={styles.primaryButton} type="button" onClick={() => navigate('create')}>+ Create a ticket</button>
+                <button className={styles.primaryButton} type="button" onClick={openCreateTicket}>+ Create a ticket</button>
               </div>
               <div className={styles.summaryGrid}>
                 <button className={styles.summaryCard} onClick={() => navigate('tickets')}><span>Open tickets</span><strong>{summary.open}</strong><small>Needs attention</small></button>

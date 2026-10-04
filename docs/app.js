@@ -29,9 +29,10 @@ const priorities = ['Low', 'Normal', 'High', 'Critical'];
 const categories = ['Hardware', 'Software', 'Access', 'Network', 'Telephony', 'Other'];
 const kiwiIntakeFormUrl = 'https://europarl.sharepoint.com/:l:/s/learn.IT-Kiwi/JAAt_nP2M5fdRpr-S_YUyZICAaohrMu1P2lFpVhNeblaX-k?nav=Nzk3NjUwYjUtNmViMi00YzE1LTlhM2EtMDg4MzY3ZjlmZDBh';
 const kiwiTicketListUrl = 'https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/EuropaTickets/AllItems.aspx';
+const kiwiTicketExchangeListUrl = 'https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/TicketExchanges/AllItems.aspx';
 const app = document.querySelector('#app');
 let tickets = JSON.parse(localStorage.getItem('support-it-demo') || 'null') || structuredClone(seedTickets);
-let view = 'dashboard';
+let view = window.KiwiSecurePopup.initialView(window.location.search);
 let selectedId = tickets[0]?.id;
 let agentFilter = 'all';
 let ticketFilter = 'all';
@@ -74,7 +75,7 @@ function ticketRow(ticket, opensList = false) {
 
 function renderCreate() {
   app.innerHTML = `<section class="form-panel"><span class="eyebrow">Kiwi intake</span><h2>Create a ticket</h2><p><strong>Live form:</strong> opens the organisation's secure Microsoft Lists intake form. This public demo never reads or stores private SharePoint data.</p>
-    <p><a class="primary live-form-link" href="${kiwiIntakeFormUrl}" target="_blank" rel="noreferrer">Open the secure Kiwi form ↗</a></p>
+    <p><a class="primary live-form-link secure-popup-link" href="${kiwiIntakeFormUrl}" target="kiwi-ticket-form" rel="noreferrer">Open the secure Kiwi form ↗</a></p>
     <hr>
     <span class="eyebrow">Browser-only demo</span><h3>Try the sample workflow</h3><p>The form below stores sample data only in this browser.</p>
     <form id="ticket-form">
@@ -123,7 +124,7 @@ function renderTickets() {
     ? ['Selected ticket', ticket => ticket.id === exactId]
     : (filters[ticketFilter] || filters.all);
   const visibleTickets = tickets.filter(predicate);
-  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Sample requests</span><h2>${title}</h2><p>This list contains browser-only demo data.</p></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}<a class="secondary live-form-link" href="${kiwiTicketListUrl}" target="_blank" rel="noreferrer">Open Kiwi agent queue ↗</a><button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
+  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Sample requests</span><h2>${title}</h2><p>This list contains browser-only demo data.</p></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}<a class="secondary live-form-link secure-popup-link" href="${kiwiTicketListUrl}" target="kiwi-ticket-form" rel="noreferrer">Open Kiwi agent queue ↗</a><a class="secondary live-form-link secure-popup-link" href="${kiwiTicketExchangeListUrl}" target="kiwi-ticket-form" rel="noreferrer">Open reply exchanges ↗</a><button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
 }
 
 function renderManagement() {
@@ -190,6 +191,9 @@ function bindManagement() {
 
 function bindCommon() {
   document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.go === 'create') {
+      window.KiwiSecurePopup.open(kiwiIntakeFormUrl, window);
+    }
     if (button.dataset.go === 'tickets') ticketFilter = 'all';
     view = button.dataset.go;
     render();
@@ -212,6 +216,11 @@ function bindCommon() {
     view = 'management';
     render();
   }));
+  document.querySelectorAll('.secure-popup-link').forEach(link => link.addEventListener('click', event => {
+    if (window.KiwiSecurePopup.open(event.currentTarget.href, window)) {
+      event.preventDefault();
+    }
+  }));
 }
 
 function render() {
@@ -225,6 +234,9 @@ function render() {
 }
 
 document.querySelectorAll('.main-nav button').forEach(button => button.addEventListener('click', () => {
+  if (button.dataset.view === 'create') {
+    window.KiwiSecurePopup.open(kiwiIntakeFormUrl, window);
+  }
   if (button.dataset.view === 'tickets') ticketFilter = 'all';
   view = button.dataset.view;
   render();

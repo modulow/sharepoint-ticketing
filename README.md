@@ -65,6 +65,11 @@ partial item through REST. This preserves attachments, actual `Author`, native r
 the existing creation flow. The form currently does not populate `Demandeur0` or
 `TeamsThreadId`; wiring those fields into the form/flow remains a tenant-side task.
 
+The public portal supports `?action=create` to land directly on its ticket-creation
+view. User-initiated SharePoint form, agent queue and exchange-list links reuse a named
+`520 × 720` popup so the ticketing page remains open behind Microsoft authentication.
+When a browser blocks the popup, the secure anchor remains available as the fallback.
+
 The assignment selector expands transitive user members of the real learn.IT Microsoft
 365 group through Microsoft Graph, then calls SharePoint `ensureuser` so updates use the
 correct site user IDs. It never adds members. If expansion is unavailable, the management
@@ -73,7 +78,7 @@ Members group.
 
 ### Deploy to Kiwi
 
-1. Upload `sharepoint/solution/support-it-ticketing.sppkg` version `1.8.0.0` to the
+1. Upload `sharepoint/solution/support-it-ticketing.sppkg` version `1.8.1.0` to the
    European Parliament tenant App Catalog and deploy it.
 2. In the SharePoint admin center, approve the package's pending Microsoft Graph
    `GroupMember.Read.All` API request.
