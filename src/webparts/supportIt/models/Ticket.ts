@@ -20,6 +20,7 @@ export interface ITicket {
   priority: TicketPriority;
   status: TicketStatus;
   assignedTo?: IUserSummary;
+  assignedAt?: string;
   dueDate?: string;
   resolution?: string;
   author: IUserSummary;

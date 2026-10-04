@@ -85,6 +85,7 @@ export class SharePointTicketService implements ITicketService {
       schema.category,
       schema.priority,
       schema.status,
+      schema.assignedAt,
       schema.dueDate,
       schema.resolution
     ].filter((field): field is string => Boolean(field));
@@ -267,6 +268,7 @@ export class SharePointTicketService implements ITicketService {
       priority: (priority || defaultPriority) as ITicket['priority'],
       status: (status || defaultStatus) as ITicket['status'],
       assignedTo: assignedTo ? this.mapUser(assignedTo) : undefined,
+      assignedAt: schema.assignedAt ? String(item[schema.assignedAt] || '') || undefined : undefined,
       dueDate: schema.dueDate ? String(item[schema.dueDate] || '') || undefined : undefined,
       resolution: schema.resolution ? String(item[schema.resolution] || '') || undefined : undefined,
       author: this.mapUser(requester || item.Author),

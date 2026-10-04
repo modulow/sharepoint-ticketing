@@ -150,6 +150,26 @@ It is intentionally not presented as an importable ZIP: a valid Power Automate p
 must be exported from a solution with real connection references and Team/Channel IDs.
 See its `DEPLOYMENT.md` for the exact tenant-side build, validation and export steps.
 
+## Kiwi Planner ticket sync blueprint
+
+`power-automate/kiwi-planner-sync/` defines the approved design for a one-way SharePoint
+to Planner sync in the Kiwi Team. It specifies the 15-minute recurrence, a bucket and
+Planner assignment per authorized agent, the newest 20 tickets per agent by a maintained
+assignment timestamp, completed Planner tasks for resolved/closed tickets, complete
+ticket/attachment/TicketExchanges content, SharePoint edit links, and safe removal of
+only integration-owned tasks that leave the top 20.
+
+This folder is a blueprint, not an importable or deployed Power Automate package. It
+does not create the Planner plan, agent buckets, `PlannerAssignedAtUtc` field,
+`PlannerSyncAgents`/`PlannerSyncState` lists, connector connections, or live flows. The
+assignment timestamp flow must observe every assignment-change path and backfill
+verified assignment times from SharePoint version history; records without a provable
+timestamp fail closed. Planner details exceeding the 4,000-character Graph limit are
+not truncated. Tenant provisioning, Graph/connector consent, and production activation
+require authenticated tenant access, any required consent, and successful controlled
+verification; none are performed by this repository. See
+`power-automate/kiwi-planner-sync/DEPLOYMENT.md` before any tenant setup.
+
 ## Legacy modulow provisioning reference
 
 The remaining provisioning instructions describe the original demonstration tenant.
