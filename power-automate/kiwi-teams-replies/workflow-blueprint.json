@@ -1,89 +1,59 @@
 {
-  "schemaVersion": 1,
-  "kind": "PowerAutomateCloudFlowBlueprint",
+  "schemaVersion": 2,
+  "kind": "PowerAutomateCloudFlowContract",
   "name": "Kiwi - Teams replies to requester",
-  "importable": false,
-  "importBlocker": "A genuine import package requires an exported Power Platform solution with environment-specific connection references, Team ID, Channel ID, and provisioned confirmation columns. Those resources were not available, so no ZIP contract is fabricated.",
+  "operationalDefinition": "operational-definition.json",
+  "ordinaryPackageAvailablePrivately": true,
   "existingIntakeFlow": {
     "id": "dada6a44-429e-4d4e-95c0-f2bf5c87e033",
-    "formId": "797650b5-6eb2-4c15-9a3a-088367f9fd0a",
-    "mustNotDuplicate": true
+    "mustNotModifyOrDuplicate": true
   },
-  "connections": [
-    {
-      "connector": "shared_sharepointonline",
-      "purpose": "Read tickets, check effective permissions, deduplicate and persist exchange state"
-    },
-    {
-      "connector": "shared_teams",
-      "purpose": "Page through replies to existing Kiwi root messages"
-    },
-    {
-      "connector": "shared_office365users",
-      "purpose": "Resolve the authenticated human Teams author to UPN and claims"
-    }
-  ],
   "parameters": {
     "siteUrl": "https://europarl.sharepoint.com/sites/learn.IT-Kiwi",
     "ticketsListId": "f673fe2d-9733-46dd-9afe-4bf614c99202",
-    "exchangesListId": "table58aa42f2-6fa0-4df2-9a76-90189fece896",
-    "teamId": "__REQUIRED_TEAM_ID__",
-    "channelId": "__REQUIRED_CHANNEL_ID__",
-    "activationCutoffUtc": "__SET_TO_UTC_DEPLOYMENT_TIME__",
-    "flowServiceAccountUpn": "__REQUIRED_FLOW_CONNECTION_UPN__",
-    "pollIntervalMinutes": 2,
-    "pageThreshold": 100000,
-    "processingLeaseMinutes": 10,
-    "maxAttempts": 5
+    "exchangesListId": "58aa42f2-6fa0-4df2-9a76-90189fece896",
+    "teamId": "435074fb-2e8d-4c67-b06a-0359ddc5a939",
+    "channelId": "19:BM44z26OAyIXfxi0S1s4L4m5T2obLQX1-tAeZVxJ5gE1@thread.tacv2",
+    "activationCutoffDefault": "2099-12-31T00:00:00Z",
+    "pollIntervalMinutes": 5,
+    "maximumTicketRoots": 50,
+    "maximumRepliesPerRoot": 49
   },
+  "connections": [
+    "shared_sharepointonline",
+    "shared_teams",
+    "shared_office365users",
+    "shared_conversionservice"
+  ],
   "requiredColumns": {
     "EuropaTickets": [
       {
         "internalName": "TeamsThreadId",
         "type": "Text",
-        "purpose": "Root Teams message ID"
+        "status": "existing"
       },
       {
         "internalName": "Demandeur0",
         "type": "User",
-        "purpose": "Current requester and native-rule recipient"
+        "status": "existing"
       },
       {
-        "internalName": "RequesterReplyText",
-        "type": "Note",
-        "purpose": "Full public reply; never truncate to the legacy 255-character field"
+        "internalName": "TeamsReplyText",
+        "type": "Text",
+        "maxLength": 255,
+        "status": "created"
       },
       {
-        "internalName": "RequesterReplyAgent",
+        "internalName": "TeamsReplyAgent",
         "type": "User",
-        "purpose": "Actual validated Teams author; native rule sends this agent a confirmation copy"
+        "allowGroups": false,
+        "status": "created"
       },
       {
-        "internalName": "RequesterReplySourceMessageId",
+        "internalName": "TeamsReplyDispatchToken",
         "type": "Text",
-        "enforceUniqueValues": false,
-        "purpose": "Correlates the staged reply with TicketExchanges"
-      },
-      {
-        "internalName": "RequesterReplyDispatchToken",
-        "type": "Text",
-        "purpose": "New GUID for every dispatch; native rule triggers only when this changes"
-      },
-      {
-        "internalName": "RequesterReplyState",
-        "type": "Choice",
-        "choices": [
-          "ReadyForNativeRule",
-          "AgentConfirmed",
-          "Failed",
-          "Cancelled"
-        ],
-        "purpose": "Explicit handshake; never call a native-rule attempt delivered"
-      },
-      {
-        "internalName": "RequesterReplyRequestedAt",
-        "type": "DateTime",
-        "purpose": "UTC dispatch timestamp"
+        "maxLength": 255,
+        "status": "created"
       }
     ],
     "TicketExchanges": [
@@ -91,7 +61,7 @@
         "internalName": "SourceMessageId",
         "type": "Text",
         "enforceUniqueValues": true,
-        "purpose": "Durable idempotency key"
+        "status": "existing-and-verified"
       },
       {
         "internalName": "DeliveryState",
@@ -100,261 +70,63 @@
           "Processing",
           "AwaitingNativeRule",
           "AgentConfirmed",
-          "FailedRetryable",
           "FailedTerminal",
           "IgnoredInternal"
-        ]
-      },
-      {
-        "internalName": "DeliveryError",
-        "type": "Note"
-      },
-      {
-        "internalName": "AttemptCount",
-        "type": "Number"
-      },
-      {
-        "internalName": "NextAttemptAt",
-        "type": "DateTime"
-      },
-      {
-        "internalName": "ProcessingLeaseUntil",
-        "type": "DateTime"
+        ],
+        "status": "required"
       }
     ]
   },
-  "nativeRule": {
-    "list": "EuropaTickets",
-    "trigger": "RequesterReplyDispatchToken changes and RequesterReplyState equals ReadyForNativeRule",
-    "requiredGuards": [
-      "Demandeur0 is not empty",
-      "RequesterReplyAgent is not empty",
-      "RequesterReplyText is not empty",
-      "RequesterReplySourceMessageId is not empty"
-    ],
-    "recipients": [
-      "Demandeur0.Email",
-      "RequesterReplyAgent.Email"
-    ],
-    "bodyFields": [
-      "Title",
-      "RequesterReplyText",
-      "RequesterReplyAgent",
-      "RequesterReplySourceMessageId"
-    ],
-    "confirmation": "The actual agent must set RequesterReplyState to AgentConfirmed after checking the native-rule copy. The poller then marks the matching exchange AgentConfirmed. Neither ReadyForNativeRule nor an email rule invocation is labelled delivered.",
-    "staleRecipientProtection": "Every dispatch atomically overwrites requester, actual agent, text, source message ID, timestamp and a new token. A ticket with an unresolved ReadyForNativeRule dispatch rejects later public replies until confirmed, cancelled or failed."
-  },
-  "trigger": {
-    "type": "Recurrence",
-    "frequency": "Minute",
-    "intervalParameter": "pollIntervalMinutes",
-    "concurrency": 1
-  },
-  "pipeline": [
+  "nativeRules": [
     {
-      "id": "ValidateConfiguration",
-      "type": "Guard",
-      "checks": [
-        "teamId and channelId are not placeholders",
-        "activationCutoffUtc parses as UTC and is not in the future",
-        "flowServiceAccountUpn is populated",
-        "all required columns exist with the specified types",
-        "SourceMessageId enforces unique values"
-      ],
-      "onFailure": "Terminate Failed with the missing configuration; process no messages"
+      "trigger": "TeamsReplyDispatchToken changes",
+      "recipient": "Demandeur0",
+      "messageToken": "TeamsReplyText",
+      "status": "enabled-and-verified"
     },
     {
-      "id": "ListTicketRoots",
-      "connector": "shared_sharepointonline",
-      "operation": "GetItems",
-      "list": "EuropaTickets",
-      "filter": "TeamsThreadId ne null and TeamsThreadId ne ''",
-      "pagination": {
-        "enabled": true,
-        "thresholdParameter": "pageThreshold",
-        "onThresholdReached": "Terminate Failed; do not advance any watermark"
-      }
-    },
-    {
-      "id": "ReconcileAgentConfirmations",
-      "type": "ForEach",
-      "concurrency": 1,
-      "logic": "For tickets whose RequesterReplyState is AgentConfirmed, update only the TicketExchanges item whose SourceMessageId equals RequesterReplySourceMessageId from AwaitingNativeRule to AgentConfirmed. Never use latest-item or requester-only matching."
-    },
-    {
-      "id": "ForEachTicket",
-      "type": "ForEach",
-      "concurrency": 1,
-      "steps": [
-        {
-          "id": "ListAllReplies",
-          "connector": "shared_teams",
-          "operation": "ListRepliesOfChannelMessage",
-          "inputs": {
-            "teamId": "@parameters('teamId')",
-            "channelId": "@parameters('channelId')",
-            "messageId": "@items('ForEachTicket')?['TeamsThreadId']"
-          },
-          "pagination": {
-            "enabled": true,
-            "thresholdParameter": "pageThreshold",
-            "onThresholdReached": "Record a flow-level failure and terminate; silently dropping later pages is forbidden"
-          }
-        },
-        {
-          "id": "ForEachReply",
-          "type": "ForEach",
-          "concurrency": 1,
-          "steps": [
-            {
-              "id": "ActivationCutoff",
-              "type": "Guard",
-              "expression": "@greaterOrEquals(ticks(item()?['createdDateTime']), ticks(parameters('activationCutoffUtc')))",
-              "onFalse": "Ignore without creating TicketExchanges"
-            },
-            {
-              "id": "HumanAuthorGuard",
-              "type": "Guard",
-              "checks": [
-                "from.user.id is populated",
-                "from.application is empty",
-                "messageType is not systemEventMessage",
-                "reply ID differs from the root TeamsThreadId"
-              ],
-              "onFalse": "Ignore without creating TicketExchanges"
-            },
-            {
-              "id": "ResolveAuthor",
-              "connector": "shared_office365users",
-              "operation": "GetUserProfileV2",
-              "input": "@item()?['from']?['user']?['id']",
-              "checks": [
-                "accountEnabled is true",
-                "userPrincipalName is populated",
-                "userPrincipalName is not flowServiceAccountUpn"
-              ],
-              "onFailure": "Persist FailedTerminal only when SourceMessageId can be claimed; otherwise terminate visibly"
-            },
-            {
-              "id": "ConvertHtmlToText",
-              "type": "Compose",
-              "implementation": "Use built-in expressions only: XML-wrap the Teams HTML after escaping ampersands, normalising non-breaking spaces and self-closing br/hr tags, then xpath string(.), trim and normalise CRLF. Run in its own scope.",
-              "onFailure": "Persist FailedRetryable with conversion error; never guess or forward raw HTML"
-            },
-            {
-              "id": "ClassifyVisibility",
-              "type": "Guard",
-              "publicWhen": "Plain text equals '@user' followed by non-empty text, or starts with literal case-sensitive '@user ' / '@user\\n' / '@user\\r\\n'",
-              "strip": "Remove exactly the first five characters '@user', then trim; do not remove arbitrary mentions elsewhere",
-              "onFalse": "Persist once as Visibility=Internal, DeliveryState=IgnoredInternal; do not stage requester fields"
-            },
-            {
-              "id": "RequesterGuard",
-              "type": "Guard",
-              "checks": [
-                "Demandeur0 exists on the current ticket",
-                "public reply text is non-empty",
-                "no unresolved ReadyForNativeRule dispatch exists on this ticket"
-              ],
-              "onFailure": "Persist FailedRetryable or FailedTerminal with an explicit error; never reuse a previous requester"
-            },
-            {
-              "id": "CheckAuthorEditPermission",
-              "connector": "shared_sharepointonline",
-              "operation": "SendHttpRequest",
-              "method": "GET",
-              "uriExpression": "@concat('_api/web/GetUserEffectivePermissions(@u)?@u=''', uriComponent(concat('i:0#.f|membership|', outputs('ResolveAuthor')?['userPrincipalName'])), '''')",
-              "headers": {
-                "Accept": "application/json;odata=nometadata"
-              },
-              "requiredPermission": "EditListItems",
-              "maskCheck": "@equals(mod(div(int(coalesce(body('CheckAuthorEditPermission')?['Low'], body('CheckAuthorEditPermission')?['d']?['GetUserEffectivePermissions']?['Low'])), 4), 2), 1)",
-              "onFalse": "Persist FailedTerminal='Teams author lacks effective EditListItems'; do not stage or notify"
-            },
-            {
-              "id": "AcquireIdempotencyLease",
-              "connector": "shared_sharepointonline",
-              "operation": "CreateOrRecoverTicketExchange",
-              "key": "SourceMessageId",
-              "newState": "Processing",
-              "lease": "utcNow plus processingLeaseMinutes",
-              "rules": [
-                "SourceMessageId has enforced unique values",
-                "no existing item means create Processing with AttemptCount=1",
-                "Processing with an unexpired lease means skip",
-                "expired Processing or due FailedRetryable means increment AttemptCount and reacquire",
-                "AgentConfirmed, AwaitingNativeRule, IgnoredInternal or FailedTerminal means skip",
-                "AttemptCount greater than maxAttempts becomes FailedTerminal"
-              ]
-            },
-            {
-              "id": "StageNativeRuleDispatch",
-              "connector": "shared_sharepointonline",
-              "operation": "PatchItem",
-              "list": "EuropaTickets",
-              "fields": {
-                "RequesterReplyText": "@outputs('PublicReplyText')",
-                "RequesterReplyAgent/Claims": "@concat('i:0#.f|membership|', outputs('ResolveAuthor')?['userPrincipalName'])",
-                "RequesterReplySourceMessageId": "@item()?['id']",
-                "RequesterReplyDispatchToken": "@guid()",
-                "RequesterReplyRequestedAt": "@utcNow()",
-                "RequesterReplyState": "ReadyForNativeRule"
-              },
-              "precondition": "Re-read the ticket immediately before patch; Demandeur0 and TeamsThreadId must still match the validated values and no unresolved dispatch may exist"
-            },
-            {
-              "id": "MarkAwaitingNativeRule",
-              "connector": "shared_sharepointonline",
-              "operation": "UpdateItem",
-              "list": "TicketExchanges",
-              "match": "exact leased item ID and SourceMessageId",
-              "fields": {
-                "Title": "Public Teams reply pending native rule",
-                "TicketId": "current EuropaTickets item ID",
-                "Message": "full PublicReplyText",
-                "Visibility": "Public",
-                "Author0/Claims": "resolved human author claims",
-                "ExchangeDate": "reply createdDateTime",
-                "Source": "Teams",
-                "SourceMessageId": "reply ID",
-                "DeliveryState": "AwaitingNativeRule",
-                "DeliveryError": null,
-                "ProcessingLeaseUntil": null
-              }
-            }
-          ]
-        }
-      ]
+      "trigger": "TeamsReplyDispatchToken changes",
+      "recipient": "TeamsReplyAgent",
+      "messageToken": "TeamsReplyText",
+      "status": "enabled-and-verified"
     }
   ],
-  "failurePolicy": {
-    "retryable": [
-      "Teams throttling or transient connector failure",
-      "HTML conversion failure",
-      "temporary SharePoint or Office 365 Users failure",
-      "ticket has another unresolved public dispatch"
-    ],
-    "terminal": [
-      "author is not an authenticated enabled human",
-      "author lacks EditListItems",
-      "requester is missing after maxAttempts",
-      "reply text is empty after @user stripping",
-      "attempt count exceeds maxAttempts"
-    ],
-    "recovery": "A retry scope updates the existing exchange by exact item ID. It never creates a second SourceMessageId, never changes Visibility from Internal to Public, and never sets Delivered. Operators can correct data and set FailedRetryable with a future NextAttemptAt or cancel explicitly."
+  "execution": [
+    "Reject the sentinel or future ActivationCutoffUtc before reading any tickets",
+    "Read at most 51 mapped ticket roots and fail before processing if 51 are returned",
+    "Read replies with Teams Graph through the Teams connector using top=50",
+    "Fail before processing a reply page when @odata.nextLink exists or 50 replies are returned",
+    "Ignore replies older than ActivationCutoffUtc and messages without a non-empty human from.user.id",
+    "Ignore application/system/root messages",
+    "Skip every SourceMessageId already present in TicketExchanges",
+    "Resolve the human author with Office 365 Users and require accountEnabled plus userPrincipalName",
+    "Ensure the SharePoint user and require effective EditListItems on EuropaTickets",
+    "Convert Teams HTML with Content Conversion before classification",
+    "Treat only literal case-sensitive @user followed by end, space, LF or CRLF as public",
+    "Record all other human replies once as Internal and never dispatch them",
+    "Reject empty or greater-than-255 public text visibly without truncation",
+    "Create the unique Processing exchange before staging requester fields",
+    "Reject a later public reply while the same ticket has an AwaitingNativeRule exchange",
+    "Write TeamsReplyText and TeamsReplyAgent, then re-read requester, thread, text and agent",
+    "Change only TeamsReplyDispatchToken after the re-read matches",
+    "Mark the exchange AwaitingNativeRule after the token update"
+  ],
+  "failureSemantics": {
+    "Processing": "No token is known to have been committed. Inspect the failed run and ticket before any manual recovery.",
+    "AwaitingNativeRule": "The token changed and SharePoint accepted the update. Native rules are queued, not proven delivered.",
+    "AgentConfirmed": "The actual Teams agent received and checked the rule copy, then manually confirmed this exact exchange.",
+    "FailedTerminal": "Validation failed; the reply is not retried automatically.",
+    "IgnoredInternal": "The reply was recorded as internal and can never be promoted automatically.",
+    "uncertainDispatch": "Never delete or replay a Processing exchange until an operator verifies the ticket token and native-rule history."
   },
   "invariants": [
-    "Only a reply beginning with literal case-sensitive @user after HTML-to-text conversion can become Public",
-    "The Teams author is an enabled human and is not the flow identity",
-    "The Teams author has current effective EditListItems permission on the Kiwi site",
-    "No public reply is processed before activationCutoffUtc",
-    "Every Teams reply page and every SharePoint query uses pagination with a visible threshold failure",
-    "SourceMessageId is the unique durable dedupe key",
-    "Trigger and per-ticket/per-reply loops have concurrency 1",
-    "No message longer than 255 characters is written to R_x00e9_ponseaudemandeur; full text uses RequesterReplyText",
-    "Native rule invocation and native Author/Editor notifications are never treated as proof of delivery",
-    "No stale requester or agent value may be reused from an earlier dispatch"
+    "The flow never writes R_x00e9_ponseaudemandeur",
+    "The flow never sends Outlook or SMTP mail",
+    "The flow never excludes Laurent solely because he owns the connections",
+    "SourceMessageId is the durable unique dedupe key",
+    "All loops and trigger runs are serial",
+    "No historical reply can run with the packaged sentinel cutoff",
+    "No page is silently truncated",
+    "Queued native rules are never labelled delivered"
   ]
 }
-

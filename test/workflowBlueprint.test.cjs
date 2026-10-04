@@ -3,50 +3,216 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const blueprint = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'power-automate', 'kiwi-teams-replies', 'workflow-blueprint.json'),
+const directory = path.join(
+  __dirname,
+  '..',
+  'power-automate',
+  'kiwi-teams-replies'
+);
+const contract = JSON.parse(fs.readFileSync(
+  path.join(directory, 'workflow-blueprint.json'),
   'utf8'
 ));
+const definition = JSON.parse(fs.readFileSync(
+  path.join(directory, 'operational-definition.json'),
+  'utf8'
+));
+const serialized = JSON.stringify(definition);
 
-test('Teams reply blueprint declares its honest import boundary', () => {
-  assert.equal(blueprint.kind, 'PowerAutomateCloudFlowBlueprint');
-  assert.equal(blueprint.importable, false);
-  assert.match(blueprint.importBlocker, /connection references/i);
-  assert.equal(blueprint.existingIntakeFlow.mustNotDuplicate, true);
+function visitActions(actions, visitor) {
+  for (const [name, action] of Object.entries(actions || {})) {
+    visitor(name, action);
+    visitActions(action.actions, visitor);
+    visitActions(action.else?.actions, visitor);
+  }
+}
+
+function actionNamed(expectedName) {
+  let result;
+  visitActions(definition.actions, (name, action) => {
+    if (name === expectedName) {
+      result = action;
+    }
+  });
+  assert.ok(result, `Missing action ${expectedName}`);
+  return result;
+}
+
+test('operational definition uses verified tenant resources', () => {
+  assert.equal(
+    definition.parameters.TicketsListId.defaultValue,
+    'f673fe2d-9733-46dd-9afe-4bf614c99202'
+  );
+  assert.equal(
+    definition.parameters.ExchangesListId.defaultValue,
+    '58aa42f2-6fa0-4df2-9a76-90189fece896'
+  );
+  assert.equal(
+    definition.parameters.TeamId.defaultValue,
+    '435074fb-2e8d-4c67-b06a-0359ddc5a939'
+  );
+  assert.equal(
+    definition.parameters.ChannelId.defaultValue,
+    '19:BM44z26OAyIXfxi0S1s4L4m5T2obLQX1-tAeZVxJ5gE1@thread.tacv2'
+  );
 });
 
-test('Teams reply blueprint enforces authorization and requester safety', () => {
-  const invariants = blueprint.invariants.join('\n');
-  assert.match(invariants, /literal case-sensitive @user/);
-  assert.match(invariants, /effective EditListItems/);
-  assert.match(invariants, /activationCutoffUtc/);
-  assert.match(invariants, /unique durable dedupe key/);
-  assert.match(invariants, /never treated as proof of delivery/);
-  assert.match(invariants, /No stale requester or agent/);
-});
-
-test('Teams reply blueprint has durable state and pagination controls', () => {
-  const exchangeColumns = blueprint.requiredColumns.TicketExchanges;
-  const sourceId = exchangeColumns.find(column => column.internalName === 'SourceMessageId');
-  const deliveryState = exchangeColumns.find(column => column.internalName === 'DeliveryState');
-  assert.equal(sourceId.enforceUniqueValues, true);
-  assert.deepEqual(deliveryState.choices, [
-    'Processing',
-    'AwaitingNativeRule',
-    'AgentConfirmed',
-    'FailedRetryable',
-    'FailedTerminal',
-    'IgnoredInternal'
+test('operational definition uses supported exported connector schemas', () => {
+  const operations = new Set();
+  const connections = new Set();
+  visitActions(definition.actions, (_name, action) => {
+    const host = action.inputs?.host;
+    if (host) {
+      operations.add(host.operationId);
+      connections.add(host.connectionName);
+    }
+  });
+  assert.deepEqual([...connections].sort(), [
+    'shared_conversionservice',
+    'shared_office365users',
+    'shared_sharepointonline',
+    'shared_teams'
   ]);
-  assert.equal(blueprint.trigger.concurrency, 1);
-  assert.equal(blueprint.parameters.pageThreshold, 100000);
-  assert.match(JSON.stringify(blueprint.pipeline), /onThresholdReached/);
+  for (const operation of [
+    'HttpRequest',
+    'UserProfile_V2',
+    'HtmlToText',
+    'PostItem',
+    'PatchItem',
+    'GetItem'
+  ]) {
+    assert.ok(operations.has(operation), `Missing operation ${operation}`);
+  }
 });
 
-test('Teams reply blueprint never writes long public text to legacy reply field', () => {
-  const serialized = JSON.stringify(blueprint);
-  assert.match(serialized, /RequesterReplyText/);
-  assert.match(serialized, /R_x00e9_ponseaudemandeur/);
-  assert.match(serialized, /never sets Delivered|never call.*Delivered/i);
+test('future cutoff blocks historical processing and trigger runs serially', () => {
+  assert.equal(actionNamed('Deployment_cutoff_UTC').inputs, '2099-12-31T00:00:00Z');
+  assert.equal(definition.triggers.Recurrence.runtimeConfiguration.concurrency.runs, 1);
+  assert.match(actionNamed('Cutoff_must_be_activated').expression, /2099-12-31/);
+  assert.match(actionNamed('Reply_is_new_human_content').expression, /Deployment_cutoff_UTC/);
 });
 
+test('ticket and reply pages fail closed rather than truncate', () => {
+  assert.match(
+    actionNamed('List_ticket_roots').inputs.parameters['parameters/uri'],
+    /\$top=51/
+  );
+  assert.match(
+    actionNamed('List_Teams_replies').inputs.parameters.Uri,
+    /replies\?\$top=50/
+  );
+  assert.match(actionNamed('Reply_page_is_bounded').expression, /@odata\.nextLink/);
+  assert.equal(actionNamed('For_each_ticket').runtimeConfiguration.concurrency.repetitions, 1);
+  assert.equal(actionNamed('For_each_reply').runtimeConfiguration.concurrency.repetitions, 1);
+  assert.equal(actionNamed('Fail_ticket_page_limit').inputs.runStatus, 'Failed');
+  assert.equal(actionNamed('Fail_reply_page_limit').inputs.runStatus, 'Failed');
+});
+
+test('human identity and effective EditListItems are checked', () => {
+  assert.match(actionNamed('Reply_is_new_human_content').expression, /from.*user.*id/);
+  assert.match(actionNamed('Reply_is_new_human_content').expression, /from.*application/);
+  assert.equal(
+    actionNamed('Get_Teams_author').inputs.host.operationId,
+    'UserProfile_V2'
+  );
+  assert.match(
+    actionNamed('Check_author_permission').inputs.parameters['parameters/uri'],
+    /getUserEffectivePermissions/
+  );
+  assert.match(actionNamed('Author_and_requester_are_authorized').expression, /div\(int.*4/);
+  assert.doesNotMatch(serialized, /laurent\.anciaux/i);
+});
+
+test('SourceMessageId is checked before durable processing', () => {
+  assert.match(
+    actionNamed('Find_exchange').inputs.parameters['parameters/uri'],
+    /SourceMessageId/
+  );
+  assert.match(actionNamed('Source_message_is_unseen').expression, /length/);
+  assert.equal(
+    actionNamed('Create_processing_exchange').inputs.parameters['item/DeliveryState/Value'],
+    'Processing'
+  );
+  const source = contract.requiredColumns.TicketExchanges
+    .find(column => column.internalName === 'SourceMessageId');
+  assert.equal(source.enforceUniqueValues, true);
+});
+
+test('a pending native-rule dispatch blocks a later public reply on the ticket', () => {
+  assert.match(
+    actionNamed('Find_pending_dispatch').inputs.parameters['parameters/uri'],
+    /DeliveryState eq ''AwaitingNativeRule''/
+  );
+  assert.match(
+    actionNamed('Author_and_requester_are_authorized').expression,
+    /Find_pending_dispatch/
+  );
+  assert.match(
+    actionNamed('Fail_unauthorized_reply').inputs.runError.message,
+    /prior public reply/
+  );
+});
+
+test('classification happens after HtmlToText with exact case-sensitive prefix', () => {
+  assert.equal(actionNamed('Html_to_text').inputs.host.operationId, 'HtmlToText');
+  const expression = actionNamed('Reply_is_public').expression;
+  assert.match(expression, /equals\(outputs\('Plain_text'\),'@user'\)/);
+  assert.match(expression, /'@user '/);
+  assert.doesNotMatch(expression, /toLower/);
+  assert.equal(actionNamed('Public_reply_text').inputs, "@trim(substring(outputs('Plain_text'),5))");
+});
+
+test('public replies outside 1-255 fail visibly and are never truncated', () => {
+  const expression = actionNamed('Public_reply_length_is_valid').expression;
+  assert.match(expression, /greater\(length/);
+  assert.match(expression, /lessOrEquals\(length.*255/);
+  assert.equal(actionNamed('Fail_invalid_public_length').inputs.runStatus, 'Failed');
+  assert.match(
+    actionNamed('Fail_invalid_public_length').inputs.runError.message,
+    /Nothing was truncated or dispatched/
+  );
+});
+
+test('dispatch stages and re-reads fields before token-only commit', () => {
+  const stage = actionNamed('Stage_ticket_reply');
+  assert.deepEqual(
+    Object.keys(stage.inputs.parameters).sort(),
+    ['dataset', 'id', 'item/TeamsReplyAgent/Claims', 'item/TeamsReplyText', 'table']
+  );
+  assert.match(actionNamed('Staged_values_are_current').expression, /Demandeur0/);
+  assert.match(actionNamed('Staged_values_are_current').expression, /TeamsThreadId/);
+  assert.deepEqual(
+    Object.keys(actionNamed('Commit_dispatch_token_only').inputs.parameters).sort(),
+    ['dataset', 'id', 'item/TeamsReplyDispatchToken', 'table']
+  );
+  assert.deepEqual(
+    actionNamed('Mark_exchange_awaiting_native_rule').runAfter,
+    { Commit_dispatch_token_only: ['Succeeded'] }
+  );
+  assert.doesNotMatch(serialized, /R_x00e9_ponseaudemandeur/);
+});
+
+test('contract exposes only the minimum additional state column', () => {
+  assert.deepEqual(contract.requiredColumns.TicketExchanges, [
+    {
+      internalName: 'SourceMessageId',
+      type: 'Text',
+      enforceUniqueValues: true,
+      status: 'existing-and-verified'
+    },
+    {
+      internalName: 'DeliveryState',
+      type: 'Choice',
+      choices: [
+        'Processing',
+        'AwaitingNativeRule',
+        'AgentConfirmed',
+        'FailedTerminal',
+        'IgnoredInternal'
+      ],
+      status: 'required'
+    }
+  ]);
+  assert.match(contract.failureSemantics.AwaitingNativeRule, /not proven delivered/);
+  assert.match(contract.invariants.join('\n'), /never writes R_x00e9_ponseaudemandeur/);
+});

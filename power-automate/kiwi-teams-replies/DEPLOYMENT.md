@@ -1,78 +1,99 @@
 # Kiwi Teams reply flow
 
-This folder is a bounded, machine-validated blueprint for a **new scheduled flow** that
-polls replies to the existing Kiwi Teams root messages. It does not duplicate or modify
-the active intake flow `dada6a44-429e-4d4e-95c0-f2bf5c87e033`.
+`operational-definition.json` is the executable definition used in the private ordinary
+Power Automate package. The package was adapted from a genuine tenant export so its
+SharePoint, Teams, Office 365 Users and Content Conversion action schemas and connection
+mappings are real. Export metadata and tenant connection IDs are intentionally not
+committed.
 
-## Why there is no ZIP
+The flow does not modify the active intake flow
+`dada6a44-429e-4d4e-95c0-f2bf5c87e033`, send Outlook/SMTP mail, or write the direct-reply
+field `R_x00e9_ponseaudemandeur`.
 
-Power Automate imports require a genuine exported solution containing tenant-specific
-connection references and resource IDs. This workspace has no export of the target
-environment, no connection-reference IDs, and no Team/Channel IDs. A hand-crafted ZIP
-would be a false import contract. `workflow-blueprint.json` is therefore intentionally
-marked `importable: false`; it is the validated implementation contract to reproduce in
-an unmanaged solution and then export normally.
+## Exact prerequisites
 
-## Required setup
+These `EuropaTickets` fields and rules are already live:
 
-1. Create the columns listed under `requiredColumns` in the blueprint. In particular,
-   enforce unique values on `TicketExchanges.SourceMessageId`.
-2. Create the `DeliveryState` choices exactly as specified.
-3. Record the Team ID, Channel ID, flow connection UPN and a UTC activation cutoff. The
-   cutoff must be the deployment time so historical replies are not processed.
-4. Use only the existing SharePoint, Microsoft Teams and Office 365 Users connections.
-   Compose, Condition, Scope, Apply to each and Terminate are built-in actions and add no
-   connector.
-5. Set trigger concurrency to **1**. Set every ticket/reply loop concurrency to **1**.
-6. Enable pagination for ticket roots, Teams replies and all dedupe/recovery queries.
-   Use threshold 100,000 and terminate visibly if it is reached.
+- `TeamsReplyText`: single-line text, maximum 255;
+- `TeamsReplyAgent`: one Person, groups disabled;
+- `TeamsReplyDispatchToken`: single-line text, maximum 255;
+- enabled rule when `TeamsReplyDispatchToken` changes -> `Demandeur0`, message token
+  `TeamsReplyText`;
+- enabled rule when `TeamsReplyDispatchToken` changes -> `TeamsReplyAgent`, message token
+  `TeamsReplyText`.
 
-## Native SharePoint rule
+`TicketExchanges.SourceMessageId` already has **Enforce unique values** enabled. Create
+one additional column before import:
 
-On `EuropaTickets`, create a rule triggered when `RequesterReplyDispatchToken` changes
-and `RequesterReplyState` is `ReadyForNativeRule`. Require all four guard fields from the
-blueprint. Send the reply to:
+| Internal name | Type | Choices |
+| --- | --- | --- |
+| `DeliveryState` | Choice, single value | `Processing`, `AwaitingNativeRule`, `AgentConfirmed`, `FailedTerminal`, `IgnoredInternal` |
 
-- `Demandeur0.Email`;
-- `RequesterReplyAgent.Email` (the validated actual Teams author).
+No lease, attempt-count, retry-date, error-note, requester-source or confirmation column
+is required by this bounded implementation. Existing `Title` plus the failed run history
+carry the failure reason.
 
-Include ticket title, full `RequesterReplyText`, agent, and source message ID. Do not use
-the technical Editor as the agent identity. The agent copy is a confirmation request,
-not delivery proof. After checking it, the actual agent changes `RequesterReplyState` to
-`AgentConfirmed`; the scheduled flow reconciles the exact `SourceMessageId` to
-`TicketExchanges.DeliveryState=AgentConfirmed`.
+## Import and safe activation
 
-Every dispatch overwrites requester, agent, text, source ID, time, state and a new GUID
-token together. Do not allow another public dispatch while one remains
-`ReadyForNativeRule`; this prevents stale-recipient leakage.
+1. Keep the flow off during import. Map the four package resources to the existing
+   SharePoint, Microsoft Teams, Office 365 Users and Content Conversion connections.
+2. Open the imported flow and replace the visible `Deployment_cutoff_UTC` Compose value
+   `2099-12-31T00:00:00Z` with the current UTC deployment time.
+3. Save and verify the recurrence concurrency is 1 and both `Apply to each` loops are
+   sequential.
+4. Confirm the Team ID is `435074fb-2e8d-4c67-b06a-0359ddc5a939`, the Channel ID is
+   `19:BM44z26OAyIXfxi0S1s4L4m5T2obLQX1-tAeZVxJ5gE1@thread.tacv2`, and the list GUIDs are:
+   - `EuropaTickets`: `f673fe2d-9733-46dd-9afe-4bf614c99202`;
+   - `TicketExchanges`: `58aa42f2-6fa0-4df2-9a76-90189fece896`.
+5. Turn it on only after the cutoff and both native rules are ready. Do not create a test
+   reply or email without separate authorization.
 
-## Designer build order
+The packaged future cutoff makes an accidental early enablement fail before any ticket
+is read. Replies older than the deployment cutoff never create ledger rows.
 
-Implement the `pipeline` array in order. Keep each named step so run history matches the
-blueprint. Put HTML conversion in its own Scope and route failures to the retry state.
-The conversion must produce plain text before testing the exact case-sensitive prefix
-`@user`. Replies without that prefix are recorded once as Internal and never dispatched.
+## Operational behavior
 
-The author must resolve through Office 365 Users, be enabled, have a real UPN, not be the
-flow connection identity, and pass SharePoint `getUserEffectivePermissions`. The mask
-expression in the blueprint tests `EditListItems` (low-mask bit 4). Server ACLs remain
-authoritative.
+For each mapped ticket, the flow obtains Teams replies through the supported Teams
+connector Graph action. It resolves the author through Office 365 Users, ensures that
+user in SharePoint, and checks effective `EditListItems` on `EuropaTickets`. Laurent is
+not excluded merely because he owns the connections.
 
-Acquire the unique `SourceMessageId` lease before staging the native-rule fields. On
-transient failure update that same exchange item to `FailedRetryable`, set the error,
-increment `AttemptCount`, and set `NextAttemptAt`. After five attempts use
-`FailedTerminal`. Never call a rule invocation or queued message “Delivered”.
+HTML is converted with Content Conversion before classification. Only literal,
+case-sensitive `@user` followed by end-of-text, a space, LF or CRLF is public. The prefix
+is removed exactly once. Empty text and text over 255 characters are recorded as
+`FailedTerminal`, the run fails visibly, and nothing is truncated or dispatched. Other
+human replies are recorded once as `IgnoredInternal`.
 
-## Validation and activation
+For a valid public reply, the flow creates a unique `Processing` exchange, writes
+`TeamsReplyText` and `TeamsReplyAgent`, re-reads and compares the requester, Teams thread,
+text and agent, and only then changes `TeamsReplyDispatchToken`. The exchange becomes
+`AwaitingNativeRule` after that token update. This means:
 
-Run `npm test`; `test/workflowBlueprint.test.cjs` checks the safety invariants and
-required state model. After building the cloud flow:
+- `Processing`: fail-stop or pre-token state; inspect manually and never blindly replay;
+- `AwaitingNativeRule`: SharePoint accepted the token change and native rules are queued;
+- `AgentConfirmed`: the actual Teams agent received and checked the rule copy, then
+  manually confirmed this exact exchange;
+- neither state proves email delivery;
+- there is no automatic retry after an uncertain token update.
 
-1. Save it **off** and inspect the definition/export against the blueprint.
-2. Set the activation cutoff to the current UTC time.
-3. Turn it on without replaying prior replies.
-4. Do not generate a test ticket or send a test email unless separately authorized.
-5. Verify run history only with a newly authorized Teams reply.
-6. Export the containing unmanaged solution. That genuine export becomes the importable
-   package; retain connection-reference mapping instructions with it.
+Only one public dispatch per ticket may remain `AwaitingNativeRule`. A later public reply
+is recorded as `FailedTerminal` and the run fails visibly, preventing a second token
+change from reusing stale staged values. After the agent confirms the earlier exchange,
+an operator may deliberately recover the blocked reply by deleting its failed ledger row;
+the flow never does that automatically.
 
+The flow asks for 51 ticket roots and 50 replies as sentinels. It terminates before
+processing when either sentinel is reached or Teams returns `@odata.nextLink`; it never
+silently loses a later page.
+
+## Validation
+
+Run `npm test`. The workflow tests load `operational-definition.json` and check the
+actual connector operation IDs, IDs, cutoff guard, serial concurrency, page fail-stops,
+human/permission guards, unique-ledger lookup, exact `@user` classifier, 255-character
+failure, staged-field re-read and token-only final update.
+
+The previously authorized intake test proves only form -> list -> Teams root creation:
+ticket `[TEST] Kiwi form integration - Laurent - 2026-10-04 17:45`,
+`TeamsThreadId=1791128977119`, successful 3-second intake run, and requester receipt.
+It does not prove this reply flow or native-rule delivery.

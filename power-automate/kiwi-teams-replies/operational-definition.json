@@ -1,0 +1,646 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "$authentication": {
+      "defaultValue": {},
+      "type": "SecureObject"
+    },
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    },
+    "SiteUrl": {
+      "defaultValue": "https://europarl.sharepoint.com/sites/learn.IT-Kiwi",
+      "type": "String"
+    },
+    "TicketsListId": {
+      "defaultValue": "f673fe2d-9733-46dd-9afe-4bf614c99202",
+      "type": "String"
+    },
+    "ExchangesListId": {
+      "defaultValue": "58aa42f2-6fa0-4df2-9a76-90189fece896",
+      "type": "String"
+    },
+    "TeamId": {
+      "defaultValue": "435074fb-2e8d-4c67-b06a-0359ddc5a939",
+      "type": "String"
+    },
+    "ChannelId": {
+      "defaultValue": "19:BM44z26OAyIXfxi0S1s4L4m5T2obLQX1-tAeZVxJ5gE1@thread.tacv2",
+      "type": "String"
+    }
+  },
+  "triggers": {
+    "Recurrence": {
+      "type": "Recurrence",
+      "recurrence": {
+        "frequency": "Minute",
+        "interval": 5
+      },
+      "runtimeConfiguration": {
+        "concurrency": {
+          "runs": 1
+        }
+      }
+    }
+  },
+  "actions": {
+    "Deployment_cutoff_UTC": {
+      "type": "Compose",
+      "inputs": "2099-12-31T00:00:00Z"
+    },
+    "Cutoff_must_be_activated": {
+      "type": "If",
+      "runAfter": {
+        "Deployment_cutoff_UTC": [
+          "Succeeded"
+        ]
+      },
+      "expression": "@and(not(equals(outputs('Deployment_cutoff_UTC'),'2099-12-31T00:00:00Z')),lessOrEquals(ticks(outputs('Deployment_cutoff_UTC')),ticks(utcNow())))",
+      "actions": {
+        "List_ticket_roots": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('SiteUrl')",
+              "parameters/method": "GET",
+              "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items?$select=Id,Title,TeamsThreadId,Demandeur0Id&$filter=TeamsThreadId ne null&$orderby=Id asc&$top=51')",
+              "parameters/headers": {
+                "Accept": "application/json;odata=nometadata"
+              }
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "HttpRequest"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Ticket_page_is_bounded": {
+          "type": "If",
+          "runAfter": {
+            "List_ticket_roots": [
+              "Succeeded"
+            ]
+          },
+          "expression": "@less(length(body('List_ticket_roots')?['value']),51)",
+          "actions": {
+            "For_each_ticket": {
+              "type": "Foreach",
+              "foreach": "@body('List_ticket_roots')?['value']",
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "actions": {
+                "List_Teams_replies": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "Uri": "@concat('https://graph.microsoft.com/v1.0/teams/',parameters('TeamId'),'/channels/',uriComponent(parameters('ChannelId')),'/messages/',items('For_each_ticket')?['TeamsThreadId'],'/replies?$top=50')",
+                      "Method": "GET",
+                      "ContentType": "application/json"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                      "connectionName": "shared_teams",
+                      "operationId": "HttpRequest"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Reply_page_is_bounded": {
+                  "type": "If",
+                  "runAfter": {
+                    "List_Teams_replies": [
+                      "Succeeded"
+                    ]
+                  },
+                  "expression": "@and(empty(body('List_Teams_replies')?['@odata.nextLink']),less(length(body('List_Teams_replies')?['value']),50))",
+                  "actions": {
+                    "For_each_reply": {
+                      "type": "Foreach",
+                      "foreach": "@body('List_Teams_replies')?['value']",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "actions": {
+                        "Reply_is_new_human_content": {
+                          "type": "If",
+                          "expression": "@and(greaterOrEquals(ticks(coalesce(items('For_each_reply')?['createdDateTime'],'1900-01-01T00:00:00Z')),ticks(outputs('Deployment_cutoff_UTC'))),not(empty(items('For_each_reply')?['from']?['user']?['id'])),empty(items('For_each_reply')?['from']?['application']),equals(coalesce(items('For_each_reply')?['messageType'],'message'),'message'),not(equals(items('For_each_reply')?['id'],items('For_each_ticket')?['TeamsThreadId'])))",
+                          "actions": {
+                            "Find_exchange": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "@parameters('SiteUrl')",
+                                  "parameters/method": "GET",
+                                  "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('ExchangesListId'),''')/items?$select=Id,SourceMessageId,DeliveryState&$filter=SourceMessageId eq ''',replace(items('For_each_reply')?['id'],'''',''''''),'''&$top=2')",
+                                  "parameters/headers": {
+                                    "Accept": "application/json;odata=nometadata"
+                                  }
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "HttpRequest"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "Source_message_is_unseen": {
+                              "type": "If",
+                              "runAfter": {
+                                "Find_exchange": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "expression": "@equals(length(body('Find_exchange')?['value']),0)",
+                              "actions": {
+                                "Get_Teams_author": {
+                                  "type": "OpenApiConnection",
+                                  "inputs": {
+                                    "parameters": {
+                                      "id": "@items('For_each_reply')?['from']?['user']?['id']",
+                                      "$select": "id,displayName,userPrincipalName,accountEnabled"
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                                      "connectionName": "shared_office365users",
+                                      "operationId": "UserProfile_V2"
+                                    },
+                                    "authentication": "@parameters('$authentication')"
+                                  }
+                                },
+                                "Ensure_SharePoint_author": {
+                                  "type": "OpenApiConnection",
+                                  "runAfter": {
+                                    "Get_Teams_author": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "inputs": {
+                                    "parameters": {
+                                      "dataset": "@parameters('SiteUrl')",
+                                      "parameters/method": "POST",
+                                      "parameters/uri": "/_api/web/ensureuser",
+                                      "parameters/headers": {
+                                        "Accept": "application/json;odata=nometadata",
+                                        "Content-Type": "application/json;odata=nometadata"
+                                      },
+                                      "parameters/body": "@concat('{\"logonName\":\"i:0#.f|membership|',body('Get_Teams_author')?['userPrincipalName'],'\"}')"
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                      "connectionName": "shared_sharepointonline",
+                                      "operationId": "HttpRequest"
+                                    },
+                                    "authentication": "@parameters('$authentication')"
+                                  }
+                                },
+                                "Check_author_permission": {
+                                  "type": "OpenApiConnection",
+                                  "runAfter": {
+                                    "Ensure_SharePoint_author": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "inputs": {
+                                    "parameters": {
+                                      "dataset": "@parameters('SiteUrl')",
+                                      "parameters/method": "GET",
+                                      "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/getUserEffectivePermissions(@u)?@u=''',uriComponent(concat('i:0#.f|membership|',body('Get_Teams_author')?['userPrincipalName'])),'''')",
+                                      "parameters/headers": {
+                                        "Accept": "application/json;odata=nometadata"
+                                      }
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                      "connectionName": "shared_sharepointonline",
+                                      "operationId": "HttpRequest"
+                                    },
+                                    "authentication": "@parameters('$authentication')"
+                                  }
+                                },
+                                "Html_to_text": {
+                                  "type": "OpenApiConnection",
+                                  "runAfter": {
+                                    "Check_author_permission": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "inputs": {
+                                    "parameters": {
+                                      "Content": "@items('For_each_reply')?['body']?['content']"
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_conversionservice",
+                                      "connectionName": "shared_conversionservice",
+                                      "operationId": "HtmlToText"
+                                    },
+                                    "authentication": "@parameters('$authentication')"
+                                  }
+                                },
+                                "Plain_text": {
+                                  "type": "Compose",
+                                  "runAfter": {
+                                    "Html_to_text": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "inputs": "@trim(string(body('Html_to_text')))"
+                                },
+                                "Reply_is_public": {
+                                  "type": "If",
+                                  "runAfter": {
+                                    "Plain_text": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "expression": "@or(equals(outputs('Plain_text'),'@user'),startsWith(outputs('Plain_text'),'@user '),startsWith(outputs('Plain_text'),concat('@user',decodeUriComponent('%0A'))),startsWith(outputs('Plain_text'),concat('@user',decodeUriComponent('%0D%0A'))))",
+                                  "actions": {
+                                    "Public_reply_text": {
+                                      "type": "Compose",
+                                      "inputs": "@trim(substring(outputs('Plain_text'),5))"
+                                    },
+                                    "Find_pending_dispatch": {
+                                      "type": "OpenApiConnection",
+                                      "runAfter": {
+                                        "Public_reply_text": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "inputs": {
+                                        "parameters": {
+                                          "dataset": "@parameters('SiteUrl')",
+                                          "parameters/method": "GET",
+                                          "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('ExchangesListId'),''')/items?$select=Id,SourceMessageId,DeliveryState&$filter=TicketId eq ',items('For_each_ticket')?['Id'],' and DeliveryState eq ''AwaitingNativeRule''&$top=1')",
+                                          "parameters/headers": {
+                                            "Accept": "application/json;odata=nometadata"
+                                          }
+                                        },
+                                        "host": {
+                                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                          "connectionName": "shared_sharepointonline",
+                                          "operationId": "HttpRequest"
+                                        },
+                                        "authentication": "@parameters('$authentication')"
+                                      }
+                                    },
+                                    "Public_reply_length_is_valid": {
+                                      "type": "If",
+                                      "runAfter": {
+                                        "Find_pending_dispatch": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "expression": "@and(greater(length(outputs('Public_reply_text')),0),lessOrEquals(length(outputs('Public_reply_text')),255))",
+                                      "actions": {
+                                        "Author_and_requester_are_authorized": {
+                                          "type": "If",
+                                          "expression": "@and(equals(length(body('Find_pending_dispatch')?['value']),0),equals(body('Get_Teams_author')?['accountEnabled'],true),not(empty(body('Get_Teams_author')?['userPrincipalName'])),greater(int(coalesce(body('Ensure_SharePoint_author')?['Id'],0)),0),not(empty(items('For_each_ticket')?['Demandeur0Id'])),equals(mod(div(int(coalesce(body('Check_author_permission')?['Low'],body('Check_author_permission')?['d']?['GetUserEffectivePermissions']?['Low'],0)),4),2),1))",
+                                          "actions": {
+                                            "Create_processing_exchange": {
+                                              "type": "OpenApiConnection",
+                                              "inputs": {
+                                                "parameters": {
+                                                  "dataset": "@parameters('SiteUrl')",
+                                                  "table": "@parameters('ExchangesListId')",
+                                                  "item/Title": "Public Teams reply - processing",
+                                                  "item/TicketId": "@items('For_each_ticket')?['Id']",
+                                                  "item/Message": "@outputs('Public_reply_text')",
+                                                  "item/Visibility/Value": "Public",
+                                                  "item/Author0/Claims": "@concat('i:0#.f|membership|',body('Get_Teams_author')?['userPrincipalName'])",
+                                                  "item/ExchangeDate": "@items('For_each_reply')?['createdDateTime']",
+                                                  "item/Source/Value": "Teams",
+                                                  "item/SourceMessageId": "@items('For_each_reply')?['id']",
+                                                  "item/DeliveryState/Value": "Processing"
+                                                },
+                                                "host": {
+                                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                  "connectionName": "shared_sharepointonline",
+                                                  "operationId": "PostItem"
+                                                },
+                                                "authentication": "@parameters('$authentication')"
+                                              }
+                                            },
+                                            "Stage_ticket_reply": {
+                                              "type": "OpenApiConnection",
+                                              "runAfter": {
+                                                "Create_processing_exchange": [
+                                                  "Succeeded"
+                                                ]
+                                              },
+                                              "inputs": {
+                                                "parameters": {
+                                                  "dataset": "@parameters('SiteUrl')",
+                                                  "table": "@parameters('TicketsListId')",
+                                                  "id": "@items('For_each_ticket')?['Id']",
+                                                  "item/TeamsReplyText": "@outputs('Public_reply_text')",
+                                                  "item/TeamsReplyAgent/Claims": "@concat('i:0#.f|membership|',body('Get_Teams_author')?['userPrincipalName'])"
+                                                },
+                                                "host": {
+                                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                  "connectionName": "shared_sharepointonline",
+                                                  "operationId": "PatchItem"
+                                                },
+                                                "authentication": "@parameters('$authentication')"
+                                              }
+                                            },
+                                            "Re_read_staged_ticket": {
+                                              "type": "OpenApiConnection",
+                                              "runAfter": {
+                                                "Stage_ticket_reply": [
+                                                  "Succeeded"
+                                                ]
+                                              },
+                                              "inputs": {
+                                                "parameters": {
+                                                  "dataset": "@parameters('SiteUrl')",
+                                                  "table": "@parameters('TicketsListId')",
+                                                  "id": "@items('For_each_ticket')?['Id']"
+                                                },
+                                                "host": {
+                                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                  "connectionName": "shared_sharepointonline",
+                                                  "operationId": "GetItem"
+                                                },
+                                                "authentication": "@parameters('$authentication')"
+                                              }
+                                            },
+                                            "Staged_values_are_current": {
+                                              "type": "If",
+                                              "runAfter": {
+                                                "Re_read_staged_ticket": [
+                                                  "Succeeded"
+                                                ]
+                                              },
+                                              "expression": "@and(equals(body('Re_read_staged_ticket')?['TeamsThreadId'],items('For_each_ticket')?['TeamsThreadId']),equals(string(body('Re_read_staged_ticket')?['Demandeur0']?['Id']),string(items('For_each_ticket')?['Demandeur0Id'])),equals(body('Re_read_staged_ticket')?['TeamsReplyText'],outputs('Public_reply_text')),equals(toLower(body('Re_read_staged_ticket')?['TeamsReplyAgent']?['Email']),toLower(body('Get_Teams_author')?['userPrincipalName'])))",
+                                              "actions": {
+                                                "Commit_dispatch_token_only": {
+                                                  "type": "OpenApiConnection",
+                                                  "inputs": {
+                                                    "parameters": {
+                                                      "dataset": "@parameters('SiteUrl')",
+                                                      "table": "@parameters('TicketsListId')",
+                                                      "id": "@items('For_each_ticket')?['Id']",
+                                                      "item/TeamsReplyDispatchToken": "@guid()"
+                                                    },
+                                                    "host": {
+                                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                      "connectionName": "shared_sharepointonline",
+                                                      "operationId": "PatchItem"
+                                                    },
+                                                    "authentication": "@parameters('$authentication')"
+                                                  }
+                                                },
+                                                "Mark_exchange_awaiting_native_rule": {
+                                                  "type": "OpenApiConnection",
+                                                  "runAfter": {
+                                                    "Commit_dispatch_token_only": [
+                                                      "Succeeded"
+                                                    ]
+                                                  },
+                                                  "inputs": {
+                                                    "parameters": {
+                                                      "dataset": "@parameters('SiteUrl')",
+                                                      "table": "@parameters('ExchangesListId')",
+                                                      "id": "@body('Create_processing_exchange')?['ID']",
+                                                      "item/Title": "Public Teams reply - native rules queued",
+                                                      "item/DeliveryState/Value": "AwaitingNativeRule"
+                                                    },
+                                                    "host": {
+                                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                      "connectionName": "shared_sharepointonline",
+                                                      "operationId": "PatchItem"
+                                                    },
+                                                    "authentication": "@parameters('$authentication')"
+                                                  }
+                                                }
+                                              },
+                                              "else": {
+                                                "actions": {
+                                                  "Mark_staging_mismatch": {
+                                                    "type": "OpenApiConnection",
+                                                    "inputs": {
+                                                      "parameters": {
+                                                        "dataset": "@parameters('SiteUrl')",
+                                                        "table": "@parameters('ExchangesListId')",
+                                                        "id": "@body('Create_processing_exchange')?['ID']",
+                                                        "item/Title": "Public Teams reply - staging mismatch",
+                                                        "item/DeliveryState/Value": "FailedTerminal"
+                                                      },
+                                                      "host": {
+                                                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                        "connectionName": "shared_sharepointonline",
+                                                        "operationId": "PatchItem"
+                                                      },
+                                                      "authentication": "@parameters('$authentication')"
+                                                    }
+                                                  },
+                                                  "Fail_staging_mismatch": {
+                                                    "type": "Terminate",
+                                                    "runAfter": {
+                                                      "Mark_staging_mismatch": [
+                                                        "Succeeded"
+                                                      ]
+                                                    },
+                                                    "inputs": {
+                                                      "runStatus": "Failed",
+                                                      "runError": {
+                                                        "code": "StagingMismatch",
+                                                        "message": "Ticket requester, thread, agent or staged text changed before dispatch. No dispatch token was written."
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "else": {
+                                            "actions": {
+                                              "Record_unauthorized_reply": {
+                                                "type": "OpenApiConnection",
+                                                "inputs": {
+                                                  "parameters": {
+                                                    "dataset": "@parameters('SiteUrl')",
+                                                    "table": "@parameters('ExchangesListId')",
+                                                    "item/Title": "@if(greater(length(body('Find_pending_dispatch')?['value']),0),'Public Teams reply blocked - prior dispatch awaiting agent confirmation','Public Teams reply rejected - authorization')",
+                                                    "item/TicketId": "@items('For_each_ticket')?['Id']",
+                                                    "item/Message": "@outputs('Public_reply_text')",
+                                                    "item/Visibility/Value": "Public",
+                                                    "item/ExchangeDate": "@items('For_each_reply')?['createdDateTime']",
+                                                    "item/Source/Value": "Teams",
+                                                    "item/SourceMessageId": "@items('For_each_reply')?['id']",
+                                                    "item/DeliveryState/Value": "FailedTerminal"
+                                                  },
+                                                  "host": {
+                                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                    "connectionName": "shared_sharepointonline",
+                                                    "operationId": "PostItem"
+                                                  },
+                                                  "authentication": "@parameters('$authentication')"
+                                                }
+                                              },
+                                              "Fail_unauthorized_reply": {
+                                                "type": "Terminate",
+                                                "runAfter": {
+                                                  "Record_unauthorized_reply": [
+                                                    "Succeeded"
+                                                  ]
+                                                },
+                                                "inputs": {
+                                                  "runStatus": "Failed",
+                                                  "runError": {
+                                                    "code": "UnauthorizedTeamsAuthor",
+                                                    "message": "@if(greater(length(body('Find_pending_dispatch')?['value']),0),'A prior public reply for this ticket is still AwaitingNativeRule. Confirm it before manually recovering this reply.','The Teams author is disabled, unresolved, lacks effective EditListItems, or the ticket has no requester.')"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "else": {
+                                        "actions": {
+                                          "Record_invalid_public_length": {
+                                            "type": "OpenApiConnection",
+                                            "inputs": {
+                                              "parameters": {
+                                                "dataset": "@parameters('SiteUrl')",
+                                                "table": "@parameters('ExchangesListId')",
+                                                "item/Title": "@concat('Public Teams reply rejected - length ',length(outputs('Public_reply_text')))",
+                                                "item/TicketId": "@items('For_each_ticket')?['Id']",
+                                                "item/Message": "@outputs('Public_reply_text')",
+                                                "item/Visibility/Value": "Public",
+                                                "item/ExchangeDate": "@items('For_each_reply')?['createdDateTime']",
+                                                "item/Source/Value": "Teams",
+                                                "item/SourceMessageId": "@items('For_each_reply')?['id']",
+                                                "item/DeliveryState/Value": "FailedTerminal"
+                                              },
+                                              "host": {
+                                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                "connectionName": "shared_sharepointonline",
+                                                "operationId": "PostItem"
+                                              },
+                                              "authentication": "@parameters('$authentication')"
+                                            }
+                                          },
+                                          "Fail_invalid_public_length": {
+                                            "type": "Terminate",
+                                            "runAfter": {
+                                              "Record_invalid_public_length": [
+                                                "Succeeded"
+                                              ]
+                                            },
+                                            "inputs": {
+                                              "runStatus": "Failed",
+                                              "runError": {
+                                                "code": "InvalidPublicReplyLength",
+                                                "message": "@concat('Public @user reply has ',length(outputs('Public_reply_text')),' characters; allowed range is 1-255. Nothing was truncated or dispatched.')"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Record_internal_exchange": {
+                                        "type": "OpenApiConnection",
+                                        "inputs": {
+                                          "parameters": {
+                                            "dataset": "@parameters('SiteUrl')",
+                                            "table": "@parameters('ExchangesListId')",
+                                            "item/Title": "Internal Teams reply",
+                                            "item/TicketId": "@items('For_each_ticket')?['Id']",
+                                            "item/Message": "@outputs('Plain_text')",
+                                            "item/Visibility/Value": "Internal",
+                                            "item/Author0/Claims": "@concat('i:0#.f|membership|',body('Get_Teams_author')?['userPrincipalName'])",
+                                            "item/ExchangeDate": "@items('For_each_reply')?['createdDateTime']",
+                                            "item/Source/Value": "Teams",
+                                            "item/SourceMessageId": "@items('For_each_reply')?['id']",
+                                            "item/DeliveryState/Value": "IgnoredInternal"
+                                          },
+                                          "host": {
+                                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                            "connectionName": "shared_sharepointonline",
+                                            "operationId": "PostItem"
+                                          },
+                                          "authentication": "@parameters('$authentication')"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {}
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Fail_reply_page_limit": {
+                        "type": "Terminate",
+                        "inputs": {
+                          "runStatus": "Failed",
+                          "runError": {
+                            "code": "ReplyPaginationRequired",
+                            "message": "A Teams reply page reached 50 items or returned @odata.nextLink. No partial page was processed."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Fail_ticket_page_limit": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "TicketPaginationRequired",
+                    "message": "More than 50 mapped ticket roots exist. No partial ticket page was processed."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "actions": {
+          "Fail_inactive_cutoff": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "ActivationCutoffNotSet",
+                "message": "Set the Deployment_cutoff_UTC Compose value to the current UTC deployment time before enabling. Historical replies are blocked."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputs": {}
+}
