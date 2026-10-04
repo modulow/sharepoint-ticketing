@@ -7,6 +7,7 @@
 | Direct reply rules must remain untouched | The definition never writes `R_x00e9_ponseaudemandeur`. |
 | Native rule payload is single-line 255 | `TeamsReplyText` is validated at 1-255 characters; longer content is recorded and fails without truncation. |
 | Technical Editor is not the Teams author | `UserProfile_V2`, `ensureuser` and item-specific `getUserEffectivePermissions` resolve and authorize the actual Teams author, who is stored in `TeamsReplyAgent`. |
+| SharePoint identity IDs are integers | The author and requester IDs must satisfy `greater(int(coalesce(id, 0)), 0)`; the definition never passes an integer to `empty()`. |
 | Laurent may be a legitimate human agent | No connection UPN or Laurent-specific exclusion exists. |
 | Automation and system replies are not public | A non-empty `from.user.id`, empty `from.application`, normal message type and non-root message ID are required. Existing `SourceMessageId` ledger rows are skipped. |
 | Historical processing is unauthorized | The package has a future cutoff sentinel and fails before reading tickets until deployment supplies a current UTC cutoff. |

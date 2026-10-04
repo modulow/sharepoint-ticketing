@@ -57,6 +57,8 @@ For each mapped ticket, the flow obtains Teams replies through the supported Tea
 connector Graph action. It resolves the author through Office 365 Users, ensures that
 user in SharePoint, and checks effective `EditListItems` on that exact ticket item.
 Laurent is not excluded merely because he owns the connections.
+SharePoint identity IDs are numeric at runtime. The authorization guard treats only
+`greater(int(coalesce(id, 0)), 0)` as present; it never calls `empty()` on an integer.
 
 HTML is converted with Content Conversion before classification. Only literal,
 case-sensitive `@user` followed by end-of-text, a space, LF or CRLF is public. The prefix
@@ -122,7 +124,7 @@ For manual solution authoring, create these eight root actions in order:
 Run `npm test`. The workflow tests load `operational-definition.json` and check the
 actual connector operation IDs, IDs, cutoff guard, serial concurrency, page fail-stops,
 human/permission guards, unique-ledger lookup, exact `@user` classifier, 255-character
-failure, staged-field re-read and token-only final update.
+failure, numeric identity handling, staged-field re-read and token-only final update.
 
 The previously authorized intake test proves only form -> list -> Teams root creation:
 ticket `[TEST] Kiwi form integration - Laurent - 2026-10-04 17:45`,

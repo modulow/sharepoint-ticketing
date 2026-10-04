@@ -155,6 +155,26 @@ test('human identity and effective EditListItems are checked', () => {
   assert.doesNotMatch(serialized, /laurent\.anciaux/i);
 });
 
+test('numeric SharePoint identity IDs fail closed without empty(Integer)', () => {
+  const authorization = actionNamed('Author_and_requester_are_authorized').expression;
+  assert.match(
+    authorization,
+    /greater\(int\(coalesce\(body\('Ensure_SharePoint_author'\)\?\['Id'\],0\)\),0\)/
+  );
+  assert.match(
+    authorization,
+    /greater\(int\(coalesce\(items\('For_each_ticket'\)\?\['Demandeur0Id'\],0\)\),0\)/
+  );
+  assert.doesNotMatch(authorization, /empty\([^)]*(?:Demandeur0Id|Ensure_SharePoint_author)/);
+
+  const isPositiveId = value => Number(value ?? 0) > 0;
+  assert.equal(isPositiveId(17), true);
+  assert.equal(isPositiveId('17'), true);
+  assert.equal(isPositiveId(0), false);
+  assert.equal(isPositiveId(null), false);
+  assert.equal(isPositiveId(undefined), false);
+});
+
 test('SourceMessageId is checked before durable processing', () => {
   assert.match(
     actionNamed('Find_exchange').inputs.parameters['parameters/uri'],
