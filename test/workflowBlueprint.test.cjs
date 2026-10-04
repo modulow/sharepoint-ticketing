@@ -99,8 +99,7 @@ test('operational definition uses supported exported connector schemas', () => {
     'UserProfile_V2',
     'HtmlToText',
     'PostItem',
-    'PatchItem',
-    'GetItem'
+    'PatchItem'
   ]) {
     assert.ok(operations.has(operation), `Missing operation ${operation}`);
   }
@@ -260,7 +259,29 @@ test('dispatch stages and re-reads fields before token-only commit', () => {
     Object.keys(stage.inputs.parameters).sort(),
     ['dataset', 'id', 'item/TeamsReplyAgent/Claims', 'item/TeamsReplyText', 'table']
   );
-  assert.match(actionNamed('Staged_values_are_current').expression, /Demandeur0/);
+  const reread = actionNamed('Re_read_staged_ticket');
+  assert.equal(reread.inputs.host.operationId, 'HttpRequest');
+  assert.equal(reread.inputs.parameters['parameters/method'], 'GET');
+  assert.match(
+    reread.inputs.parameters['parameters/uri'],
+    /\$select=Id,TeamsThreadId,Demandeur0Id,TeamsReplyText,TeamsReplyAgentId/
+  );
+  assert.equal(
+    reread.inputs.parameters['parameters/headers'].Accept,
+    'application/json;odata=nometadata'
+  );
+  const correlation = actionNamed('Staged_values_are_current').expression;
+  assert.match(correlation, /Demandeur0Id/);
+  assert.match(correlation, /TeamsReplyAgentId/);
+  assert.match(correlation, /Ensure_SharePoint_author.*\?\['Id'\]/);
+  assert.doesNotMatch(
+    correlation,
+    /body\('Re_read_staged_ticket'\)\?\['Demandeur0'\]\?\['Id'\]/
+  );
+  assert.doesNotMatch(
+    correlation,
+    /body\('Re_read_staged_ticket'\)\?\['TeamsReplyAgent'\]\?\['Email'\]/
+  );
   assert.match(actionNamed('Staged_values_are_current').expression, /TeamsThreadId/);
   assert.match(actionNamed('Staged_values_are_current').expression, /replyToId/);
   assert.deepEqual(

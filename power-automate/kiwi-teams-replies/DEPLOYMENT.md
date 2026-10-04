@@ -69,7 +69,13 @@ human replies are recorded once as `IgnoredInternal`.
 For a valid public reply, the flow creates a unique `Processing` exchange, writes
 `TeamsReplyText` and `TeamsReplyAgent`, re-reads and compares the requester, Teams thread,
 text and agent, and only then changes `TeamsReplyDispatchToken`. The exchange becomes
-`AwaitingNativeRule` after that token update. This means:
+`AwaitingNativeRule` after that token update.
+
+The staged re-read uses SharePoint REST and explicitly selects `Demandeur0Id` and
+`TeamsReplyAgentId`. The native `Get item` action returns Person values without their
+numeric IDs in this tenant and must not be used for this correlation.
+
+This means:
 
 - `Processing`: fail-stop or pre-token state; inspect manually and never blindly replay;
 - `AwaitingNativeRule`: SharePoint accepted the token change and native rules are queued;
@@ -84,6 +90,15 @@ fails visibly, preventing a second token change from reusing stale staged values
 the operator resolves the earlier exchange (or the agent confirms it), an operator may
 deliberately recover the blocked reply by deleting its failed ledger row; the flow never
 does that automatically.
+
+For a staging mismatch that occurred before any token update, keep the flow off and
+verify the failed run shows `Commit_dispatch_token_only` skipped. Locate exactly one
+`TicketExchanges` row with the affected ticket, the original `SourceMessageId`, title
+`Public Teams reply - staging mismatch`, and state `FailedTerminal`. Delete only that
+row. Leave the already staged ticket text and agent intact; the next run overwrites them
+with the same validated values. Re-enable and run once without reposting the Teams
+message, then disable while inspecting the new exchange and token. Never delete a
+`Processing` or `AwaitingNativeRule` row for this recovery.
 
 The flow asks for 51 ticket roots and 50 replies as sentinels. It terminates before
 processing when either sentinel is reached or Teams returns `@odata.nextLink`; it never

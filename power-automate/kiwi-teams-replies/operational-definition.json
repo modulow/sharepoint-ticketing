@@ -455,13 +455,16 @@
                                   "inputs": {
                                     "parameters": {
                                       "dataset": "@parameters('SiteUrl')",
-                                      "table": "@parameters('TicketsListId')",
-                                      "id": "@items('For_each_ticket')?['Id']"
+                                      "parameters/method": "GET",
+                                      "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',items('For_each_ticket')?['Id'],')?$select=Id,TeamsThreadId,Demandeur0Id,TeamsReplyText,TeamsReplyAgentId')",
+                                      "parameters/headers": {
+                                        "Accept": "application/json;odata=nometadata"
+                                      }
                                     },
                                     "host": {
                                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
                                       "connectionName": "shared_sharepointonline",
-                                      "operationId": "GetItem"
+                                      "operationId": "HttpRequest"
                                     },
                                     "authentication": "@parameters('$authentication')"
                                   }
@@ -473,7 +476,7 @@
                                       "Succeeded"
                                     ]
                                   },
-                                  "expression": "@and(equals(items('For_each_reply')?['replyToId'],items('For_each_ticket')?['TeamsThreadId']),equals(body('Re_read_staged_ticket')?['TeamsThreadId'],items('For_each_ticket')?['TeamsThreadId']),equals(string(body('Re_read_staged_ticket')?['Demandeur0']?['Id']),string(items('For_each_ticket')?['Demandeur0Id'])),equals(body('Re_read_staged_ticket')?['TeamsReplyText'],outputs('Public_reply_text')),equals(toLower(body('Re_read_staged_ticket')?['TeamsReplyAgent']?['Email']),toLower(body('Get_Teams_author')?['userPrincipalName'])))",
+                                  "expression": "@and(equals(items('For_each_reply')?['replyToId'],items('For_each_ticket')?['TeamsThreadId']),equals(body('Re_read_staged_ticket')?['TeamsThreadId'],items('For_each_ticket')?['TeamsThreadId']),equals(string(body('Re_read_staged_ticket')?['Demandeur0Id']),string(items('For_each_ticket')?['Demandeur0Id'])),equals(body('Re_read_staged_ticket')?['TeamsReplyText'],outputs('Public_reply_text')),equals(string(body('Re_read_staged_ticket')?['TeamsReplyAgentId']),string(body('Ensure_SharePoint_author')?['Id'])))",
                                   "actions": {
                                     "Commit_dispatch_token_only": {
                                       "type": "OpenApiConnection",

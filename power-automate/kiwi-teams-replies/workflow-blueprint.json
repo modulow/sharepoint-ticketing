@@ -121,6 +121,7 @@
     "Create the unique Processing exchange before staging requester fields",
     "Reject a later public reply while the same ticket has a Processing or AwaitingNativeRule exchange",
     "Write TeamsReplyText and TeamsReplyAgent, then re-read requester, thread, text and agent",
+    "Re-read staged requester and agent through SharePoint REST lookup-ID fields because native GetItem omits Person Id values",
     "Change only TeamsReplyDispatchToken after the re-read matches",
     "Mark the exchange AwaitingNativeRule after the token update",
     "Set serial failure variables inside loops and perform any Terminate only after the loops"
@@ -144,6 +145,7 @@
     "Terminate actions are never nested in Foreach actions",
     "SetVariable values never reference the variable being assigned; first-failure guards prevent later overwrites",
     "Numeric SharePoint identity fields are validated with greater(int(coalesce(value,0)),0), never empty(), because the cloud runtime rejects empty(Integer)",
+    "Staged requester and agent correlation uses REST Demandeur0Id and TeamsReplyAgentId, not absent IDs inside native SPListExpandedUser objects",
     "Native TicketExchanges CreateItem actions use item/Ticket/Id for the lookup and plain item/Source; REST filters continue to use the TicketId internal lookup-ID property",
     "The deepest concrete action path has exactly eight control parents, within the Power Automate save limit",
     "Queued native rules are never labelled delivered"
