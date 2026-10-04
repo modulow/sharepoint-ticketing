@@ -13,7 +13,6 @@ import type {
 import type { ITicketService } from './ITicketService';
 import {
   EUROPA_TICKETS_LIST_ID,
-  KIWI_AGENTS_GROUP,
   KIWI_INTAKE_FORM_URL,
   KIWI_SITE_URL,
   LEARN_IT_GROUP_ID
@@ -23,6 +22,7 @@ import {
   type ISharePointFieldMetadata,
   type ITicketSchema
 } from './TicketSchema';
+import { hasEditListItems, type IBasePermissions } from './PermissionUtils';
 
 interface IODataCollection<T> {
   value: T[];
@@ -32,10 +32,6 @@ interface ISharePointUser {
   Id: number;
   Title: string;
   EMail?: string;
-}
-
-interface ISharePointGroup {
-  Title: string;
 }
 
 interface ISharePointTicket extends Record<string, unknown> {
@@ -75,13 +71,11 @@ export class SharePointTicketService implements ITicketService {
 
   public async getUserContext(): Promise<IUserContext> {
     const userResponse = await this.get<ISharePointUser>('/_api/web/currentuser');
-    const groupsResponse = await this.get<IODataCollection<ISharePointGroup>>(
-      `/_api/web/currentuser/groups?$select=Title&$filter=Title eq '${KIWI_AGENTS_GROUP.replace(/'/g, "''")}'`
-    );
+    const permissions = await this.get<IBasePermissions>(`${LIST_ENDPOINT}/EffectiveBasePermissions`);
 
     return {
       user: this.mapUser(userResponse),
-      isAgent: groupsResponse.value.some(group => group.Title === KIWI_AGENTS_GROUP)
+      isAgent: hasEditListItems(permissions)
     };
   }
 
@@ -108,7 +102,18 @@ export class SharePointTicketService implements ITicketService {
       );
       expand.push(schema.assignedTo);
     }
-    const filter = context.isAgent ? '' : `&$filter=AuthorId eq ${context.user.id}`;
+    if (schema.requester) {
+      select.push(
+        `${schema.requester}/Id`,
+        `${schema.requester}/Title`,
+        `${schema.requester}/EMail`
+      );
+      expand.push(schema.requester);
+    }
+    const requesterFilter = schema.requester
+      ? `(AuthorId eq ${context.user.id} or ${schema.requester}Id eq ${context.user.id})`
+      : `AuthorId eq ${context.user.id}`;
+    const filter = context.isAgent ? '' : `&$filter=${requesterFilter}`;
     const endpoint =
       `${LIST_ENDPOINT}/items` +
       `?$select=${select.join(',')}&$expand=${expand.join(',')}${filter}&$orderby=Modified desc&$top=5000`;
@@ -250,6 +255,7 @@ export class SharePointTicketService implements ITicketService {
 
   private mapTicket(item: ISharePointTicket, schema: ITicketSchema): ITicket {
     const assignedTo = schema.assignedTo ? item[schema.assignedTo] as ISharePointUser | undefined : undefined;
+    const requester = schema.requester ? item[schema.requester] as ISharePointUser | undefined : undefined;
     const category = schema.category ? String(item[schema.category] || '') : '';
     const priority = schema.priority ? String(item[schema.priority] || '') : '';
     const status = schema.status ? String(item[schema.status] || '') : '';
@@ -263,7 +269,7 @@ export class SharePointTicketService implements ITicketService {
       assignedTo: assignedTo ? this.mapUser(assignedTo) : undefined,
       dueDate: schema.dueDate ? String(item[schema.dueDate] || '') || undefined : undefined,
       resolution: schema.resolution ? String(item[schema.resolution] || '') || undefined : undefined,
-      author: this.mapUser(item.Author),
+      author: this.mapUser(requester || item.Author),
       created: item.Created,
       modified: item.Modified,
       attachmentCount: item.AttachmentFiles?.length ?? (item.Attachments ? 1 : 0)

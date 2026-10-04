@@ -202,7 +202,7 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
       <section className={`${styles.state} ${styles.denied}`} role="alert">
         <strong aria-hidden="true">403</strong>
         <h2>Agent access required</h2>
-        <p>This web part is reserved for members of the Kiwi Ticket Agents SharePoint group.</p>
+        <p>This web part requires effective Edit items permission on the EuropaTickets list.</p>
       </section>
     );
   }

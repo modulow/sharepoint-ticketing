@@ -10,6 +10,7 @@ export interface ISharePointFieldMetadata {
 export interface ITicketSchema {
   title: string;
   description: string;
+  requester?: string;
   category?: string;
   priority?: string;
   status?: string;
@@ -54,6 +55,12 @@ export const resolveTicketSchema = (fields: ISharePointFieldMetadata[]): ITicket
   return {
     title,
     description,
+    requester: findField(
+      fields,
+      ['Demandeur0', 'Requester'],
+      ['Demandeur', 'Requester'],
+      ['User']
+    ),
     category: findField(fields, ['Categorie', 'Category'], ['Catégorie', 'Categorie', 'Category'], ['Choice', 'Text']),
     priority: findField(fields, ['Priorite', 'Priority'], ['Priorité', 'Priorite', 'Priority'], ['Choice', 'Text']),
     status: findField(fields, ['Statut', 'Status'], ['Statut', 'Status'], ['Choice', 'Text']),

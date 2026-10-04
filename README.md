@@ -40,7 +40,7 @@ The deployed web parts use these existing resources without changing their permi
 - `EuropaTickets`, list ID `f673fe2d-9733-46dd-9afe-4bf614c99202`;
 - `TicketExchanges`, retained for the existing Kiwi conversation flow (not written by this client);
 - the existing Microsoft Lists intake form for Title/Titre, Descriptif and attachments;
-- SharePoint group `Kiwi Ticket Agents` for agent authorization;
+- effective `EditListItems` permission on `EuropaTickets` for agent authorization;
 - Microsoft 365 group `435074fb-2e8d-4c67-b06a-0359ddc5a939` for the assignment selector.
 
 At runtime the client reads the `EuropaTickets` field metadata and resolves required and
@@ -48,6 +48,17 @@ optional fields by stable internal names and localized display labels. It does n
 the original English `Tickets` schema. `Author`, `Created`, `Modified`, attachment state,
 and any detected category, priority, status, assignee, due-date and requester-response
 fields are projected from the real list.
+
+Agent authorization is permission-aware: the web part reads the current user's effective
+permissions on `EuropaTickets` and enables management only when `EditListItems` is
+present. This includes Owners and group 5 through their existing role assignments without
+assuming that the role definition name is a SharePoint group. It does not enumerate
+`/sitegroups(5)/users` or claim that SharePoint expands nested M365 membership.
+
+Requester queries use `Demandeur0` when that person field exists and also include items
+authored by the signed-in user. This covers email-created requests whose technical Author
+is the flow owner and form-created requests whose Author is the requester. The displayed
+requester likewise prefers `Demandeur0` and falls back to Author.
 
 Ticket creation deliberately opens the existing modern Lists form rather than posting a
 partial item through REST. This preserves attachments, actual `Author`, native rules and
@@ -69,7 +80,7 @@ Members group.
 3. Add the **Support IT** web part to the intended page on
    `https://europarl.sharepoint.com/sites/learn.IT-Kiwi`.
 4. Add **Support IT Management** only to an agent-restricted page. The component also
-   verifies membership in `Kiwi Ticket Agents`.
+   verifies effective `EditListItems` permission on `EuropaTickets`.
 5. Test as a normal requester and as a Kiwi agent. Confirm that the modern intake form
    creates an `EuropaTickets` item and that assignment resolves an existing learn.IT
    member.

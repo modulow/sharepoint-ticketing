@@ -14,12 +14,14 @@ test('resolves Kiwi fields from internal names and localized labels', () => {
   assert.deepEqual(resolveTicketSchema([
     field('Title', 'Titre', 'Text'),
     field('Descriptif', 'Descriptif', 'Note'),
+    field('Demandeur0', 'Demandeur', 'User'),
     field('LegacyCategoryName', 'Catégorie', 'Choice'),
     field('AssignedTo', 'Assigné à', 'User'),
     field('R_x00e9_ponseaudemandeur', 'Réponse au demandeur', 'Text')
   ]), {
     title: 'Title',
     description: 'Descriptif',
+    requester: 'Demandeur0',
     category: 'LegacyCategoryName',
     priority: undefined,
     status: undefined,
@@ -35,4 +37,3 @@ test('fails explicitly when required intake fields are absent', () => {
     /Descriptif\/Description/
   );
 });
-
