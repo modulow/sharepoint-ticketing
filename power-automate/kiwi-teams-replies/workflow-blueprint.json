@@ -17,7 +17,8 @@
     "activationCutoffDefault": "2099-12-31T00:00:00Z",
     "pollIntervalMinutes": 5,
     "maximumTicketRoots": 50,
-    "maximumRepliesPerRoot": 49
+    "maximumRepliesPerRoot": 49,
+    "maximumControlNesting": 8
   },
   "connections": [
     "shared_sharepointonline",
@@ -93,6 +94,7 @@
   ],
   "execution": [
     "Reject the sentinel or future ActivationCutoffUtc before reading any tickets",
+    "Run cutoff and ticket-page checks as top-level preflights rather than ancestor containers",
     "Read at most 51 mapped ticket roots and fail before processing if 51 are returned",
     "Read replies with Teams Graph through the Teams connector using top=50",
     "Fail before processing a reply page when @odata.nextLink exists or 50 replies are returned",
@@ -129,6 +131,7 @@
     "No historical reply can run with the packaged sentinel cutoff",
     "No page is silently truncated; a thread with 50 or more replies blocks every future run until pagination is implemented or the mapping is retired",
     "Terminate actions are never nested in Foreach actions",
+    "The deepest concrete action path has exactly eight control parents, within the Power Automate save limit",
     "Queued native rules are never labelled delivered"
   ]
 }

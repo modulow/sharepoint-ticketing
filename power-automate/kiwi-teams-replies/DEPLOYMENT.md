@@ -93,6 +93,26 @@ Power Automate rejects `Terminate` inside `Foreach`. Nested failures therefore s
 `FailureCode` and `FailureMessage` variables. Remaining reply bodies are gated off, and a
 single top-level action terminates the run after both loops finish.
 
+Power Automate also limits control nesting to eight. The cutoff and ticket-page checks
+are top-level preflights, and the reply-page check is a sibling of the reply loop. The
+deepest concrete path is exactly eight control parents:
+
+`For_each_ticket` -> `For_each_reply` -> `Reply_is_new_human_content` ->
+`Source_message_is_unseen` -> `Reply_is_public` ->
+`Public_reply_length_is_valid` -> `Author_and_requester_are_authorized` ->
+`Staged_values_are_current` -> token action.
+
+For manual solution authoring, create these eight root actions in order:
+
+1. `Deployment_cutoff_UTC` (Compose).
+2. `Initialize_failure_code`.
+3. `Initialize_failure_message`.
+4. `Activation_cutoff_is_invalid` (Condition).
+5. `List_ticket_roots`.
+6. `Ticket_page_limit_reached` (Condition).
+7. `For_each_ticket`.
+8. `Terminate_after_processing_failure` (Condition).
+
 ## Validation
 
 Run `npm test`. The workflow tests load `operational-definition.json` and check the

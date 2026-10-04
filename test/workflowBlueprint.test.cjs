@@ -39,6 +39,26 @@ function actionNamed(expectedName) {
   return result;
 }
 
+function deepestControlPath(actions) {
+  const containers = new Set(['If', 'Foreach', 'Scope', 'Switch', 'Until']);
+  let deepest = { depth: -1, path: [] };
+
+  function walk(currentActions, parentControls = []) {
+    for (const [name, action] of Object.entries(currentActions || {})) {
+      const path = [...parentControls, name];
+      if (parentControls.length > deepest.depth) {
+        deepest = { depth: parentControls.length, path };
+      }
+      const nextParents = containers.has(action.type) ? path : parentControls;
+      walk(action.actions, nextParents);
+      walk(action.else?.actions, nextParents);
+    }
+  }
+
+  walk(actions);
+  return deepest;
+}
+
 test('operational definition uses verified tenant resources', () => {
   assert.equal(
     definition.parameters.TicketsListId.defaultValue,
@@ -89,7 +109,7 @@ test('operational definition uses supported exported connector schemas', () => {
 test('future cutoff blocks historical processing and trigger runs serially', () => {
   assert.equal(actionNamed('Deployment_cutoff_UTC').inputs, '2099-12-31T00:00:00Z');
   assert.equal(definition.triggers.Recurrence.runtimeConfiguration.concurrency.runs, 1);
-  assert.match(actionNamed('Cutoff_must_be_activated').expression, /2099-12-31/);
+  assert.match(actionNamed('Activation_cutoff_is_invalid').expression, /2099-12-31/);
   assert.match(actionNamed('Reply_is_new_human_content').expression, /Deployment_cutoff_UTC/);
 });
 
@@ -102,7 +122,7 @@ test('ticket and reply pages fail closed rather than truncate', () => {
     actionNamed('List_Teams_replies').inputs.parameters.Uri,
     /replies\?\$top=50/
   );
-  assert.match(actionNamed('Reply_page_is_bounded').expression, /@odata\.nextLink/);
+  assert.match(actionNamed('Reply_page_limit_reached').expression, /@odata\.nextLink/);
   assert.equal(actionNamed('For_each_ticket').runtimeConfiguration.concurrency.repetitions, 1);
   assert.equal(actionNamed('For_each_reply').runtimeConfiguration.concurrency.repetitions, 1);
   assert.equal(actionNamed('Fail_ticket_page_limit').inputs.runStatus, 'Failed');
@@ -214,6 +234,22 @@ test('Terminate actions are never nested in a foreach', () => {
   assert.deepEqual(invalid, []);
   assert.equal(actionNamed('Terminate_after_processing_failure').type, 'If');
   assert.equal(actionNamed('Fail_run_after_serial_processing').type, 'Terminate');
+});
+
+test('control nesting stays within the Power Automate limit', () => {
+  const deepest = deepestControlPath(definition.actions);
+  assert.equal(deepest.depth, 8);
+  assert.deepEqual(deepest.path, [
+    'For_each_ticket',
+    'For_each_reply',
+    'Reply_is_new_human_content',
+    'Source_message_is_unseen',
+    'Reply_is_public',
+    'Public_reply_length_is_valid',
+    'Author_and_requester_are_authorized',
+    'Staged_values_are_current',
+    'Commit_dispatch_token_only'
+  ]);
 });
 
 test('contract exposes only the minimum additional state column', () => {
