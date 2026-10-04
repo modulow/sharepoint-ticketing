@@ -36,8 +36,8 @@ export interface INewTicket {
 }
 
 export interface ITicketUpdate {
-  status: TicketStatus;
-  priority: TicketPriority;
+  status?: TicketStatus;
+  priority?: TicketPriority;
   assignedToId?: number;
   clearAssignment?: boolean;
   dueDate?: string;

@@ -27,6 +27,7 @@ const agents = ['Olivia Martin', 'Noah Williams', 'Emma Davis', 'Liam Anderson',
 const statuses = ['New', 'In progress', 'Waiting', 'Resolved', 'Closed'];
 const priorities = ['Low', 'Normal', 'High', 'Critical'];
 const categories = ['Hardware', 'Software', 'Access', 'Network', 'Telephony', 'Other'];
+const kiwiIntakeFormUrl = 'https://europarl.sharepoint.com/:l:/s/learn.IT-Kiwi/JAAt_nP2M5fdRpr-S_YUyZICAaohrMu1P2lFpVhNeblaX-k?nav=Nzk3NjUwYjUtNmViMi00YzE1LTlhM2EtMDg4MzY3ZjlmZDBh';
 const app = document.querySelector('#app');
 let tickets = JSON.parse(localStorage.getItem('support-it-demo') || 'null') || structuredClone(seedTickets);
 let view = 'dashboard';
@@ -71,7 +72,10 @@ function ticketRow(ticket, opensList = false) {
 }
 
 function renderCreate() {
-  app.innerHTML = `<section class="form-panel"><span class="eyebrow">New request</span><h2>Create a ticket</h2><p>Tell us what you need. This demo stores the ticket only in your browser.</p>
+  app.innerHTML = `<section class="form-panel"><span class="eyebrow">Kiwi intake</span><h2>Create a ticket</h2><p><strong>Live form:</strong> opens the organisation's secure Microsoft Lists intake form. This public demo never reads or stores private SharePoint data.</p>
+    <p><a class="primary live-form-link" href="${kiwiIntakeFormUrl}" target="_blank" rel="noreferrer">Open the secure Kiwi form ↗</a></p>
+    <hr>
+    <span class="eyebrow">Browser-only demo</span><h3>Try the sample workflow</h3><p>The form below stores sample data only in this browser.</p>
     <form id="ticket-form">
       <label class="field">Subject<input name="subject" required maxlength="120" placeholder="What can we help you with?"></label>
       <label class="field">Description<textarea name="description" rows="7" required placeholder="Context, error message, impact…"></textarea></label>

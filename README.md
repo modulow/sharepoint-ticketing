@@ -5,7 +5,8 @@
 The GitHub Pages demo uses sample data stored only in the visitor's browser. It does not
 connect to SharePoint or expose tenant data. for SharePoint Online
 
-Responsive SPFx ticket portal for `https://modulow.sharepoint.com/sites/support-it`. The visual system follows the European Parliament Brand Book 2.0 guidance applicable to digital interfaces: Reflex Blue `#0C4DA2`, Yellow `#FDE021`, official neutral colours, purposeful dialogue-line elements, clear typographic hierarchy, simple geometry, restrained motion, and accessible contrast.
+Responsive SPFx ticket portal integrated with the Kiwi service at
+`https://europarl.sharepoint.com/sites/learn.IT-Kiwi`. The visual system follows the European Parliament Brand Book 2.0 guidance applicable to digital interfaces: Reflex Blue `#0C4DA2`, Yellow `#FDE021`, official neutral colours, purposeful dialogue-line elements, clear typographic hierarchy, simple geometry, restrained motion, and accessible contrast.
 
 The agent workspace includes the official English landscape logo supplied through the European Parliament Download Centre, following confirmation from the repository owner that its use is authorised. The end-user portal keeps the lighter logo-free hero requested for the public experience. Both interfaces use a locally installed Myriad Pro when available and the prescribed native Arial fallback.
 
@@ -32,7 +33,54 @@ npm run build
 
 `npm run build` creates `sharepoint/solution/support-it-ticketing.sppkg`. Generated dependency/build folders are gitignored.
 
-## Provision SharePoint
+## Kiwi integration
+
+The deployed web parts use these existing resources without changing their permissions:
+
+- `EuropaTickets`, list ID `f673fe2d-9733-46dd-9afe-4bf614c99202`;
+- `TicketExchanges`, retained for the existing Kiwi conversation flow (not written by this client);
+- the existing Microsoft Lists intake form for Title/Titre, Descriptif and attachments;
+- SharePoint group `Kiwi Ticket Agents` for agent authorization;
+- Microsoft 365 group `435074fb-2e8d-4c67-b06a-0359ddc5a939` for the assignment selector.
+
+At runtime the client reads the `EuropaTickets` field metadata and resolves required and
+optional fields by stable internal names and localized display labels. It does not assume
+the original English `Tickets` schema. `Author`, `Created`, `Modified`, attachment state,
+and any detected category, priority, status, assignee, due-date and requester-response
+fields are projected from the real list.
+
+Ticket creation deliberately opens the existing modern Lists form rather than posting a
+partial item through REST. This preserves attachments, actual `Author`, native rules and
+the existing creation flow. The form currently does not populate `Demandeur0` or
+`TeamsThreadId`; wiring those fields into the form/flow remains a tenant-side task.
+
+The assignment selector expands transitive user members of the real learn.IT Microsoft
+365 group through Microsoft Graph, then calls SharePoint `ensureuser` so updates use the
+correct site user IDs. It never adds members. If expansion is unavailable, the management
+web part reports an explicit error instead of falling back to the incomplete SharePoint
+Members group.
+
+### Deploy to Kiwi
+
+1. Upload `sharepoint/solution/support-it-ticketing.sppkg` version `1.8.0.0` to the
+   European Parliament tenant App Catalog and deploy it.
+2. In the SharePoint admin center, approve the package's pending Microsoft Graph
+   `GroupMember.Read.All` API request.
+3. Add the **Support IT** web part to the intended page on
+   `https://europarl.sharepoint.com/sites/learn.IT-Kiwi`.
+4. Add **Support IT Management** only to an agent-restricted page. The component also
+   verifies membership in `Kiwi Ticket Agents`.
+5. Test as a normal requester and as a Kiwi agent. Confirm that the modern intake form
+   creates an `EuropaTickets` item and that assignment resolves an existing learn.IT
+   member.
+
+No package deployment or API approval is performed automatically by this repository.
+
+## Legacy modulow provisioning reference
+
+The remaining provisioning instructions describe the original demonstration tenant.
+Do not run them against learn.IT-Kiwi; the Kiwi integration reuses existing lists,
+groups, permissions, rules and flows.
 
 Prerequisites:
 
@@ -138,7 +186,11 @@ The commands restrict `Support-Management.aspx` to the Support IT Agents group a
 owners, then expose it as **Ticket Management** in the site navigation. The web part also
 performs an authorization check.
 
-The solution requests no Microsoft Graph or SharePoint API permission grant because it uses the current user's SharePoint session through `SPHttpClient`.
+After uploading the package, approve its pending **Microsoft Graph /
+GroupMember.Read.All** request in the SharePoint admin API access page. This delegated
+application permission is required only to expand the existing learn.IT group for the
+agent selector. SharePoint list access continues to use the signed-in user's session and
+the existing Kiwi permissions.
 
 ## Permissions and agents
 

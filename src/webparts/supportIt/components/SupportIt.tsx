@@ -2,10 +2,8 @@ import * as React from 'react';
 import styles from './SupportIt.module.scss';
 import type { ISupportItProps } from './ISupportItProps';
 import {
-  ticketCategories,
   ticketPriorities,
   ticketStatuses,
-  type INewTicket,
   type ITicket,
   type ITicketUpdate,
   type IUserContext
@@ -109,13 +107,6 @@ const teamAccentClass: Record<typeof supportTeam[number]['accent'], string> = {
   white: styles.avatarWhite
 };
 
-const initialTicket: INewTicket = {
-  subject: '',
-  description: '',
-  category: 'Software',
-  priority: 'Normal'
-};
-
 const statusClass: Record<ITicket['status'], string> = {
   'New': styles.statusNew,
   'In progress': styles.statusActive,
@@ -140,7 +131,6 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   const [context, setContext] = React.useState<IUserContext>();
   const [tickets, setTickets] = React.useState<ITicket[]>([]);
   const [selectedTicket, setSelectedTicket] = React.useState<ITicket>();
-  const [draft, setDraft] = React.useState<INewTicket>(initialTicket);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string>();
@@ -167,44 +157,35 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
 
   const summary = React.useMemo(() => summarizeTickets(tickets), [tickets]);
 
-  const createTicket = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-    setSaving(true);
-    setError(undefined);
-    setNotice(undefined);
-    try {
-      const created = await service.createTicket(draft);
-      setTickets(current => [created, ...current]);
-      setDraft(initialTicket);
-      setSelectedTicket(created);
-      setNotice(`Ticket #${created.id} was created. The Support IT team has been notified.`);
-      setView('tickets');
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'The ticket could not be created.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const updateTicket = async (
     event: React.FormEvent<HTMLFormElement>,
     ticket: ITicket
   ): Promise<void> => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const update: ITicketUpdate = {
-      status: form.get('status') as ITicketUpdate['status'],
-      priority: form.get('priority') as ITicketUpdate['priority'],
-      dueDate: String(form.get('dueDate') || '') || undefined,
-      resolution: String(form.get('resolution') || '') || undefined
-    };
+    const nextStatus = form.get('status') as ITicket['status'];
+    const nextPriority = form.get('priority') as ITicket['priority'];
+    const nextDueDate = String(form.get('dueDate') || '');
+    const nextResolution = String(form.get('resolution') || '');
+    const update: ITicketUpdate = {};
+    if (nextStatus !== ticket.status) update.status = nextStatus;
+    if (nextPriority !== ticket.priority) update.priority = nextPriority;
+    if (nextDueDate !== (ticket.dueDate?.slice(0, 10) || '')) update.dueDate = nextDueDate;
+    if (nextResolution !== (ticket.resolution || '')) update.resolution = nextResolution;
+    if (!Object.keys(update).length) {
+      setNotice(`Ticket #${ticket.id} has no changes to save.`);
+      return;
+    }
     setSaving(true);
     setError(undefined);
     try {
       await service.updateTicket(ticket.id, update);
-      const updated = {
+      const updated: ITicket = {
         ...ticket,
-        ...update,
+        ...(update.status !== undefined ? { status: update.status } : {}),
+        ...(update.priority !== undefined ? { priority: update.priority } : {}),
+        ...(update.dueDate !== undefined ? { dueDate: update.dueDate } : {}),
+        ...(update.resolution !== undefined ? { resolution: update.resolution } : {}),
         modified: new Date().toISOString()
       };
       setTickets(current => current.map(item => item.id === ticket.id ? updated : item));
@@ -324,7 +305,7 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
               <input name="dueDate" type="date" defaultValue={ticket.dueDate?.slice(0, 10)} />
             </label>
             <label className={styles.fullWidth}>Resolution
-              <textarea name="resolution" rows={4} defaultValue={ticket.resolution} />
+              <textarea name="resolution" rows={4} maxLength={255} defaultValue={ticket.resolution} />
             </label>
           </div>
           <button className={styles.primaryButton} type="submit" disabled={saving}>
@@ -338,55 +319,16 @@ const SupportIt: React.FC<ISupportItProps> = ({ service, userDisplayName }) => {
   const renderCreate = (): React.ReactElement => (
     <section className={styles.createPanel} aria-labelledby="create-title">
       <div>
-        <span className={styles.eyebrow}>Need help?</span>
-        <h2 id="create-title">Create a ticket</h2>
-        <p>Describe your request clearly. Our team will get back to you promptly.</p>
+        <span className={styles.eyebrow}>Kiwi intake</span>
+        <h2 id="create-title">Create a Kiwi ticket</h2>
+        <p>The official Microsoft Lists form records you as the author and supports file attachments.</p>
       </div>
-      <form onSubmit={event => { createTicket(event).catch(() => undefined); }}>
-        <label>Subject
-          <input
-            required
-            maxLength={255}
-            value={draft.subject}
-            onChange={event => setDraft({ ...draft, subject: event.target.value })}
-            placeholder="Example: Unable to connect to the VPN"
-          />
-        </label>
-        <label>Description
-          <textarea
-            required
-            minLength={10}
-            rows={6}
-            value={draft.description}
-            onChange={event => setDraft({ ...draft, description: event.target.value })}
-            placeholder="Context, error message, impact…"
-          />
-        </label>
-        <div className={styles.formGrid}>
-          <label>Category
-            <select
-              value={draft.category}
-              onChange={event => setDraft({ ...draft, category: event.target.value as INewTicket['category'] })}
-            >
-              {ticketCategories.map(value => <option key={value}>{value}</option>)}
-            </select>
-          </label>
-          <label>Priority
-            <select
-              value={draft.priority}
-              onChange={event => setDraft({ ...draft, priority: event.target.value as INewTicket['priority'] })}
-            >
-              {ticketPriorities.map(value => <option key={value}>{value}</option>)}
-            </select>
-          </label>
-        </div>
-        <div className={styles.formActions}>
-          <button className={styles.secondaryButton} type="button" onClick={() => navigate('dashboard')}>Cancel</button>
-          <button className={styles.primaryButton} type="submit" disabled={saving}>
-            {saving ? 'Creating…' : 'Submit ticket'}
-          </button>
-        </div>
-      </form>
+      <div className={styles.formActions}>
+        <button className={styles.secondaryButton} type="button" onClick={() => navigate('dashboard')}>Cancel</button>
+        <a className={styles.primaryButton} href={service.getIntakeFormUrl()} target="_blank" rel="noreferrer">
+          Open the secure Kiwi form ↗
+        </a>
+      </div>
     </section>
   );
 

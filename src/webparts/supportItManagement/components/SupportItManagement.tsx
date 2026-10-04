@@ -165,14 +165,21 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
     setError(undefined);
     setNotice(undefined);
     try {
-      await service.updateTicket(selectedTicket.id, {
-        status: draft.status,
-        priority: draft.priority,
-        assignedToId: draft.assignedToId ? Number(draft.assignedToId) : undefined,
-        clearAssignment: !draft.assignedToId,
-        dueDate: draft.dueDate || undefined,
-        resolution: draft.resolution
-      });
+      const update: Parameters<typeof service.updateTicket>[1] = {};
+      if (draft.status !== selectedTicket.status) update.status = draft.status;
+      if (draft.priority !== selectedTicket.priority) update.priority = draft.priority;
+      if (draft.dueDate !== toDateInput(selectedTicket.dueDate)) update.dueDate = draft.dueDate;
+      if (draft.resolution !== (selectedTicket.resolution || '')) update.resolution = draft.resolution;
+      const currentAssignee = selectedTicket.assignedTo ? String(selectedTicket.assignedTo.id) : '';
+      if (draft.assignedToId !== currentAssignee) {
+        if (draft.assignedToId) update.assignedToId = Number(draft.assignedToId);
+        else update.clearAssignment = true;
+      }
+      if (!Object.keys(update).length) {
+        setNotice(`Ticket #${selectedTicket.id} has no changes to save.`);
+        return;
+      }
+      await service.updateTicket(selectedTicket.id, update);
       await load();
       setNotice(`Ticket #${selectedTicket.id} was updated successfully.`);
     } catch (saveError) {
@@ -195,7 +202,7 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
       <section className={`${styles.state} ${styles.denied}`} role="alert">
         <strong aria-hidden="true">403</strong>
         <h2>Agent access required</h2>
-        <p>This web part is reserved for members of the Support IT Agents SharePoint group.</p>
+        <p>This web part is reserved for members of the Kiwi Ticket Agents SharePoint group.</p>
       </section>
     );
   }
@@ -336,7 +343,7 @@ const SupportItManagement: React.FC<ISupportItManagementProps> = ({ service }) =
                   <label><span>Assigned to</span><select value={draft.assignedToId} onChange={event => setDraft({ ...draft, assignedToId: event.target.value })}><option value="">Unassigned</option>{users.map(user => <option key={user.id} value={user.id}>{user.displayName}</option>)}</select></label>
                   <label><span>Due date</span><input type="date" value={draft.dueDate} onChange={event => setDraft({ ...draft, dueDate: event.target.value })} /></label>
                 </div>
-                <label className={styles.resolution}><span>Resolution and agent notes</span><textarea rows={5} value={draft.resolution} onChange={event => setDraft({ ...draft, resolution: event.target.value })} placeholder="Document the diagnosis, action taken and outcome." /></label>
+                <label className={styles.resolution}><span>Reply to requester (sends an email)</span><textarea maxLength={255} rows={5} value={draft.resolution} onChange={event => setDraft({ ...draft, resolution: event.target.value })} placeholder="Write the response that should be emailed to the requester." /></label>
                 <div className={styles.actions}>
                   <button type="button" onClick={() => setDraft(toDraft(selectedTicket))} disabled={saving}>Reset</button>
                   <button className={styles.saveButton} type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save ticket'}</button>

@@ -200,9 +200,12 @@ $border: #c8c8c8;
 }
 
 .primaryButton {
+  align-items: center;
   background: $blue;
   color: #fff;
+  display: inline-flex;
   padding: .9rem 1.25rem;
+  text-decoration: none;
 
   &:hover {
     background: $ink;
