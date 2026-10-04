@@ -1,10 +1,10 @@
 const seedTickets = [
-  { id: 1042, subject: 'VPN disconnects during meetings', description: 'The VPN drops after approximately twenty minutes when Teams is running.', category: 'Network', priority: 'High', status: 'In progress', requester: 'Alex Morgan', assignee: 'Noah Williams', modified: 'Today, 14:32', due: '2026-09-21', resolution: '' },
-  { id: 1041, subject: 'Access to finance workspace', description: 'Please grant contributor access to the quarterly finance workspace.', category: 'Access', priority: 'Normal', status: 'Waiting', requester: 'Maya Patel', assignee: 'Olivia Martin', modified: 'Today, 11:08', due: '2026-09-23', resolution: 'Waiting for workspace owner approval.' },
-  { id: 1040, subject: 'Laptop does not start', description: 'The device shows a black screen after the latest Windows update.', category: 'Hardware', priority: 'Critical', status: 'New', requester: 'Daniel Kim', assignee: '', modified: 'Today, 09:45', due: '2026-09-20', resolution: '' },
-  { id: 1039, subject: 'Recover deleted OneDrive files', description: 'A project folder was deleted yesterday and needs to be restored.', category: 'Software', priority: 'High', status: 'Resolved', requester: 'Sofia Rossi', assignee: 'Emma Davis', modified: 'Yesterday', due: '2026-09-19', resolution: 'Folder restored from the second-stage recycle bin.' },
-  { id: 1038, subject: 'New headset configuration', description: 'Configure a USB headset for Teams calls and validate audio quality.', category: 'Telephony', priority: 'Low', status: 'Closed', requester: 'Thomas Bernard', assignee: 'Lucas Wilson', modified: '18 Sep', due: '2026-09-18', resolution: 'Drivers updated and Teams audio test completed.' },
-  { id: 1037, subject: 'Suspicious email reported', description: 'Received a message asking for Microsoft 365 credentials.', category: 'Access', priority: 'Critical', status: 'In progress', requester: 'Nora Jensen', assignee: 'Sophia Brown', modified: '18 Sep', due: '2026-09-19', resolution: 'Message quarantined; investigation in progress.' }
+  { id: 1042, subject: 'VPN disconnects during meetings', description: 'The VPN drops after approximately twenty minutes when Teams is running.', category: 'Network', priority: 'High', status: 'In progress', requester: 'Demo requester A', assignee: 'Demo agent 2', modified: 'Today, 14:32', due: '2026-09-21', resolution: '' },
+  { id: 1041, subject: 'Access to finance workspace', description: 'Please grant contributor access to the quarterly finance workspace.', category: 'Access', priority: 'Normal', status: 'Waiting', requester: 'Demo requester B', assignee: 'Demo agent 1', modified: 'Today, 11:08', due: '2026-09-23', resolution: 'Waiting for workspace owner approval.' },
+  { id: 1040, subject: 'Laptop does not start', description: 'The device shows a black screen after the latest Windows update.', category: 'Hardware', priority: 'Critical', status: 'New', requester: 'Demo requester C', assignee: '', modified: 'Today, 09:45', due: '2026-09-20', resolution: '' },
+  { id: 1039, subject: 'Recover deleted OneDrive files', description: 'A project folder was deleted yesterday and needs to be restored.', category: 'Software', priority: 'High', status: 'Resolved', requester: 'Demo requester D', assignee: 'Demo agent 3', modified: 'Yesterday', due: '2026-09-19', resolution: 'Folder restored from the second-stage recycle bin.' },
+  { id: 1038, subject: 'New headset configuration', description: 'Configure a USB headset for Teams calls and validate audio quality.', category: 'Telephony', priority: 'Low', status: 'Closed', requester: 'Demo requester E', assignee: 'Demo agent 6', modified: '18 Sep', due: '2026-09-18', resolution: 'Drivers updated and Teams audio test completed.' },
+  { id: 1037, subject: 'Suspicious email reported', description: 'Received a message asking for Microsoft 365 credentials.', category: 'Access', priority: 'Critical', status: 'In progress', requester: 'Demo requester F', assignee: 'Demo agent 5', modified: '18 Sep', due: '2026-09-19', resolution: 'Message quarantined; investigation in progress.' }
 ];
 
 const resources = [
@@ -23,7 +23,7 @@ const faqs = [
   ['When should I choose Critical priority?', 'Use Critical for widespread outages, security incidents or issues preventing essential work.']
 ];
 
-const agents = ['Olivia Martin', 'Noah Williams', 'Emma Davis', 'Liam Anderson', 'Sophia Brown', 'Lucas Wilson'];
+const agents = ['Demo agent 1', 'Demo agent 2', 'Demo agent 3', 'Demo agent 4', 'Demo agent 5', 'Demo agent 6'];
 const statuses = ['New', 'In progress', 'Waiting', 'Resolved', 'Closed'];
 const priorities = ['Low', 'Normal', 'High', 'Critical'];
 const categories = ['Hardware', 'Software', 'Access', 'Network', 'Telephony', 'Other'];
@@ -96,7 +96,7 @@ function renderCreate() {
       category: data.get('category'),
       priority: data.get('priority'),
       status: 'New',
-      requester: 'Laurent Anciaux',
+      requester: 'Demo requester',
       assignee: '',
       modified: 'Just now',
       due: '',
@@ -123,7 +123,7 @@ function renderTickets() {
     ? ['Selected ticket', ticket => ticket.id === exactId]
     : (filters[ticketFilter] || filters.all);
   const visibleTickets = tickets.filter(predicate);
-  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Sample requests</span><h2>${title}</h2><p>This list contains browser-only demo data.</p></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}<a class="secondary live-form-link" href="${kiwiTicketListUrl}" target="_blank" rel="noreferrer">Open my secure Kiwi list ↗</a><button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
+  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Sample requests</span><h2>${title}</h2><p>This list contains browser-only demo data.</p></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}<a class="secondary live-form-link" href="${kiwiTicketListUrl}" target="_blank" rel="noreferrer">Open Kiwi agent queue ↗</a><button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
 }
 
 function renderManagement() {
