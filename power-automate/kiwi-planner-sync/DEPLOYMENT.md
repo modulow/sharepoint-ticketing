@@ -8,7 +8,40 @@ only through the approved tenant process.
 
 ## Live accessibility inspection (2026-10-05)
 
-**Current activation override: Planner synchronization remains paused; Power
+**Current live state: unmanaged 1.0.0.19 is imported and the Planner sync is
+enabled again.** The corrected manual run at **12:06 local time** succeeded
+in **1m26s**. All 12 history iterations passed without schema/identity/bucket
+diagnostics: two tickets entered the proven assigned-ranking branch, ten the
+preserved unassigned branch. All 12 selected-card task/details updates and native
+assignment readbacks succeeded; creation and card-correlation/assignment mismatch
+diagnostics were skipped. This includes real user-saved responsible-person
+assignments, not a fabricated test. The cap/ordering has fixture coverage beyond
+20 tickets; this live source has only two assigned tickets and cannot prove a
+live >20 boundary.
+
+The active desired-set algorithm now orders each normalized agent email's tickets
+by the proven latest assignment transition, then ticket ID, taking up to 20.
+Complete retained history and a matching current item version/identity are required.
+Pagination runs to a bounded 100,000-item limit, failing closed at the limit or
+on remaining continuation. Existing bucket names must resolve uniquely to the
+Team identity; writes use the resolved bucket ID. Durable bucket rename mapping
+is still absent. Unassigned tickets keep their separate legacy capped bucket.
+**No automatic cleanup is enabled:** older out-of-window cards remain, so this
+is not a claim that each physical bucket contains at most 20 cards.
+
+Version 1.0.0.19's fresh live checker reported zero errors/warnings and activation
+was independently confirmed before the run. Raw HTTP reads remain secured; native
+variable actions use normal restricted run-history visibility because secureData
+is unsupported for that action type. The user-requested priority hiding remains
+in place. No source tickets or assignments were edited by this deployment.
+Private package SHA-256:
+`8396B3D074B9AA0DD2BDC163EAF3959479FCDEBFB2E57E858D7D377114E4AA47`.
+The unchanged Teams reply flow was checked after the final import and is still
+enabled; it was not manually run.
+
+### Superseded authentication blocker (11:43 follow-up)
+
+Planner synchronization remained paused; Power
 Automate reauthentication is required.** At 11:43, after the user's further save,
 a minimal source read confirmed **one assigned ticket among 12**, not two. Its
 history contains an earlier explicit null responsible-person field and a newer
@@ -44,6 +77,28 @@ unchanged. The package is retained outside Git as
 `KiwiHelpdeskAutomations_1_0_0_17_assignment_ranking.zip` in local Downloads.
 SHA-256: `97B014FA3976810DB6E558048FBEF4EE11C6313E5889ECC2EE5A6BA406266363`.
 Live checker, assigned-card readbacks and import/activation remain unverified.
+
+### Ranking deployment after reauthentication (2026-10-05)
+
+The user confirmed reauthentication. Unmanaged 1.0.0.17 was imported, but server
+activation rejected secure-data settings on two `AppendToArrayVariable` actions
+despite a zero-error client checker. Version 1.0.0.18 removed those unsupported
+settings while retaining secured HTTP reads and identity queries. Variable
+actions retain normal restricted run-history visibility, as in the legacy flow;
+the package must not be treated as a fully content-free logging implementation.
+
+Version 1.0.0.18 activated successfully. Its first manual run at 12:01 read
+histories but failed the unsupported-version-schema guard before Planner writes.
+Safe schema diagnostics showed the plain responsible-person key absent: REST
+history uses the underscore-escaped `Assigned_x005f_x0020_x005f_to` name.
+Unmanaged 1.0.0.19 was then imported to recognize both property encodings,
+requiring explicit property presence and coalescing null before object checks.
+No missing property is treated as an unassigned person.
+
+The ambiguous subsequent request to "remove them" did not identify tickets,
+cards or assignments. No deletion or source-assignment removal was performed;
+automatic deletion remains disabled. Current import/readback verification is
+recorded below when available.
 
 ### Earlier safety pause (11:38 follow-up)
 
