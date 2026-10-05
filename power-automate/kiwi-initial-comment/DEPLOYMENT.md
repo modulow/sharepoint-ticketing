@@ -13,6 +13,45 @@ flow, an installed production service, or part of the SPFx package**. No tenant
 configuration, initial comments, emails, source fields or Planner state have been
 changed while implementing this reference. Do not infer runtime deployment from tests.
 
+`operational-definition.json` now supplies the native workflow definition, generated
+deterministically by `build-definition.cjs`. It uses the verified
+`shared_sharepointonline/HttpRequest` and `shared_conversionservice/HtmlToText` action
+shapes, an existing supported Recurrence trigger, and no custom Node connector.
+It is executable workflow content **not a fabricated import package**: deploy it only
+through a real authorized solution/flow resource with mapped connections. Defaults
+remain cutoff 2099, limit 0 and an empty ledger GUID; it cannot process tickets as shipped.
+
+### Native definition-specific admission and limits
+
+The supplied JSON uses **one-minute serial polling**, rather than inventing an
+unverified SharePoint event-trigger export schema. It enumerates tickets created
+at/after the deployment cutoff, re-reads current Descriptif and the ledger, and thus
+also sees email descriptions filled after creation. It never enumerates pre-cutoff
+tickets or imports mailbox messages. Completed keys are checked, not reposted.
+If adapting to the designer's created-or-modified trigger, preserve all safeguards
+and provide its genuine trigger export; do not combine both enabled implementations.
+
+The source query admits at most **100 post-cutoff tickets**. A 101st row or any source
+continuation fails before processing, not silently truncates. This version requires
+source pagination/partitioning before that capacity is reached; resetting the cutoff
+or deleting ledger rows is **not** a safe capacity workaround. Each comment enumeration
+has a maximum of 100 pages, strict same-site/item continuation checks and a visible
+failure when another page remains. Control nesting is at most eight. Terminate actions
+are outside Foreach/Until; variable increments use Compose before SetVariable.
+
+The entire run fails visibly on invalid input, empty/not-yet-finalized descriptions,
+uncertain writes or readback mismatch. An empty early email item has no reservation,
+so a later poll may admit it when its description is populated. Such a failed item
+blocks later items in that run; this bounded workflow is not a durable per-item retry
+queue. A Pending marker missing from comments blocks for operator review and never
+automatically reposts. A reserve timeout/conflict authorizes only a later reconciliation.
+Native POST success followed by failure to save Completed is also readback-only recovery.
+All HTTP actions have retry `none`; no source item, Teams exchange or Planner write exists.
+
+HTTP/conversion inputs/outputs are secured in the definition. Variable and Compose
+history may contain private description snapshots; restrict flow-run access as well
+as ledger permissions. Do not claim every native run value is content-free.
+
 ## Behavior
 
 For each **new item created** in the existing `EuropaTickets` list, a separately
