@@ -10,6 +10,41 @@ The flow does not modify the active intake flow
 `dada6a44-429e-4d4e-95c0-f2bf5c87e033`, send Outlook/SMTP mail, or write the direct-reply
 field `R_x00e9_ponseaudemandeur`.
 
+## Live notification presentation (2026-10-05)
+
+All five existing native list rules were updated in place through the authenticated
+SharePoint rule editor. Conditions, recipients and enabled states were preserved.
+Custom messages now begin with an explicit `[Kiwi]` heading, followed by a dynamic
+ticket title, the relevant response where applicable, and a signature containing
+the actual **Assigned to** Person-field token plus `learn.IT`. That token was
+inserted with the native dynamic-content picker, not as literal text or a guessed
+agent name. The saved requester direct-response rule was reopened and its heading
+and token chip checked.
+
+| Existing notification | Custom-message heading |
+| --- | --- |
+| Requester recorded | `[Kiwi] Your ticket has been received` |
+| Direct response to requester | `[Kiwi] Reply to your ticket` |
+| Direct response copy to modifier | `[Kiwi] Your reply has been recorded` |
+| Teams response to requester | `[Kiwi] Reply to your ticket` |
+| Teams response copy to actual responding agent | `[Kiwi] Your Teams reply has been recorded` |
+
+Creation and requester-response messages explain that an empty assigned-agent
+name means the ticket is awaiting assignment. They do not substitute the author
+or last modifier for the assigned agent. Confirmation copies no longer claim
+that their receipt proves delivery to the requester. Existing Teams response text
+still contains the verified responding author's signature; the additional
+assigned-agent signature identifies the ticket owner, who may be different.
+
+Native rules expose only custom body text, not a configurable email subject or
+the standard SharePoint change-summary header. Their generated
+`<ticket title> was updated in EuropaTickets` subject remains unchanged.
+Replacing it requires a separately configured mail-capable flow/connection and
+a guarded cutover to avoid duplicate sends; no such connection was created here.
+No notification was replayed during this presentation update. Previous inbox
+verification proves delivery for the earlier diagnostic messages, not rendering
+or delivery of the newly revised templates.
+
 ## Exact prerequisites
 
 These `EuropaTickets` fields and rules are already live:
