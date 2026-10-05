@@ -125,8 +125,8 @@ bypass was attempted. Priority and category remain in both card descriptions.
 Shared Planner label names were not overwritten to represent ticket categories.
 Connector capability reference: [Microsoft Planner connector actions](https://learn.microsoft.com/en-us/connectors/planner/).
 
-**Existing-card reassignment is not configured.** An exploratory assignment updater
-was removed before saving rather than accumulate stale assignees. Safe synchronization
+**Existing-card reassignment was not configured at this stage.** An exploratory
+assignment updater was removed before saving rather than accumulate stale assignees. Safe synchronization
 still needs validated current-assignment IDs, old-assignee removal and unassignment
 handling. No existing task was manually reassigned.
 
@@ -208,7 +208,8 @@ The old deletion condition is now constant false. Automatic cleanup remains disa
 until ownership, complete source pagination and actual assignment ranking are implemented.
 Cards outside the existing desired-ticket selection are retained, not deleted or
 claimed refreshed. Creation behavior is unchanged; this is not delete-and-recreate.
-Native priority and existing-card assignee synchronization remain unimplemented.
+Native priority and existing-card assignee synchronization were not part of this
+first refresh; native reassignment was added in the subsequent update below.
 
 The local package parsed successfully and passed seven source-link guard fixtures.
 The Planner flow was paused before import. Power Automate imported the solution with
@@ -229,6 +230,60 @@ writes; cards outside this desired set are not claimed refreshed.
 The raw update package and original backup remain outside Git.
 The unchanged **Kiwi - Teams replies to requester** flow was checked after import
 and remains enabled; it was not manually run.
+
+## Existing-card native assignee synchronization (2026-10-05)
+
+The user subsequently authorized native reassignment. An unmanaged **1.0.0.14**
+update adds assignment synchronization inside the existing unique-card/source-link
+guards, using the existing Planner and Teams connections only:
+
+1. For an assigned ticket, match its assignee's email, case-insensitively, to exactly
+   one Team member with a nonempty Entra `userId`. Never use SharePoint numeric user
+   IDs. A ticket with no source assignee instead targets zero native assignments.
+2. Read the current Planner task and require the documented `_assignments` array.
+3. Add the source agent only if not already assigned. Removal depends on successful
+   completion of this step, so an add failure cannot remove the previous agent.
+4. Remove the previous assignees, excluding the source agent, using the Planner
+   `UnassignUsers` action. These verified ticket cards follow SharePoint's single
+   responsible-agent model; manual extra assignees are also removed.
+5. Read the task back and verify exactly one assignment matching the resolved Entra
+   identity, or zero assignments for an unassigned source ticket. Record
+   `CARD_ASSIGNEE_VERIFIED` only on a matching readback.
+
+Unresolved/ambiguous identities and unsupported assignment responses preserve native
+assignments and emit explicit run diagnostics. A readback mismatch emits
+`CARD_ASSIGNEE_READBACK_MISMATCH` for operator review, rather than claiming success.
+Connector failures remain visible as failed actions and prevent dependent removals.
+The next scheduled run can repair an interrupted add-before-remove transition.
+The old deletion condition remains disabled.
+
+The local update passed JSON/dependency validation and nine assignment fixtures
+(unassigned card, A-to-B, already B, A+B, multiple stale assignees, case-insensitive
+ID, plus clearing one/multiple assignees and empty-to-empty).
+An initial 1.0.0.13 run correctly diagnosed unresolved agents on unassigned source
+tickets, without changing native assignees. Version 1.0.0.14 adds the explicit
+unassignment branch rather than treating that source state as an identity error.
+Version 1.0.0.14 was imported successfully with an activation warning, followed
+by a full reload and independent verification of the persisted unassignment guard.
+The live flow checker reported zero errors and warnings before manual reactivation.
+The private package's Teams reply workflow and customization metadata were confirmed
+unchanged from the original backup. Package SHA-256:
+`90E994DEF7F1B0A745FC6D07EB89831EEFE1FC3D7A9032F1460B9429BC03E1E4`.
+
+The final manual run at **11:01 local time** succeeded in **1m12s**. This run
+selected **12 tickets**, rather than the previous refresh's 11. Every iteration
+was independently checked: native assignee readback verification and task/details
+updates succeeded; creation and all source/duplicate/identity/schema/readback
+mismatch diagnostics were skipped. This verifies convergence to the source snapshot,
+including its unassigned state, not a deliberately induced live A-to-B transfer.
+No source ticket was reassigned merely to fabricate that transition test; A-to-B
+remains fixture-covered rather than tenant-transition-tested.
+
+This update covers tickets in the existing desired-ticket selection.
+Cards outside that selection are not processed by this branch; clearing assignment
+on an out-of-selection card remains separate work. Source email aliases that do not
+match the Team-member email are diagnosed, not guessed. Snapshot timing, real assignment ranking and durable
+state/ownership/lease safeguards remain as documented above.
 
 ## Contract
 
