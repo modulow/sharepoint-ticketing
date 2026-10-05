@@ -76,6 +76,18 @@ test('blueprint encodes approved Kiwi sync configuration and fail-closed constra
   assert.match(blueprint.invariants.find(invariant => invariant.includes('4000')), /no content is truncated/i);
 });
 
+test('hides priority from card descriptions without changing source or native payload', () => {
+  const source = ticket(1, {
+    fields: { Priority: 'High', priority: 'High', Priorite: 'High', 'Priorité': 'High', Location: 'Floor 3' }
+  });
+  const desired = buildDesiredTasks(agents, [source])[0];
+  assert.doesNotMatch(desired.description, /priority|priorite|priorité/i);
+  assert.match(desired.description, /Floor 3/);
+  assert.equal(desired.priority, 3);
+  assert.equal(source.priority, 'High');
+  assert.equal(source.fields.Priority, 'High');
+});
+
 test('selects the 20 newest assignment timestamps separately for every approved agent', () => {
   const tickets = Array.from({ length: 22 }, (_, index) => ticket(index + 1));
   tickets[20] = ticket(21, { assigneeEntraObjectId: 'agent-b', assignedAtUtc: '2026-02-01T00:00:00Z' });
@@ -115,7 +127,8 @@ test('includes full ticket fields, attachment links and exchange history without
   const desired = buildDesiredTasks(agents, [ticket(1)])[0];
   assert.match(desired.description, /KiwiPlannerSync:v1:1/);
   assert.match(desired.description, /Ticket #1 - Ticket 1/);
-  assert.match(desired.description, /Status: New\nPriority: High\nCategory: Software/);
+  assert.match(desired.description, /Status: New\nCategory: Software/);
+  assert.doesNotMatch(desired.description, /Priority:/);
   assert.match(desired.description, /"Location": "Floor 3"/);
   assert.match(desired.description, /Exchange body 1/);
   assert.equal(desired.title, '#1 - Ticket 1');

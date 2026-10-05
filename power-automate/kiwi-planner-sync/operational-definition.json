@@ -75,7 +75,7 @@
     },
     "ticketCard": {
       "title": "#<ticketId> - <SharePoint subject>; fail above 255 characters rather than truncate",
-      "detailsFormat": "Readable labelled ticket fields followed by complete description, resolution, sorted extra fields, attachment links, dated exchange history, source edit link, and ownership marker.",
+      "detailsFormat": "Readable labelled ticket fields followed by complete description, resolution, sorted extra fields, attachment links, dated exchange history, source edit link, and ownership marker. Omit the user-hidden priority field from descriptions/extra fields; preserve source priority and native task mapping.",
       "nativePriority": { "Critical": 1, "High": 3, "Normal": 5, "Low": 9 },
       "nativeDueDate": "dueDateTime from the verified source date/time with timezone; null clears it",
       "previewType": "description",

@@ -82,10 +82,12 @@ function makeTicketDescription(ticket) {
     Date.parse(left.date || '') - Date.parse(right.date || '') ||
     String(left.id).localeCompare(String(right.id))
   );
+  const visibleFields = Object.fromEntries(Object.entries(ticket.fields || {}).filter(([name]) =>
+    !['priority', 'priorite', 'priorité'].includes(name.toLowerCase())
+  ));
   const description = [
     `Ticket #${ticket.id} - ${ticket.subject}`,
     `Status: ${ticket.status}`,
-    `Priority: ${ticket.priority}`,
     `Category: ${ticket.category}`,
     `Requester: ${ticket.requester}`,
     `Assigned to: ${ticket.assigneeDisplayName} (${ticket.assigneeUpn})`,
@@ -97,7 +99,7 @@ function makeTicketDescription(ticket) {
     '',
     'Description', ticket.description,
     '', 'Resolution', ticket.resolution || 'None',
-    '', 'Additional ticket fields', JSON.stringify(canonicalize(ticket.fields || {}), null, 2),
+    '', 'Additional ticket fields', JSON.stringify(canonicalize(visibleFields), null, 2),
     '', 'Attachments',
     ...attachments.map(attachment => `${attachment.name}\n${attachment.url}`),
     '', 'Exchange history',

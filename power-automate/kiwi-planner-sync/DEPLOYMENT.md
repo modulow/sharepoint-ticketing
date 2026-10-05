@@ -287,6 +287,34 @@ on an out-of-selection card remains separate work. Source email aliases that do 
 match the Team-member email are diagnosed, not guessed. Snapshot timing, real assignment ranking and durable
 state/ownership/lease safeguards remain as documented above.
 
+## Hiding card-description priority (2026-10-05)
+
+The user asked to hide card priority. This display-only change removes the
+generated `Priority: ...` line from both new/existing card descriptions, without
+changing source ticket priority or setting an invented Planner priority. It does
+not hide Planner's native priority indicator, which is a separate Planner UI
+feature. The repository renderer also omits priority aliases from extra fields
+while preserving the native Graph priority mapping and the original source object.
+
+A private **unmanaged 1.0.0.15** solution update was compared against 1.0.0.14:
+only the two description expressions differ in the Planner workflow. Assignment,
+source-link/unique-card guards, status/date/bucket updates and disabled deletion
+are unchanged; the Teams reply workflow is unchanged. The flow was paused before
+import. After import, a fresh designer independently verified both complete
+priority-free description tokens and reported zero checker errors/warnings.
+The Planner flow was explicitly re-enabled before the guarded manual refresh.
+Package SHA-256:
+`D2A6531FCB4F02DB7672D76C4A2505C2244C4F99679263221A7BD25CD589B1F9`.
+
+The manual refresh at **11:20 local time** succeeded in **1m02s**. All **12**
+selected-ticket iterations were inspected: task/details updates and native
+assignment readback verification succeeded; creation and correlation/assignment
+mismatch diagnostics were skipped. Existing cards outside this selection are
+not claimed refreshed. Reference-renderer fixtures also verify that hiding the
+description field does not mutate source/native priority. The unchanged Teams
+reply flow's live details page was rechecked after import: still enabled, without
+manual execution.
+
 ## Contract
 
 ### Assignment-history recovery module
@@ -335,9 +363,10 @@ The current Planner connector documentation exposes native priority in task
 **responses**, but not the `UpdateTask_V2` or `UpdateTask_V3` write parameters.
 Adding an undocumented `body/priority` to an exported action is not a supported
 deployment. A tenant-approved Graph-capable connection remains required to activate
-the existing native priority mapping. The live cloud flow remains on unmanaged
-1.0.0.14: no timestamp field, history reader, state list, new connection or
-last-20 pruning was provisioned in this follow-up.
+the existing native priority mapping. The assignment-history follow-up did not
+deploy a timestamp field, history reader, state list, new connection or last-20
+pruning. The separate description-only 1.0.0.15 update above does not close those
+gaps.
 
 - `workflow-blueprint.json` defines the confirmed behavior and required tenant schema.
 - `planner-sync-core.cjs` is the deterministic reference model used by the repository
