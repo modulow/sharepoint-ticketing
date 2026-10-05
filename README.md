@@ -176,6 +176,21 @@ deploy the SPFx package separately; no tenant changes or deployment are performe
 
 No package deployment or API approval is performed automatically by this repository.
 
+## Initial requester description in native comments
+
+`power-automate/kiwi-initial-comment/` implements a separate reference handler that
+copies each admitted new ticket's existing **Descriptif** to its native SharePoint
+comments while preserving the field. A unique durable ledger reservation precedes the
+single POST; exact comment readback and ETag-protected completion prevent ordinary
+duplicates. Uncertain writes remain visibly Pending and are never automatically replayed.
+Empty/oversized descriptions fail without truncation; rich text needs an approved
+conversion adapter. This does not import email replies or write `TicketExchanges`.
+
+The handler is not deployed, bundled into SPFx, or connected to a production trigger.
+See `power-automate/kiwi-initial-comment/DEPLOYMENT.md` for the dedicated ledger schema,
+creation-event hookup, cutoff, authentication, limit/conversion preflights and live
+verification steps. Existing agent/email paths remain independent; Planner stays paused.
+
 ## Teams reply automation blueprint
 
 `power-automate/kiwi-teams-replies/` contains the validated implementation contract for
