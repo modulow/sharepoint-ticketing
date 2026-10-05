@@ -136,6 +136,56 @@ No manual test run or private ticket edit was performed in this update. The exis
 Assignment-change ranking, complete history/attachments, state/ownership, pagination,
 and safe cleanup remain outstanding as recorded above.
 
+## Solution-based deployment
+
+Use an exported Power Platform solution for the live cloud flow, not the reference
+blueprint JSON or Node modules. The existing unmanaged **KiwiHelpdeskAutomations**
+solution now includes the existing **Kiwi - Sync SharePoint tickets to Planner**
+flow and its generated Planner connection reference, alongside the previously
+included **Kiwi - Teams replies to requester** flow and connection references.
+The existing Planner flow was added from outside Dataverse; no copy was created and
+no disabled content/API flow was added.
+
+On 2026-10-05, **KiwiHelpdeskAutomations 1.0.0.11** was exported successfully and
+downloaded locally as `KiwiHelpdeskAutomations_1_0_0_11.zip` (12,399 bytes). Archive
+validation confirmed `Managed=0`, version `1.0.0.11`, exactly the two intended
+workflow JSON files, and the current Planner action/source-field mappings.
+The solution checker completed with zero issues on the same components during the
+initial export; the recovery unmanaged export did not rerun it.
+SHA-256: `AABEDAA57E637EA836483F5F18D530F85B20016987B4CF6BB9FCB339127C6C35`.
+The ZIP remains in the browser's local Downloads folder, not in Git. No destination
+import or activation was performed.
+
+The user explicitly selected an **unmanaged** export so that the imported flows remain
+editable. Keep the authoring solution unmanaged too. Unmanaged import merges components
+into the destination's unmanaged customization layer; it does not provide the managed
+upgrade/uninstall boundary normally used for production ALM. Review existing destination
+components and take a backup before importing or overwriting them. Do not use the
+initial managed export for this user-directed deployment. Keep raw solution exports
+outside this public repository:
+definitions can contain tenant URLs, identifiers, connection metadata and literal
+configuration even though the authenticated connection itself is not portable.
+
+Before import, verify the package's intended flows and dependencies, approve its
+data audience, and configure destination-specific site/list/group/plan settings.
+The current flow still has source-environment settings; solution packaging alone
+does not parameterize these or fix its incomplete ranking/reassignment/priority logic.
+Map every connection reference to an authorized destination connection (SharePoint,
+Planner, Teams and other dependencies), with required access and tenant policies.
+The four SharePoint columns, lists, Planner plan/buckets and their contents are
+external resources and are not provisioned by this flow solution export.
+Import can automatically enable flows that were enabled at export once connection
+references resolve. Arrange a controlled import with activation suppressed or
+connections left unbound until resource identities and definitions are reviewed;
+do not assume an import is inert. Keep destination flows disabled until controlled
+acceptance is approved. Import/activation in a destination environment is a separate
+operation, not performed by exporting.
+
+Use the official [solution export](https://learn.microsoft.com/en-us/power-automate/export-flow-solution)
+and [solution import](https://learn.microsoft.com/en-us/power-automate/import-flow-solution)
+procedures. The solution checker and export success do not replace runtime checks
+or prove compliance with the per-agent top-20 contract.
+
 ## Contract
 
 - `workflow-blueprint.json` defines the confirmed behavior and required tenant schema.
