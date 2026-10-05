@@ -2,6 +2,17 @@
 
 ## Scope and actual deployment state
 
+The integrated reference is committed on the coordinator branch as `6760ef9`
+(with the preceding runtime and deployment commits). The live agent reply
+cadence was separately reduced to one minute and confirmed after a server reload.
+The initial-description copy is **not deployed or activated**. Native import
+offers a Dataverse solution or legacy package, not a raw workflow-definition JSON.
+The existing private solution export contains only the agent-reply and Planner
+resources; importing it does not install this new flow. Do not replace either
+existing resource with this definition. A genuine new cloud-flow resource,
+mapped connections and a restricted ledger must be provisioned before activation.
+No ledger, import package or live description comment was created in this task.
+
 The clarified request is to copy the existing **Descriptif** into the ticket's native
 SharePoint comments automatically by default, alongside existing intake/reply flows.
 This is **not** ingestion of inbound email replies, an agent's `Reponse au demandeur`
