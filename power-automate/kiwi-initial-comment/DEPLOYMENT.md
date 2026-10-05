@@ -5,13 +5,14 @@
 The integrated reference is committed on the coordinator branch as `6760ef9`
 (with the preceding runtime and deployment commits). The live agent reply
 cadence was separately reduced to one minute and confirmed after a server reload.
-The initial-description flow is **imported but not activated**. Native import
+The initial-description flow is **imported and activated**. Native import
 offers a Dataverse solution or legacy package, not a raw workflow-definition JSON.
 The existing private solution export contains only the agent-reply and Planner
 resources; importing it does not install this new flow. Do not replace either
 existing resource with this definition. A distinct cloud-flow resource,
 mapped connections and a restricted ledger have now been provisioned; activation
-and runtime verification remain outstanding.
+is complete; exact comment/ledger verification on a real eligible ticket remains
+outstanding.
 The dedicated ledger `KiwiInitialCommentLedger` has now been created through the
 authenticated SharePoint UI, hidden from site navigation. Its GUID is
 `3a403104-e705-41ce-ba92-41b9ab527560`. Inheritance was stopped on this new list
@@ -39,13 +40,28 @@ The new solution contains the distinct cloud flow
 confirmed server status **Désactivé**. Platform import acceptance is not runtime
 verification; no new ticket or comment was created to test it.
 
-Remaining live work: verify ledger access for the executing connection identity,
-set a current UTC cutoff
-and a verified comment limit or explicitly approved conservative local cap,
-then save/reload and enable the distinct flow. Observe a real new ticket and
-verify exact native comment plus Completed ledger entry before claiming runtime
-success. No historical backfill, test ticket, mail replay or Planner activation
-has been performed.
+Following the user's instruction to complete the deployment, version `1.0.0.2`
+was imported as an update of the same solution and workflow, with auto-activation
+still Off during import. Its cutoff is `2026-10-05T18:52:30Z` and local cap is
+**1000 characters** (including heading/marker). This is a conservative local
+deployment policy selected under the user's delegated deployment instruction,
+**not a verified Microsoft maximum**. Oversized text fails visibly without
+truncation or posting. The repository definition retains disabled defaults.
+
+The distinct flow was then explicitly enabled through the native UI. A server
+reload confirmed **Activé**. Its first scheduled run at approximately 20:55 local
+time on 2026-10-05 completed with **Succès** in six seconds. Classic run history
+confirmed successful Title, Payload and State metadata reads and Schema valid;
+this establishes connector access and the stored ledger schema under the actual
+executing identity. No manual run, source edit, test ticket or mail replay was used.
+An exact native comment plus Completed ledger record on a real eligible ticket
+has **not yet been observed**; successful scheduling/preflight alone must not be
+reported as that end-to-end result. Planner remains paused.
+
+Operational follow-up: observe a real post-cutoff ticket and verify exact native
+comment plus Completed ledger entry. Expand the bounded source pagination before
+the 101st post-cutoff ticket; otherwise the existing guard stops processing
+visibly. Never reset the cutoff or delete reservations to bypass this bound.
 
 The clarified request is to copy the existing **Descriptif** into the ticket's native
 SharePoint comments automatically by default, alongside existing intake/reply flows.
