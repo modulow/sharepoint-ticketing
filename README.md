@@ -253,10 +253,16 @@ Read-only Windows accessibility inspection on 5 October 2026, reported by the
 browser-owning Planner session, confirmed that the signed-in account can access the
 native EuropaTickets list. Its column settings include Titre, Assigned to,
 Descriptif, Demandeur, Date/heure d'envoi, Réponse au demandeur, transfer/Teams
-fields and system columns, but **no category, priority, status or due-date columns**.
-The future API must not manufacture these optional values from the fixtures:
+fields and system columns. At that initial inspection there were **no category,
+priority, status or due-date columns**. Subsequently, on the user's explicit
+authorization, the Planner session created and verified optional `Status` (Statut),
+`Priority` (Priorité), `Category` (Catégorie) and `DueDate` (Échéance, date/time)
+columns through authenticated Windows accessibility. The choice sets match the
+existing repository workflow values. No defaults or existing-item backfill were
+applied, so older tickets can still have empty values.
+The future API must not manufacture missing optional values from the fixtures:
 missing fields use empty strings and must be presented as unavailable, not as
-verified workflow states. No list columns were added by this PR. This inspection
+verified workflow states. This PR itself did not add list columns. This inspection
 confirms browser UI control and one account's native list access, not all agents'
 permissions, an external OAuth/API connection or Cloudflare data-processing approval.
 
