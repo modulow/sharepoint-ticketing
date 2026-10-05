@@ -7,6 +7,7 @@
   "nodeRuntime": {
     "graphClient": "planner-graph-client.cjs",
     "runner": "planner-sync-runner.cjs",
+    "assignmentHistory": "assignment-history.cjs",
     "defaultDryRun": true,
     "requires": ["Approved token provider", "Complete SharePoint source adapter", "Durable exclusive-lock/state adapter with pending-create journal", "Approved scheduled host"],
     "productionConfigured": false

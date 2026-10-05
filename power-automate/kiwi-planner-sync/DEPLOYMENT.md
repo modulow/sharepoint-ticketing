@@ -289,6 +289,56 @@ state/ownership/lease safeguards remain as documented above.
 
 ## Contract
 
+### Assignment-history recovery module
+
+`assignment-history.cjs` provides `recoverAssignmentTime(ticket, history)` and
+`withAssignmentHistory(source, readHistory)`. Pass the decorated source to
+`runPlannerSync` to replace cached timestamps with proven assignment events before
+the existing per-agent top-20 selection. This is executable repository logic,
+**not a deployed SharePoint transport or a change to the live cloud flow**.
+
+The approved source adapter must supply each assigned ticket's `sourceVersion`
+and explicit `assigneeEntraObjectId` (null means unassigned). Its `readHistory`
+callback must exhaust all retained version pages and provide:
+
+```js
+{
+  complete: true,
+  startsAtCreation: false,
+  versions: [
+    { version: '4.0', createdUtc: '2026-09-01T10:00:00Z', assigneeEntraObjectId: 'agent-a' },
+    { version: '5.0', createdUtc: '2026-09-02T10:00:00Z', assigneeEntraObjectId: 'agent-b' }
+  ]
+}
+```
+
+Versions are chronological, with unique labels and explicitly resolved Entra IDs
+for every person value; numeric SharePoint lookup IDs are not Entra IDs.
+`complete` attests to complete retained history, not just the first page.
+`startsAtCreation` may be true only when the first original version is present.
+The newest version must match the source snapshot's version and agent. The module
+finds the start of the current agent's contiguous suffix: unrelated edits do not
+advance ranking, and A-to-B-to-A is a new assignment. Retained history is sufficient
+if an earlier different/unassigned value proves the boundary; if the current
+assignment predates retained history, it fails explicitly. Unassignment clears
+the timestamp. Missing identities, pages, boundaries, invalid dates and snapshot
+races stop the snapshot before Planner writes. No Created/Modified fallback or
+ticket-body logging is introduced.
+
+Read-only accessibility inspection on 2026-10-05 confirmed the source field's
+internal name `Assigned_x0020_to` and Person/Group type. The official versioning
+settings show item version history enabled with **50 retained versions**.
+Settings were not changed. This does not prove assignment boundaries exist for
+every current ticket; deleted history cannot be reconstructed from this setting.
+
+The current Planner connector documentation exposes native priority in task
+**responses**, but not the `UpdateTask_V2` or `UpdateTask_V3` write parameters.
+Adding an undocumented `body/priority` to an exported action is not a supported
+deployment. A tenant-approved Graph-capable connection remains required to activate
+the existing native priority mapping. The live cloud flow remains on unmanaged
+1.0.0.14: no timestamp field, history reader, state list, new connection or
+last-20 pruning was provisioned in this follow-up.
+
 - `workflow-blueprint.json` defines the confirmed behavior and required tenant schema.
 - `planner-sync-core.cjs` is the deterministic reference model used by the repository
   tests. The cloud flows must preserve its ranking, task projection, marker, ownership,
