@@ -8,6 +8,20 @@ only through the approved tenant process.
 
 ## Live accessibility inspection (2026-10-05)
 
+**Current activation override (11:38 follow-up): Planner synchronization is paused.**
+The user reported assigning two tickets, but three independent reads (including
+a full refresh) of the complete 12-item source ID/person-ID index still showed
+explicit null `Assigned_x0020_toId` on every item, with no next page. Property
+presence was required; missing fields were not interpreted as unassignment.
+It is not established whether the edits were saved in SharePoint, made in another
+field/form, or added only in Planner. No source ticket was modified and no manual
+sync was triggered in this follow-up. The enabled source-authoritative flow would
+remove Planner-only assignments, so it was temporarily disabled and that state
+was independently confirmed. Resolve the assignment location/save state before
+reactivation; do not infer a bidirectional sync or copy Planner assignments back
+to SharePoint without an explicit source-authority decision. Historical enablement
+records below describe their respective deployment times, not the current state.
+
 Windows UI Automation can operate the user's authenticated Chrome through ordinary
 accessible controls; browser cookie/token extraction is neither needed nor permitted.
 The initial inspection of Power Automate and native SharePoint settings was read-only.
