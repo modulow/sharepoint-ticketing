@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "kind": "KiwiPlannerSyncOperationalDefinition",
+  "title": "Kiwi EuropaTickets to Planner",
+  "activation": {
+    "enabled": false,
+    "requiredBeforeEnable": [
+      "Approved revised repository plan",
+      "Authenticated tenant access and any required consent for live provisioning",
+      "Verified live Team membership and authorized agent roster",
+      "PlannerAssignedAtUtc field and assignment capture/backfill verified",
+      "Planner plan, one bucket per roster agent, and connection permissions verified",
+      "SharePoint source/state lists and all edit/reference URLs verified",
+      "Privacy and content-limit checks passed"
+    ]
+  },
+  "source": {
+    "siteUrl": "https://europarl.sharepoint.com/sites/learn.IT-Kiwi",
+    "ticketsListId": "f673fe2d-9733-46dd-9afe-4bf614c99202",
+    "exchangesListId": "58aa42f2-6fa0-4df2-9a76-90189fece896",
+    "teamId": "435074fb-2e8d-4c67-b06a-0359ddc5a939",
+    "planTitle": "kiwi tickets",
+    "planId": "SET_TO_VERIFIED_EXISTING_KIWI_TICKETS_PLAN_ID",
+    "sourceOfTruth": "SharePoint"
+  },
+  "assignmentTimestampCapture": {
+    "trigger": "SharePoint item created or modified",
+    "changedField": "Assigned_x0020_toId",
+    "timestampField": "PlannerAssignedAtUtc",
+    "timestampSource": "SharePoint version timestamp for the assignment-change version",
+    "onAssignment": "Set PlannerAssignedAtUtc to the change-version timestamp.",
+    "onUnassignment": "Clear PlannerAssignedAtUtc.",
+    "preventSelfTriggerLoop": "On the flow's timestamp-only follow-up event, Get changes must show Assigned_x0020_toId unchanged.",
+    "outOfOrderEvents": "Compare assignment-version timestamps and never overwrite a newer timestamp with an older event.",
+    "bootstrap": "Backfill the latest proven version where Assigned_x0020_toId changed to the current assignee. If the history cannot prove the time, leave it unset and exclude the ticket until the next assignment change."
+  },
+  "plannerSync": {
+    "trigger": {
+      "type": "Recurrence",
+      "intervalMinutes": 15,
+      "concurrency": 1
+    },
+    "authorizedAgents": {
+      "source": "PlannerSyncAgents",
+      "identityKey": "AgentEntraObjectId",
+      "requiredColumns": [
+        "AgentEntraObjectId",
+        "AgentUPN",
+        "AgentDisplayName",
+        "PlannerBucketId",
+        "Active"
+      ],
+      "bucketPolicy": "Exactly one existing bucket per authorized active agent, including agents with no current tickets.",
+      "taskAssigneePolicy": "Assign each mirrored Planner task to the Entra object ID of its ticket assignee."
+    },
+    "ticketWindow": {
+      "limitPerAgent": 20,
+      "timestampField": "PlannerAssignedAtUtc",
+      "order": [
+        "PlannerAssignedAtUtc descending",
+        "EuropaTickets ID descending"
+      ],
+      "includeStatuses": [
+        "New",
+        "In progress",
+        "Waiting",
+        "Resolved",
+        "Closed"
+      ],
+      "exclude": [
+        "Unassigned tickets",
+        "Assigned tickets without a proven assignment timestamp",
+        "Tickets assigned to an identity outside the approved agent roster"
+      ]
+    },
+    "ticketCard": {
+      "title": "#<ticketId> - <SharePoint subject>; fail above 255 characters rather than truncate",
+      "detailsFormat": "Readable labelled ticket fields followed by complete description, resolution, sorted extra fields, attachment links, dated exchange history, source edit link, and ownership marker. Omit the user-hidden priority field from descriptions/extra fields; preserve source priority and native task mapping.",
+      "nativePriority": { "Critical": 1, "High": 3, "Normal": 5, "Low": 9 },
+      "nativeDueDate": "dueDateTime from the verified source date/time with timezone; null clears it",
+      "previewType": "description",
+      "referenceLimit": 15,
+      "graphPayloads": "planner-sync-core.cjs buildGraphPayloads returns separate task and details bodies. PATCH each using its own current ETag. Native task fields include title, priority, percentComplete, bucketId, assignments and dueDateTime; details include readable description, previewType and OData-escaped URL references.",
+      "managedMarker": "KiwiPlannerSync:v1:<ticketId> stored in the canonical task details for recovery and ownership checks.",
+      "maxDescriptionCharacters": 4000,
+      "oversizeBehavior": "Fail the item visibly without truncating, creating, or updating a partial task.",
+      "references": [
+        "Verified per-item EuropaTickets EditForm URL",
+        "Every attachment URL",
+        "Every available TicketExchanges item edit URL"
+      ],
+      "completion": {
+        "Resolved": 100,
+        "Closed": 100,
+        "New": 0,
+        "In progress": 50,
+        "Waiting": 0
+      }
+    },
+    "taskIdentity": {
+      "marker": "KiwiPlannerSync:v1:<ticketId>",
+      "mappingList": "PlannerSyncState",
+      "mappingKey": "SourceTicketId",
+      "mappingColumns": [
+        "SourceTicketId",
+        "AgentEntraObjectId",
+        "PlannerBucketId",
+        "PlannerTaskId",
+        "ManagedMarker",
+        "LastSuccessfulSyncUtc"
+      ],
+      "uncertainCreate": "Search all plan tasks for the exact marker before retrying. Reuse exactly one, create only if zero exist, and fail for operator repair if duplicates exist. A marked task without a state mapping is an orphan and must not be deleted automatically."
+    },
+    "reconcile": [
+      "Read and validate every approved active agent and unique existing bucket.",
+      "Read every page of ticket items, attachment metadata, and related TicketExchanges history.",
+      "Fail closed for an incomplete page, missing timestamp, unknown assignee, missing bucket, permission error, or unresolved source URL.",
+      "Compute 20 desired tickets independently for each agent using assignment timestamp and ID tie-break order.",
+      "Build complete canonical task details and references and enforce the 4000-character limit before writing.",
+      "Create or update the exact marked task, bucket, assignment, completion status, references and details using current ETags.",
+      "Persist mappings/fingerprints only after successful Planner changes.",
+      "Delete only tasks no longer desired that match both the state mapping and exact ownership marker; remove state rows only after confirmed deletion. A marked task without a mapping requires operator repair and is never deleted automatically.",
+      "Never delete or update unmarked human Planner tasks or any SharePoint ticket, attachment, or exchange."
+    ],
+    "changeDetection": "Read current Planner details/references and compare them with the full canonical source payload each run; exchange and attachment changes do not necessarily change EuropaTickets.Modified. Do not duplicate sensitive source text in PlannerSyncState.",
+    "retryPolicy": "Honor Retry-After for 429/503. Retry only safe idempotent writes. Search marker after uncertain task create. Fail visibly on unresolved task identity or any partial run.",
+    "loggingPolicy": "Log run ID, operation, ticket ID, agent ID, task ID and error code only. Never log ticket descriptions, attachment content, or exchange message text."
+  },
+  "requiredLists": {
+    "EuropaTickets": {
+      "id": "f673fe2d-9733-46dd-9afe-4bf614c99202",
+      "requiredNewColumn": {
+        "internalName": "PlannerAssignedAtUtc",
+        "type": "DateTime"
+      }
+    },
+    "TicketExchanges": {
+      "id": "58aa42f2-6fa0-4df2-9a76-90189fece896",
+      "lookupField": "TicketId",
+      "historyColumns": [
+        "Title",
+        "Message",
+        "Visibility",
+        "Author0",
+        "ExchangeDate",
+        "Source",
+        "SourceMessageId",
+        "DeliveryState"
+      ],
+      "schemaAndUrlsMustBeVerified": true
+    },
+    "PlannerSyncAgents": {
+      "provisioning": "Tenant provisioning requires authenticated access and any required consent",
+      "uniqueKey": "AgentEntraObjectId"
+    },
+    "PlannerSyncState": {
+      "provisioning": "Tenant provisioning requires authenticated access and any required consent",
+      "uniqueKey": "SourceTicketId"
+    }
+  },
+  "tenantOperationsNotPerformedByRepository": [
+    "Verify and bind the existing kiwi tickets plan; provision missing agent buckets without creating another plan",
+    "Create PlannerAssignedAtUtc and assignment-capture flow",
+    "Create restricted PlannerSyncAgents and PlannerSyncState lists",
+    "Create and connect the Power Automate flows",
+    "Grant required connector/Graph consent",
+    "Enable production recurrence"
+  ],
+  "prohibitions": [
+    "Do not use Modified or Created as a substitute for assignment time.",
+    "Do not copy live tenant credentials, connection IDs, or tokens into the repository.",
+    "Do not truncate full ticket or exchange content.",
+    "Do not treat a partially completed run as successful.",
+    "Do not delete a SharePoint record or an unmarked Planner task."
+  ]
+}

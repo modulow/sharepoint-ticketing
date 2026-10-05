@@ -23,6 +23,7 @@ import {
   type ITicketSchema
 } from './TicketSchema';
 import { hasEditListItems, type IBasePermissions } from './PermissionUtils';
+import { normalizeTicketTitle } from '../utils/ticketTitle';
 
 interface IODataCollection<T> {
   value: T[];
@@ -85,6 +86,7 @@ export class SharePointTicketService implements ITicketService {
       schema.category,
       schema.priority,
       schema.status,
+      schema.assignedAt,
       schema.dueDate,
       schema.resolution
     ].filter((field): field is string => Boolean(field));
@@ -180,10 +182,26 @@ export class SharePointTicketService implements ITicketService {
       if (!schema.assignedTo) throw new Error('EuropaTickets does not expose an assignment field.');
       body[`${schema.assignedTo}Id`] = update.assignedToId;
     }
+    const snapshot = await this.context.spHttpClient.get(
+      `${KIWI_SITE_URL}${endpoint}?$select=${schema.title}`,
+      SPHttpClient.configurations.v1,
+      { headers: { Accept: 'application/json;odata=minimalmetadata' } }
+    );
+    await this.ensureSuccess(snapshot);
+    const current = await snapshot.json() as Record<string, unknown>;
+    const currentTitle = current[schema.title];
+    if (typeof currentTitle !== 'string') {
+      throw new Error('SharePoint did not return the current ticket title. Refresh tickets before saving.');
+    }
+    body[schema.title] = normalizeTicketTitle(currentTitle);
+    const etag = snapshot.headers.get('ETag') || current['@odata.etag'] || current['odata.etag'];
+    if (typeof etag !== 'string' || !etag || etag === '*') {
+      throw new Error('SharePoint did not return a ticket version. Refresh tickets before saving.');
+    }
     await this.post<void>(
       endpoint,
       body,
-      { 'IF-MATCH': '*', 'X-HTTP-Method': 'MERGE' }
+      { 'IF-MATCH': etag, 'X-HTTP-Method': 'MERGE' }
     );
   }
 
@@ -267,6 +285,7 @@ export class SharePointTicketService implements ITicketService {
       priority: (priority || defaultPriority) as ITicket['priority'],
       status: (status || defaultStatus) as ITicket['status'],
       assignedTo: assignedTo ? this.mapUser(assignedTo) : undefined,
+      assignedAt: schema.assignedAt ? String(item[schema.assignedAt] || '') || undefined : undefined,
       dueDate: schema.dueDate ? String(item[schema.dueDate] || '') || undefined : undefined,
       resolution: schema.resolution ? String(item[schema.resolution] || '') || undefined : undefined,
       author: this.mapUser(requester || item.Author),

@@ -15,6 +15,7 @@ export interface ITicketSchema {
   priority?: string;
   status?: string;
   assignedTo?: string;
+  assignedAt?: string;
   dueDate?: string;
   resolution?: string;
 }
@@ -69,6 +70,12 @@ export const resolveTicketSchema = (fields: ISharePointFieldMetadata[]): ITicket
       ['Assigned_x0020_to', 'AssignedTo', 'AssigneA', 'Agent'],
       ['Assigné à', 'Assigne a', 'Assigned to', 'Agent'],
       ['User']
+    ),
+    assignedAt: findField(
+      fields,
+      ['PlannerAssignedAtUtc'],
+      ['Planner assigned at UTC'],
+      ['DateTime']
     ),
     dueDate: findField(fields, ['DueDate', 'Echeance'], ['Échéance', 'Echeance', 'Due date'], ['DateTime']),
     resolution: findField(

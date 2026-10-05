@@ -19,6 +19,12 @@ const definition = JSON.parse(fs.readFileSync(
 ));
 const serialized = JSON.stringify(definition);
 
+test('agent replies poll each minute without overlapping dispatch runs', () => {
+  assert.equal(definition.triggers.Recurrence.recurrence.frequency, 'Minute');
+  assert.equal(definition.triggers.Recurrence.recurrence.interval, 1);
+  assert.equal(definition.triggers.Recurrence.runtimeConfiguration.concurrency.runs, 1);
+});
+
 function visitActions(actions, visitor, insideForeach = false) {
   for (const [name, action] of Object.entries(actions || {})) {
     const nestedInForeach = insideForeach || action.type === 'Foreach';
@@ -333,6 +339,10 @@ test('first responder assignment preserves existing or concurrent assignees', ()
     /\$select=Id,Assigned_x0020_toId/
   );
   const unassigned = actionNamed('Ticket_is_unassigned');
+  assert.equal(
+    reread.inputs.parameters['parameters/headers'].Accept,
+    'application/json;odata=minimalmetadata'
+  );
   assert.match(unassigned.expression, /Assigned_x0020_toId/);
   assert.match(unassigned.expression, /equals\(int\(coalesce/);
 
@@ -341,7 +351,7 @@ test('first responder assignment preserves existing or concurrent assignees', ()
   assert.equal(assign.inputs.parameters['parameters/method'], 'POST');
   assert.equal(
     assign.inputs.parameters['parameters/headers']['IF-MATCH'],
-    "@body('Re_read_assignment_before_stage')?['@odata.etag']"
+    "@coalesce(body('Re_read_assignment_before_stage')?['odata.etag'],body('Re_read_assignment_before_stage')?['@odata.etag'])"
   );
   assert.equal(
     assign.inputs.parameters['parameters/headers']['X-HTTP-Method'],
@@ -355,6 +365,21 @@ test('first responder assignment preserves existing or concurrent assignees', ()
     actionNamed('Stage_ticket_reply').runAfter,
     { Ticket_is_unassigned: ['Succeeded'] }
   );
+});
+
+test('one public reply is copied to a native comment only after dispatch is recorded', () => {
+  const copy = actionNamed('Copy_reply_to_ticket_comment');
+  assert.deepEqual(copy.runAfter, { Mark_exchange_awaiting_native_rule: ['Succeeded'] });
+  assert.equal(copy.inputs.host.operationId, 'HttpRequest');
+  assert.equal(copy.inputs.parameters['parameters/method'], 'POST');
+  assert.match(copy.inputs.parameters['parameters/uri'], /items\('.*For_each_ticket.*\/comments/);
+  assert.match(copy.inputs.parameters['parameters/body'], /setProperty\(json\('\{\}'\),'text'/);
+  assert.match(copy.inputs.parameters['parameters/body'], /Learn IT HelpDesk/);
+  assert.match(copy.inputs.parameters['parameters/body'], /Get_Teams_author.*displayName/);
+  assert.match(copy.inputs.parameters['parameters/body'], /Requester_reply_text/);
+  assert.match(copy.inputs.parameters['parameters/body'], /For_each_reply.*\['id'\]/);
+  assert.deepEqual(copy.inputs.retryPolicy, { type: 'none' });
+  assert.doesNotMatch(copy.inputs.parameters['parameters/body'], /mentions|@user/);
 });
 
 test('Terminate actions are never nested in a foreach', () => {

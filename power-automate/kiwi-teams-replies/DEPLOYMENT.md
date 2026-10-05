@@ -10,7 +10,237 @@ The flow does not modify the active intake flow
 `dada6a44-429e-4d4e-95c0-f2bf5c87e033`, send Outlook/SMTP mail, or write the direct-reply
 field `R_x00e9_ponseaudemandeur`.
 
+## Teams update hyperlink (2026-10-05)
+
+The separate live flow `Kiwi - Mises a jour dans le fil Teams du ticket`
+(`48847d1f-d0a8-43ad-885d-a9c41dbb32a6`) now sends a contracted message:
+`Ticket #<ID> - Ouvrir le ticket`. The last words are an HTML anchor to
+`https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/EuropaTickets/DispForm.aspx?ID=<ID>`.
+Both ID occurrences use `@{triggerBody()?['ID']}`.
+The former timestamp and internal-discussion sentence were removed from this
+short version at the user's request.
+
+The classic designer confirmed the save. After a full server reload, the
+action's read-only JSON confirmed the anchor and dynamic ID in its message
+body, with `ReplyWithMessageToConversation` and the existing
+`@triggerBody()?['TeamsThreadId']` parent mapping preserved. The existing
+useful-change condition, team and channel were not changed. No ticket was
+modified and no test Teams message was sent; rendering in the next actual
+Teams update remains unobserved.
+
+This is a live update-flow change, not a change to this reply-flow blueprint.
+The previously exported unmanaged solution ZIP predates this edit and was
+not regenerated.
+
+## Native comment copy (2026-10-05)
+
+The live agent-reply flow now polls every minute instead of every five minutes.
+The designer confirmed the save and a server reload confirmed interval `1`.
+Trigger concurrency remains one; no dispatch guards, cutoff or ledger rows were
+changed and no historical replies were replayed. This reduces polling latency,
+not connector runtime or native notification delivery latency. Recent runs took
+about 80-100 seconds, so serial runs can still delay the next poll. Pending
+`AwaitingNativeRule` exchanges continue to block later public replies until
+properly resolved. The unmanaged solution ZIP predates this cadence edit.
+
+The reference definition now appends one native SharePoint comment for each
+public Teams reply whose native-rule dispatch has been queued. This does not
+confirm email delivery. The heading is `Learn IT HelpDesk`;
+the text identifies the verified Teams author, contains the signed reply and
+includes the source Teams message ID. Comments are posted under the SharePoint
+connection account, not by impersonating the original author. No mentions are
+created. Existing source-ID deduplication prevents scheduled runs from copying
+an already processed reply again.
+
+The comment POST follows `Mark_exchange_awaiting_native_rule`, so it does not
+block the established email dispatch. It has no automatic retries: a network
+timeout could mean SharePoint accepted the comment. A failure remains visible
+in the run. Inspect for the source-message marker before recovering only the
+missing comment; never reset the exchange or replay the email to repair a
+comment. This is a once-only attempt, not guaranteed exactly-once delivery.
+Internal Teams discussions and inbound emails are not copied by this action.
+Requester questions entered directly in native comments already remain there.
+
+The test ticket's initial question and two distinct responses were copied
+manually into three separate native comments. The earlier consolidated
+history was superseded. Automatic copy was added in the live designer using
+the existing SharePoint connection. Saving initially remained pending, then
+the designer confirmed the flow was ready to use. A fresh server details page
+confirmed the enabled flow was modified at 17:12 on 2026-10-05. A fresh native
+ticket form also confirmed exactly three individual history comments, with no
+consolidated duplicate. An actual automatically
+created comment has not yet been observed; do not treat the reference change,
+zero validation errors or save confirmation as end-to-end verification.
+Verify a new accepted public reply produces one comment before claiming that
+the automatic path works. Existing processed messages are not replayed.
+
+At the subsequent verification, public replies were still blocked by unresolved
+native-rule exchanges. Outlook Web requested sign-in, so delivery could not be
+verified. No exchange was falsely confirmed or reset, and no additional public
+test reply was sent: that would either fail the existing guard or risk an
+unnecessary email. Runtime comment-copy verification remains blocked until
+delivery of the prior dispatch is confirmed and a new eligible reply is accepted.
+
+## Ticket title prefix status (2026-10-05)
+
+All six existing tickets (IDs 10-15) were updated through title-only
+inline saves to `Learn IT Helpdesk - <original subject>`. Each native form
+confirmed the new title. A subsequent fresh SharePoint read enumerated all six
+items, verified every prefix and checked there was no continuation page.
+Response and dispatch fields were not edited.
+This is an existing-ticket migration, not automatic enforcement for future
+items. Repository normalization is tracked separately in PR #7. Native Lists
+creation and email intake still need an automatic normalization path before
+their Teams/Planner projections. Do not enable a restrictive list validation
+rule alone: it would reject existing intake flows that submit bare subjects.
+
+### Combined production package preparation
+
+The title-normalization implementation from PR #7 was integrated into the
+PR #5 branch, preserving the Planner and workflow test selectors. The full
+repository test command and production build completed successfully.
+The rebuilt `sharepoint/solution/support-it-ticketing.sppkg` includes those
+changes. Its SHA-256 is
+`5D1C5F76DB9FE9BF56292D5B8B836C70D04F745CF7996DB55F0145FFC803B7F3`.
+
+The authenticated tenant app catalogue was inspected for deployment.
+Its classic Files ribbon exposed **Upload Document** as disabled for the
+current account. No package was uploaded or deployed; catalogue deployment
+and the requested Graph permission approval require an authorized
+administrator. Preparing this package does not enforce titles in the live
+native Lists form or email intake.
+
+The experimental absolute-positioned notification HTML was not saved:
+automated accessible input accepted only an incomplete fragment. The draft
+was canceled and the original rule reopened and verified. Existing native
+notifications remain enabled, and Planner synchronization remains paused.
+
+### Solution publication attempt
+
+The existing unmanaged `KiwiHelpdeskAutomations` solution was reopened through
+the native Solutions navigation and showed version `1.0.0.19`. Its **Deploy**
+command was disabled by environment privileges. **Publish all customizations**
+was available and invoked at the user's request. On the subsequent export
+visit, a new notification confirmed this publication succeeded. The unrelated
+success banner dated 2026-09-21 was not used as evidence.
+
+No old private solution ZIP was reimported: those artifacts predate the live
+ETag repair and comment-copy action and could overwrite them. This publication
+does not import the rebuilt SPFx package, change SharePoint notification HTML
+or add future-ticket title normalization to the native intake flows.
+
+### Fresh unmanaged live export
+
+At the user's request, the published live solution was exported as **unmanaged**
+version `1.0.0.20` and downloaded successfully. The new ZIP was kept in private
+session artifacts, not committed to the repository. Its size is 18,760 bytes
+and SHA-256 is
+`BAD87EBB77866BE12EC93F13CC8EEC36F8ADAA1874FC8983F8DE1D61E73B4658`.
+The archive manifest confirms `Managed=0`.
+
+Direct archive inspection confirms the current Teams reply workflow includes
+the minimalmetadata/coalesced ETag repair and exactly one comment POST after
+`Mark_exchange_awaiting_native_rule` succeeds, with the expected JSON-safe
+body and retry policy `none`. This verifies persisted configuration, not
+runtime comment creation. The export contains the Teams reply and Planner
+workflows plus their solution metadata; it does not contain the SPFx package,
+native list notification templates or the separate form intake flow.
+No import, replay or Planner activation was performed.
+
+## First-responder assignment ETag repair (2026-10-05)
+
+A public reply was recognized and recorded as `Processing`, but the initial
+assignment failed with HTTP 412 before response staging or dispatch. The
+assignment snapshot requested `odata=nometadata`, which omitted the ETag, while
+the write expected the Graph-style `@odata.etag` property. Later successful
+scheduled runs deduplicated the existing exchange; they did not recover it.
+
+The assignment snapshot now requests `odata=minimalmetadata`. Its guarded
+`IF-MATCH` uses SharePoint's `odata.etag`, with `@odata.etag` as an alternate
+metadata representation. No wildcard ETag or unconditional assignment is used.
+The two corresponding live designer inputs were updated and saved; the
+repository contract test covers both the response format and ETag expression.
+
+For recovery, verify that the failed action precedes `Stage_ticket_reply` and
+`Commit_dispatch_token_only`, and that the ticket's reply fields and dispatch
+token remain empty. Only then mark that exact incomplete exchange
+`FailedTerminal`, preserving its message and unique source ID. An explicitly
+authorized new copy in the mapped ticket thread receives a new message ID and
+passes normal authorization, deduplication and dispatch checks. Never mark a
+failed assignment `AgentConfirmed`, clear unrelated pending exchanges, or
+replay a message whose dispatch might already have occurred.
+
+The visible list title is now **Learn-IT-Tickets**. Its original
+`Lists/EuropaTickets` address and list GUID are unchanged. Replies under the
+forwarded email root are distinct from replies under the mapped Workflows
+ticket root; only the latter are currently monitored.
+
+Live recovery verification: the test ticket's first responder was assigned,
+its signed `TeamsReplyText` and responding-agent field were staged, and a
+nonempty dispatch token was committed. The new exchange reached
+`AwaitingNativeRule`. The connected Outlook mailbox then showed both the
+requester reply and the responding-agent confirmation at 15:41, with the
+response and assigned-agent signature present. Only that verified exchange
+was manually marked `AgentConfirmed`; both pre-dispatch failed attempts remain
+`FailedTerminal`. This is direct inbox evidence for the connected test account,
+not a delivery guarantee for other recipients or automatic acknowledgement
+of future native-rule sends. The generated subject still used `EuropaTickets`
+in these received messages despite the visible list rename.
+
+## Live notification presentation (2026-10-05)
+
+All five existing native list rules were updated in place through the authenticated
+SharePoint rule editor. Conditions, recipients and enabled states were preserved.
+Custom messages now begin with an explicit `[Kiwi]` heading, followed by a dynamic
+ticket title, the relevant response where applicable, and a signature containing
+the actual **Assigned to** Person-field token plus `learn.IT`. That token was
+inserted with the native dynamic-content picker, not as literal text or a guessed
+agent name. The saved requester direct-response rule was reopened and its heading
+and token chip checked.
+
+| Existing notification | Custom-message heading |
+| --- | --- |
+| Requester recorded | `[Kiwi] Your ticket has been received` |
+| Direct response to requester | `[Kiwi] Reply to your ticket` |
+| Direct response copy to modifier | `[Kiwi] Your reply has been recorded` |
+| Teams response to requester | `[Kiwi] Reply to your ticket` |
+| Teams response copy to actual responding agent | `[Kiwi] Your Teams reply has been recorded` |
+
+Creation and requester-response messages explain that an empty assigned-agent
+name means the ticket is awaiting assignment. They do not substitute the author
+or last modifier for the assigned agent. Confirmation copies no longer claim
+that their receipt proves delivery to the requester. Existing Teams response text
+still contains the verified responding author's signature; the additional
+assigned-agent signature identifies the ticket owner, who may be different.
+
+Native rules expose only custom body text, not a configurable email subject or
+the standard SharePoint change-summary header. Their generated
+`<ticket title> was updated in <list title>` subject is not independently
+customizable; the list title is now `Learn-IT-Tickets`.
+Replacing it requires a separately configured mail-capable flow/connection and
+a guarded cutover to avoid duplicate sends; no such connection was created here.
+No notification was replayed during this presentation update. Previous inbox
+verification proves delivery for the earlier diagnostic messages, not rendering
+or delivery of the newly revised templates.
+
 ## Exact prerequisites
+
+The dispatch field's live display title was renamed to `TicketID` at the
+user's request on 2026-10-05, superseding the initial `Ticket-Number` label.
+A fresh field-schema read verified its internal
+name remains `TeamsReplyDispatchToken` and its type remains Text. This is a
+label-only change: values remain dispatch identifiers, not ticket numbers.
+Keep workflow references on the internal name; use the item ID for the actual
+ticket number.
+
+The native ticket response form now hides `Titre`, `Expéditeur du transfert`,
+`TeamsThreadId`, `TicketID`, `Status`, `Priority`, `Category` and `Due date`.
+This was saved through **Edit form > Edit columns** and verified by reopening
+the saved selections. All other selections were preserved, including requester,
+description, assigned agent and response. Columns and stored values were not
+deleted; list views and workflow internal-name references remain unchanged.
+These are shared native form visibility settings, not a separate response-only
+custom form.
 
 These `EuropaTickets` fields and rules are already live:
 
