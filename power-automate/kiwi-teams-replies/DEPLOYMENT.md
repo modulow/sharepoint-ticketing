@@ -10,6 +10,28 @@ The flow does not modify the active intake flow
 `dada6a44-429e-4d4e-95c0-f2bf5c87e033`, send Outlook/SMTP mail, or write the direct-reply
 field `R_x00e9_ponseaudemandeur`.
 
+## Teams update hyperlink (2026-10-05)
+
+The separate live flow `Kiwi - Mises a jour dans le fil Teams du ticket`
+(`48847d1f-d0a8-43ad-885d-a9c41dbb32a6`) now sends a contracted message:
+`Ticket #<ID> - Ouvrir le ticket`. The last words are an HTML anchor to
+`https://europarl.sharepoint.com/sites/learn.IT-Kiwi/Lists/EuropaTickets/DispForm.aspx?ID=<ID>`.
+Both ID occurrences use `@{triggerBody()?['ID']}`.
+The former timestamp and internal-discussion sentence were removed from this
+short version at the user's request.
+
+The classic designer confirmed the save. After a full server reload, the
+action's read-only JSON confirmed the anchor and dynamic ID in its message
+body, with `ReplyWithMessageToConversation` and the existing
+`@triggerBody()?['TeamsThreadId']` parent mapping preserved. The existing
+useful-change condition, team and channel were not changed. No ticket was
+modified and no test Teams message was sent; rendering in the next actual
+Teams update remains unobserved.
+
+This is a live update-flow change, not a change to this reply-flow blueprint.
+The previously exported unmanaged solution ZIP predates this edit and was
+not regenerated.
+
 ## Native comment copy (2026-10-05)
 
 The reference definition now appends one native SharePoint comment for each
