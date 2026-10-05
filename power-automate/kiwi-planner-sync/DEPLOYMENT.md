@@ -10,7 +10,7 @@ only through the approved tenant process.
 
 Windows UI Automation can operate the user's authenticated Chrome through ordinary
 accessible controls; browser cookie/token extraction is neither needed nor permitted.
-This session inspected Power Automate and native SharePoint list settings read-only.
+The initial inspection of Power Automate and native SharePoint settings was read-only.
 No flow was saved/tested, no field was created, and no ticket/card was changed.
 
 An existing enabled **Kiwi - Sync SharePoint tickets to Planner** flow targets the
@@ -56,7 +56,7 @@ choice fields do not permit arbitrary fill-in values. DueDate was verified to in
 time and have no default date. The English internal names are preserved under the
 French display labels and are already recognized by `TicketSchema.ts`.
 
-The existing Planner flow **has not yet been changed to synchronize these fields**.
+At this stage, the existing Planner flow **had not yet been changed to synchronize these fields**.
 The new designer's Code View was inspected as a possible faster authoring path, but
 its accessibility value did not expose complete parseable action JSON. No partial
 JSON was written or saved. Advanced options were inspected, then the designer was
@@ -85,11 +85,56 @@ completed with its ready-to-use confirmation.
 After a full browser reload, all four field references were independently verified in
 both saved action expressions, confirming persistence beyond the editor session.
 
-This change updates **card descriptions only**. Native Planner priority, progress,
+This first saved change updated **card descriptions only**. Native Planner priority, progress,
 due-date and assignments were not changed. No manual test run was triggered and no
 end-to-end card update is claimed before a successful scheduled run/card check.
 Assignment timestamp, full history/attachments, ownership and pagination gaps in the
 existing flow remain separate implementation work.
+
+### English labels and native options (2026-10-05)
+
+At the user's request, the four live SharePoint display labels were renamed to
+**Status**, **Priority**, **Category**, and **Due date**. Saved settings links were
+verified through accessibility. Internal names, choice values, optionality and
+no-default behavior are unchanged. No existing ticket was backfilled. Microsoft
+account/browser language and unrelated legacy labels were not changed.
+
+The existing live flow was then edited through the supported connector's accessible
+expression editor and saved with its ready-to-use confirmation. The flow checker
+reported **0 errors and 0 warnings**. After a full browser reload, all five native
+field expressions and the new action's task-ID expression were independently
+verified through their complete accessible token names. These mappings are distinct from the Graph
+reference implementation below:
+
+| Action | Saved native mapping |
+| --- | --- |
+| `Create a task` | Due date from `DueDate`; assigned user from `Assigned_x0020_to.Email` |
+| `Apply ticket progress to new task` (new Planner V2 update action) | ID from `Create_a_task`; percent complete from source status |
+| `Update a task (V2)` (existing-card branch) | Due date from `DueDate`; percent complete from source status |
+
+Resolved/Closed map to 100, In progress to 50, and New/Waiting to 0. A missing status
+preserves the existing card's `percentComplete`; a new card with no status starts at
+0. Empty DueDate is supplied as null. Runtime date clearing remains unverified.
+The create connector explicitly supports email addresses for assigned users; no
+SharePoint numeric user ID is used as an Entra identity.
+
+**Native priority is not configured.** The available documented `UpdateTask_V2`
+and `UpdateTask_V3` actions do not expose it. A priority-capable, approved connector
+version or Graph connection is still required; no new API connection or policy
+bypass was attempted. Priority and category remain in both card descriptions.
+Shared Planner label names were not overwritten to represent ticket categories.
+Connector capability reference: [Microsoft Planner connector actions](https://learn.microsoft.com/en-us/connectors/planner/).
+
+**Existing-card reassignment is not configured.** An exploratory assignment updater
+was removed before saving rather than accumulate stale assignees. Safe synchronization
+still needs validated current-assignment IDs, old-assignee removal and unassignment
+handling. No existing task was manually reassigned.
+
+Saving configuration is not proof of a successful scheduled run or resulting cards.
+No manual test run or private ticket edit was performed in this update. The existing
+15-minute schedule remains enabled; scheduled execution may apply saved mappings.
+Assignment-change ranking, complete history/attachments, state/ownership, pagination,
+and safe cleanup remain outstanding as recorded above.
 
 ## Contract
 
