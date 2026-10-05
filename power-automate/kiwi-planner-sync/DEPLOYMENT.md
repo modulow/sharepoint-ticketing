@@ -65,6 +65,32 @@ turned into invented source values. Native Planner priority is not exposed in th
 currently inspected task-update action; a supported action/version and safe field
 mapping are still required before saving the live flow.
 
+### Live card-details mapping update (2026-10-05)
+
+On the user's further authorization, Windows accessibility was used to edit the
+existing **Kiwi - Sync SharePoint tickets to Planner** flow through its expression
+editor, not by replacing incomplete Code View JSON. Both `Update task details`
+(creation branch) and `Update task details 1` (existing-card branch) retain their
+previous ticket/body/reply/source-link content and append:
+
+- `Status` choice `Value`, labelled Status;
+- `Priority` choice `Value`, labelled Priority;
+- `Category` choice `Value`, labelled Category;
+- `DueDate`, labelled Due date.
+
+Null values are displayed as `Not set`; no existing ticket is classified automatically.
+The complete expressions were checked through accessible token names after applying
+them. Power Automate's flow checker reported **0 errors and 0 warnings** and the save
+completed with its ready-to-use confirmation.
+After a full browser reload, all four field references were independently verified in
+both saved action expressions, confirming persistence beyond the editor session.
+
+This change updates **card descriptions only**. Native Planner priority, progress,
+due-date and assignments were not changed. No manual test run was triggered and no
+end-to-end card update is claimed before a successful scheduled run/card check.
+Assignment timestamp, full history/attachments, ownership and pagination gaps in the
+existing flow remain separate implementation work.
+
 ## Contract
 
 - `workflow-blueprint.json` defines the confirmed behavior and required tenant schema.
