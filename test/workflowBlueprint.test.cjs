@@ -19,6 +19,12 @@ const definition = JSON.parse(fs.readFileSync(
 ));
 const serialized = JSON.stringify(definition);
 
+test('agent replies poll each minute without overlapping dispatch runs', () => {
+  assert.equal(definition.triggers.Recurrence.recurrence.frequency, 'Minute');
+  assert.equal(definition.triggers.Recurrence.recurrence.interval, 1);
+  assert.equal(definition.triggers.Recurrence.runtimeConfiguration.concurrency.runs, 1);
+});
+
 function visitActions(actions, visitor, insideForeach = false) {
   for (const [name, action] of Object.entries(actions || {})) {
     const nestedInForeach = insideForeach || action.type === 'Foreach';

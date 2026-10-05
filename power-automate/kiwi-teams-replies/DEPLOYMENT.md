@@ -34,6 +34,15 @@ not regenerated.
 
 ## Native comment copy (2026-10-05)
 
+The live agent-reply flow now polls every minute instead of every five minutes.
+The designer confirmed the save and a server reload confirmed interval `1`.
+Trigger concurrency remains one; no dispatch guards, cutoff or ledger rows were
+changed and no historical replies were replayed. This reduces polling latency,
+not connector runtime or native notification delivery latency. Recent runs took
+about 80-100 seconds, so serial runs can still delay the next poll. Pending
+`AwaitingNativeRule` exchanges continue to block later public replies until
+properly resolved. The unmanaged solution ZIP predates this cadence edit.
+
 The reference definition now appends one native SharePoint comment for each
 public Teams reply whose native-rule dispatch has been queued. This does not
 confirm email delivery. The heading is `Learn IT HelpDesk`;

@@ -36,7 +36,7 @@
       "type": "Recurrence",
       "recurrence": {
         "frequency": "Minute",
-        "interval": 5
+        "interval": 1
       },
       "runtimeConfiguration": {
         "concurrency": {
