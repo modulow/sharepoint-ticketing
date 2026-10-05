@@ -84,6 +84,20 @@ automated accessible input accepted only an incomplete fragment. The draft
 was canceled and the original rule reopened and verified. Existing native
 notifications remain enabled, and Planner synchronization remains paused.
 
+### Solution publication attempt
+
+The existing unmanaged `KiwiHelpdeskAutomations` solution was reopened through
+the native Solutions navigation and showed version `1.0.0.19`. Its **Deploy**
+command was disabled by environment privileges. **Publish all customizations**
+was available and invoked at the user's request, but the UI still reported
+publication in progress at the last read. The unrelated success banner dated
+2026-09-21 is not evidence that this attempt completed.
+
+No old private solution ZIP was reimported: those artifacts predate the live
+ETag repair and comment-copy action and could overwrite them. This publication
+does not import the rebuilt SPFx package, change SharePoint notification HTML
+or add future-ticket title normalization to the native intake flows.
+
 ## First-responder assignment ETag repair (2026-10-05)
 
 A public reply was recognized and recorded as `Processing`, but the initial
