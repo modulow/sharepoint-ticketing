@@ -202,6 +202,15 @@ label-only change: values remain dispatch identifiers, not ticket numbers.
 Keep workflow references on the internal name; use the item ID for the actual
 ticket number.
 
+The native ticket response form now hides `Titre`, `Expéditeur du transfert`,
+`TeamsThreadId`, `TicketID`, `Status`, `Priority`, `Category` and `Due date`.
+This was saved through **Edit form > Edit columns** and verified by reopening
+the saved selections. All other selections were preserved, including requester,
+description, assigned agent and response. Columns and stored values were not
+deleted; list views and workflow internal-name references remain unchanged.
+These are shared native form visibility settings, not a separate response-only
+custom form.
+
 These `EuropaTickets` fields and rules are already live:
 
 - `TeamsReplyText`: single-line text, maximum 255;
