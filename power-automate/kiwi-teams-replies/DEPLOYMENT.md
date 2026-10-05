@@ -89,14 +89,32 @@ notifications remain enabled, and Planner synchronization remains paused.
 The existing unmanaged `KiwiHelpdeskAutomations` solution was reopened through
 the native Solutions navigation and showed version `1.0.0.19`. Its **Deploy**
 command was disabled by environment privileges. **Publish all customizations**
-was available and invoked at the user's request, but the UI still reported
-publication in progress at the last read. The unrelated success banner dated
-2026-09-21 is not evidence that this attempt completed.
+was available and invoked at the user's request. On the subsequent export
+visit, a new notification confirmed this publication succeeded. The unrelated
+success banner dated 2026-09-21 was not used as evidence.
 
 No old private solution ZIP was reimported: those artifacts predate the live
 ETag repair and comment-copy action and could overwrite them. This publication
 does not import the rebuilt SPFx package, change SharePoint notification HTML
 or add future-ticket title normalization to the native intake flows.
+
+### Fresh unmanaged live export
+
+At the user's request, the published live solution was exported as **unmanaged**
+version `1.0.0.20` and downloaded successfully. The new ZIP was kept in private
+session artifacts, not committed to the repository. Its size is 18,760 bytes
+and SHA-256 is
+`BAD87EBB77866BE12EC93F13CC8EEC36F8ADAA1874FC8983F8DE1D61E73B4658`.
+The archive manifest confirms `Managed=0`.
+
+Direct archive inspection confirms the current Teams reply workflow includes
+the minimalmetadata/coalesced ETag repair and exactly one comment POST after
+`Mark_exchange_awaiting_native_rule` succeeds, with the expected JSON-safe
+body and retry policy `none`. This verifies persisted configuration, not
+runtime comment creation. The export contains the Teams reply and Planner
+workflows plus their solution metadata; it does not contain the SPFx package,
+native list notification templates or the separate form intake flow.
+No import, replay or Planner activation was performed.
 
 ## First-responder assignment ETag repair (2026-10-05)
 
