@@ -37,6 +37,34 @@ proof. A connected browser now permits inspection and UI work, but does not make
 existing flow conform to the approved assignment/history/ownership requirements.
 No private ticket content or tenant export was retained in this repository.
 
+### Authorized schema addition (2026-10-05)
+
+After the user explicitly authorized the four new workflow columns, this session
+created them in the existing `EuropaTickets` list through authenticated Chrome
+accessibility controls and verified each saved field-settings link:
+
+| Display label | Internal name | Type / choices |
+| --- | --- | --- |
+| Statut | `Status` | Choice: New, In progress, Waiting, Resolved, Closed |
+| Priorité | `Priority` | Choice: Low, Normal, High, Critical |
+| Catégorie | `Category` | Choice: Hardware, Software, Access, Network, Telephony, Other |
+| Échéance | `DueDate` | Date and time |
+
+These choices follow the existing ticket model. All four fields are optional, without
+a default value; no existing ticket was classified or given a deadline. The three
+choice fields do not permit arbitrary fill-in values. DueDate was verified to include
+time and have no default date. The English internal names are preserved under the
+French display labels and are already recognized by `TicketSchema.ts`.
+
+The existing Planner flow **has not yet been changed to synchronize these fields**.
+The new designer's Code View was inspected as a possible faster authoring path, but
+its accessibility value did not expose complete parseable action JSON. No partial
+JSON was written or saved. Advanced options were inspected, then the designer was
+reloaded without saving. Status/priority remain unset on old tickets and must not be
+turned into invented source values. Native Planner priority is not exposed in the
+currently inspected task-update action; a supported action/version and safe field
+mapping are still required before saving the live flow.
+
 ## Contract
 
 - `workflow-blueprint.json` defines the confirmed behavior and required tenant schema.
