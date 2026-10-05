@@ -11,7 +11,36 @@ The existing private solution export contains only the agent-reply and Planner
 resources; importing it does not install this new flow. Do not replace either
 existing resource with this definition. A genuine new cloud-flow resource,
 mapped connections and a restricted ledger must be provisioned before activation.
-No ledger, import package or live description comment was created in this task.
+The dedicated ledger `KiwiInitialCommentLedger` has now been created through the
+authenticated SharePoint UI, hidden from site navigation. Its GUID is
+`3a403104-e705-41ce-ba92-41b9ab527560`. Inheritance was stopped on this new list
+only, and Members/Visitors removed; Owners remain. Title uniqueness was confirmed
+after reopening its settings (SharePoint accepted the required indexing when
+uniqueness was enabled). State is single-line text. Payload was saved and its
+settings reopened: multiline text, plain text selected, append changes disabled.
+No ticket description has been written to the ledger or to comments.
+
+A private **unvalidated import candidate** was assembled from the genuine
+unmanaged solution export, retaining only the required SharePoint/Content
+Conversion connection references and a new initial-comment workflow. Neither
+existing agent-reply nor Planner workflow is in that candidate. Its distinct
+solution name is `KiwiInitialCommentAutomation`, version `1.0.0.1`, and workflow
+ID is `b198cfea-8f9c-47bd-859c-a1607bb2c25d`. It has inactive workflow metadata,
+the actual ledger GUID, cutoff 2099 and limit 0. The ZIP and connection metadata
+remain outside Git in the private session artifacts; they are not release assets.
+It has **not been imported or accepted by Power Automate**. The native Solutions
+page opened, but no usable solution-import action was exposed by the available
+UIAutomation controls; retries did not establish an import. This is a deployment
+control blocker, not evidence that the user's Chrome authentication expired.
+
+Remaining live work: import through the supported solution UI and resolve any
+platform validation errors, verify both mapped connections and ledger access for
+the executing identity, verify the flow remains off, set a current UTC cutoff
+and a verified comment limit or explicitly approved conservative local cap,
+then save/reload and enable the distinct flow. Observe a real new ticket and
+verify exact native comment plus Completed ledger entry before claiming runtime
+success. No historical backfill, test ticket, mail replay or Planner activation
+has been performed.
 
 The clarified request is to copy the existing **Descriptif** into the ticket's native
 SharePoint comments automatically by default, alongside existing intake/reply flows.
