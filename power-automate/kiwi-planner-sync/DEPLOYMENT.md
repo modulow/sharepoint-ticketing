@@ -67,6 +67,14 @@ inline editor changed during the investigation, so further writes stopped rather
 than overwrite a concurrent draft. Do not replay existing dispatch tokens or
 toggle requester identities to force notifications.
 
+At the user's 13:31 retry, the isolated diagnostic item had a persisted direct
+response as well as its requester and Teams thread. No additional reply or token
+was written. Inbox verification through the official Outlook entry points was
+blocked: one sign-in path reached a BIG-IP error page and the alternative remained
+at sign-in. No credentials were extracted or entered. This confirms response
+storage only, not notification dispatch or delivery. Planner remains paused;
+creation and reply delivery cannot be declared restored from this evidence.
+
 ### Superseded authentication blocker (11:43 follow-up)
 
 Planner synchronization remained paused; Power
