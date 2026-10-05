@@ -1,0 +1,1645 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "$authentication": {
+      "type": "SecureObject",
+      "defaultValue": {}
+    },
+    "$connections": {
+      "type": "Object",
+      "defaultValue": {}
+    },
+    "SiteUrl": {
+      "type": "String",
+      "defaultValue": "https://europarl.sharepoint.com/sites/learn.IT-Kiwi"
+    },
+    "TicketsListId": {
+      "type": "String",
+      "defaultValue": "f673fe2d-9733-46dd-9afe-4bf614c99202"
+    },
+    "LedgerListId": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "ActivationCutoffUtc": {
+      "type": "String",
+      "defaultValue": "2099-12-31T00:00:00Z"
+    },
+    "VerifiedCommentLimit": {
+      "type": "Int",
+      "defaultValue": 0
+    }
+  },
+  "triggers": {
+    "Recurrence": {
+      "type": "Recurrence",
+      "recurrence": {
+        "frequency": "Minute",
+        "interval": 1
+      },
+      "runtimeConfiguration": {
+        "concurrency": {
+          "runs": 1
+        }
+      }
+    }
+  },
+  "actions": {
+    "Initialize_FailureMessage": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "FailureMessage",
+            "type": "string",
+            "value": ""
+          }
+        ]
+      }
+    },
+    "Initialize_LedgerItemId": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_FailureMessage": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "LedgerItemId",
+            "type": "integer",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "Initialize_CommentText": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_LedgerItemId": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "CommentText",
+            "type": "string",
+            "value": ""
+          }
+        ]
+      }
+    },
+    "Initialize_DescriptionText": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_CommentText": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "DescriptionText",
+            "type": "string",
+            "value": ""
+          }
+        ]
+      }
+    },
+    "Initialize_SavedRecord": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_DescriptionText": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "SavedRecord",
+            "type": "object",
+            "value": {}
+          }
+        ]
+      }
+    },
+    "Initialize_Matches": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_SavedRecord": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "Matches",
+            "type": "array",
+            "value": []
+          }
+        ]
+      }
+    },
+    "Initialize_NextCommentUri": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_Matches": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "NextCommentUri",
+            "type": "string",
+            "value": ""
+          }
+        ]
+      }
+    },
+    "Initialize_CommentPageCount": {
+      "type": "InitializeVariable",
+      "runAfter": {
+        "Initialize_NextCommentUri": [
+          "Succeeded"
+        ]
+      },
+      "inputs": {
+        "variables": [
+          {
+            "name": "CommentPageCount",
+            "type": "integer",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "Native_copy_work": {
+      "type": "Scope",
+      "runAfter": {
+        "Initialize_CommentPageCount": [
+          "Succeeded"
+        ]
+      },
+      "actions": {
+        "Configuration_invalid": {
+          "type": "If",
+          "expression": "@or(equals(parameters('ActivationCutoffUtc'),'2099-12-31T00:00:00Z'),greater(ticks(parameters('ActivationCutoffUtc')),ticks(utcNow())),lessOrEquals(parameters('VerifiedCommentLimit'),0),not(equals(parameters('TicketsListId'),'f673fe2d-9733-46dd-9afe-4bf614c99202')),empty(parameters('LedgerListId')),equals(parameters('LedgerListId'),parameters('TicketsListId')))",
+          "actions": {
+            "Fail_disabled": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "ConfigurationDisabled",
+                  "message": "Set explicit ledger GUID, approved comment cap and deployment cutoff. No historical copying."
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "Preflight": {
+          "type": "Scope",
+          "runAfter": {
+            "Configuration_invalid": [
+              "Succeeded"
+            ]
+          },
+          "actions": {
+            "Read_title_metadata": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('SiteUrl')",
+                  "parameters/method": "GET",
+                  "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/fields/getbyinternalnameortitle(''Title'')')",
+                  "parameters/headers": {
+                    "Accept": "application/json;odata=minimalmetadata"
+                  }
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "HttpRequest"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Read_payload_metadata": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Read_title_metadata": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('SiteUrl')",
+                  "parameters/method": "GET",
+                  "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/fields/getbyinternalnameortitle(''Payload'')')",
+                  "parameters/headers": {
+                    "Accept": "application/json;odata=minimalmetadata"
+                  }
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "HttpRequest"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Read_state_metadata": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Read_payload_metadata": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('SiteUrl')",
+                  "parameters/method": "GET",
+                  "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/fields/getbyinternalnameortitle(''State'')')",
+                  "parameters/headers": {
+                    "Accept": "application/json;odata=minimalmetadata"
+                  }
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "HttpRequest"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Read_description_metadata": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Read_state_metadata": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('SiteUrl')",
+                  "parameters/method": "GET",
+                  "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/fields/getbyinternalnameortitle(''Descriptif'')')",
+                  "parameters/headers": {
+                    "Accept": "application/json;odata=minimalmetadata"
+                  }
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "HttpRequest"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Schema_valid": {
+              "type": "If",
+              "runAfter": {
+                "Read_description_metadata": [
+                  "Succeeded"
+                ]
+              },
+              "expression": "@and(equals(body('Read_title_metadata')?['TypeAsString'],'Text'),equals(body('Read_title_metadata')?['EnforceUniqueValues'],true),equals(body('Read_title_metadata')?['Indexed'],true),equals(body('Read_payload_metadata')?['TypeAsString'],'Note'),equals(body('Read_payload_metadata')?['RichText'],false),equals(body('Read_payload_metadata')?['AppendOnly'],false),equals(body('Read_state_metadata')?['TypeAsString'],'Text'),or(equals(body('Read_description_metadata')?['TypeAsString'],'Text'),and(equals(body('Read_description_metadata')?['TypeAsString'],'Note'),contains(createArray(true,false),body('Read_description_metadata')?['RichText']))))",
+              "actions": {},
+              "else": {
+                "actions": {
+                  "Fail_schema": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "FailureMessage",
+                      "value": "Dedicated ledger or Descriptif field metadata invalid."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Read_source_page": {
+          "type": "If",
+          "runAfter": {
+            "Preflight": [
+              "Succeeded"
+            ]
+          },
+          "expression": "@empty(variables('FailureMessage'))",
+          "actions": {
+            "Read_new_tickets": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('SiteUrl')",
+                  "parameters/method": "GET",
+                  "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items?$select=Id,Created&$filter=Created ge datetime''',parameters('ActivationCutoffUtc'),''' and Created le datetime''',utcNow(),'''&$orderby=Id asc&$top=101')",
+                  "parameters/headers": {
+                    "Accept": "application/json;odata=minimalmetadata"
+                  }
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "HttpRequest"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "Check_source_page": {
+          "type": "If",
+          "runAfter": {
+            "Read_source_page": [
+              "Succeeded"
+            ]
+          },
+          "expression": "@empty(variables('FailureMessage'))",
+          "actions": {
+            "Ticket_page_complete": {
+              "type": "If",
+              "expression": "@and(lessOrEquals(length(body('Read_new_tickets')?['value']),100),empty(body('Read_new_tickets')?['odata.nextLink']),empty(body('Read_new_tickets')?['@odata.nextLink']))",
+              "actions": {},
+              "else": {
+                "actions": {
+                  "Fail_ticket_pagination": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "FailureMessage",
+                      "value": "More than 100 post-cutoff tickets or ticket continuation present. No tickets processed; deployment requires source pagination before capacity is reached."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "For_each_ticket": {
+          "type": "Foreach",
+          "foreach": "@coalesce(body('Read_new_tickets')?['value'],json('[]'))",
+          "runAfter": {
+            "Check_source_page": [
+              "Succeeded"
+            ]
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          },
+          "actions": {
+            "Reset_ledger_id": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "LedgerItemId",
+                "value": 0
+              }
+            },
+            "Reset_saved_record": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Reset_ledger_id": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "name": "SavedRecord",
+                "value": {}
+              }
+            },
+            "Reset_description": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Reset_saved_record": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "name": "DescriptionText",
+                "value": ""
+              }
+            },
+            "Reset_comment": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Reset_description": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "name": "CommentText",
+                "value": ""
+              }
+            },
+            "Copy_key": {
+              "type": "Compose",
+              "runAfter": {
+                "Reset_comment": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": "@concat('kiwi-initial-description:',parameters('TicketsListId'),':',string(items('For_each_ticket')?['Id']),':v1')"
+            },
+            "Copy_marker": {
+              "type": "Compose",
+              "runAfter": {
+                "Copy_key": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": "@concat('[',outputs('Copy_key'),']')"
+            },
+            "Resolve_saved_snapshot": {
+              "type": "If",
+              "runAfter": {
+                "Copy_marker": [
+                  "Succeeded"
+                ]
+              },
+              "expression": "@empty(variables('FailureMessage'))",
+              "actions": {
+                "Read_ledger": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('SiteUrl')",
+                      "parameters/method": "GET",
+                      "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/items?$select=Id,Title,State,Payload&$filter=Title eq ''',outputs('Copy_key'),'''&$top=2')",
+                      "parameters/headers": {
+                        "Accept": "application/json;odata=minimalmetadata"
+                      }
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "HttpRequest"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "none"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Ledger_page_valid": {
+                  "type": "If",
+                  "runAfter": {
+                    "Read_ledger": [
+                      "Succeeded"
+                    ]
+                  },
+                  "expression": "@and(lessOrEquals(length(body('Read_ledger')?['value']),1),empty(body('Read_ledger')?['odata.nextLink']),empty(body('Read_ledger')?['@odata.nextLink']))",
+                  "actions": {
+                    "Ledger_exists": {
+                      "type": "If",
+                      "expression": "@equals(length(body('Read_ledger')?['value']),1)",
+                      "actions": {
+                        "Parse_saved_payload": {
+                          "type": "Compose",
+                          "inputs": "@json(first(body('Read_ledger')?['value'])?['Payload'])"
+                        },
+                        "Saved_payload_valid": {
+                          "type": "If",
+                          "runAfter": {
+                            "Parse_saved_payload": [
+                              "Succeeded"
+                            ]
+                          },
+                          "expression": "@and(equals(outputs('Parse_saved_payload')?['key'],outputs('Copy_key')),equals(outputs('Parse_saved_payload')?['ticketId'],items('For_each_ticket')?['Id']),equals(outputs('Parse_saved_payload')?['state'],first(body('Read_ledger')?['value'])?['State']),contains(createArray('Pending','Completed'),outputs('Parse_saved_payload')?['state']),endsWith(outputs('Parse_saved_payload')?['text'],outputs('Copy_marker')))",
+                          "actions": {
+                            "Save_record": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "SavedRecord",
+                                "value": "@outputs('Parse_saved_payload')"
+                              }
+                            },
+                            "Save_text": {
+                              "type": "SetVariable",
+                              "runAfter": {
+                                "Save_record": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "inputs": {
+                                "name": "CommentText",
+                                "value": "@outputs('Parse_saved_payload')?['text']"
+                              }
+                            },
+                            "Save_ledger_id": {
+                              "type": "SetVariable",
+                              "runAfter": {
+                                "Save_text": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "inputs": {
+                                "name": "LedgerItemId",
+                                "value": "@int(first(body('Read_ledger')?['value'])?['Id'])"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Fail_bad_saved_payload": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "FailureMessage",
+                                  "value": "Invalid saved copy identity/state/text; operator review required."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Read_current_ticket": {
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "parameters": {
+                                "dataset": "@parameters('SiteUrl')",
+                                "parameters/method": "GET",
+                                "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',string(items('For_each_ticket')?['Id']),')?$select=Id,Created,Descriptif')",
+                                "parameters/headers": {
+                                  "Accept": "application/json;odata=minimalmetadata"
+                                }
+                              },
+                              "host": {
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                "connectionName": "shared_sharepointonline",
+                                "operationId": "HttpRequest"
+                              },
+                              "authentication": "@parameters('$authentication')",
+                              "retryPolicy": {
+                                "type": "none"
+                              }
+                            },
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            }
+                          },
+                          "Source_snapshot_valid": {
+                            "type": "If",
+                            "runAfter": {
+                              "Read_current_ticket": [
+                                "Succeeded"
+                              ]
+                            },
+                            "expression": "@and(equals(body('Read_current_ticket')?['Id'],items('For_each_ticket')?['Id']),equals(ticks(body('Read_current_ticket')?['Created']),ticks(items('For_each_ticket')?['Created'])),not(empty(trim(coalesce(body('Read_current_ticket')?['Descriptif'],'')))))",
+                            "actions": {
+                              "Description_is_rich": {
+                                "type": "If",
+                                "expression": "@equals(body('Read_description_metadata')?['RichText'],true)",
+                                "actions": {
+                                  "Html_to_text": {
+                                    "type": "OpenApiConnection",
+                                    "inputs": {
+                                      "parameters": {
+                                        "Content": "@body('Read_current_ticket')?['Descriptif']"
+                                      },
+                                      "host": {
+                                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_conversionservice",
+                                        "connectionName": "shared_conversionservice",
+                                        "operationId": "HtmlToText"
+                                      },
+                                      "authentication": "@parameters('$authentication')"
+                                    },
+                                    "runtimeConfiguration": {
+                                      "secureData": {
+                                        "properties": [
+                                          "inputs",
+                                          "outputs"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "Save_converted_description": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Html_to_text": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "inputs": {
+                                      "name": "DescriptionText",
+                                      "value": "@body('Html_to_text')"
+                                    }
+                                  }
+                                },
+                                "else": {
+                                  "actions": {
+                                    "Save_plain_description": {
+                                      "type": "SetVariable",
+                                      "inputs": {
+                                        "name": "DescriptionText",
+                                        "value": "@body('Read_current_ticket')?['Descriptif']"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "Complete_comment_text": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Description_is_rich": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "inputs": "@concat('Learn IT Helpdesk - Descriptif initial du demandeur',decodeUriComponent('%0A%0A'),variables('DescriptionText'),decodeUriComponent('%0A%0A'),outputs('Copy_marker'))"
+                              },
+                              "Full_text_valid": {
+                                "type": "If",
+                                "runAfter": {
+                                  "Complete_comment_text": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "expression": "@and(not(empty(trim(variables('DescriptionText')))),lessOrEquals(length(outputs('Complete_comment_text')),parameters('VerifiedCommentLimit')))",
+                                "actions": {
+                                  "Save_complete_text": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "CommentText",
+                                      "value": "@outputs('Complete_comment_text')"
+                                    }
+                                  }
+                                },
+                                "else": {
+                                  "actions": {
+                                    "Fail_empty_or_oversized": {
+                                      "type": "SetVariable",
+                                      "inputs": {
+                                        "name": "FailureMessage",
+                                        "value": "Empty converted Descriptif or complete comment over approved limit. Nothing truncated or posted."
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "else": {
+                              "actions": {
+                                "Fail_not_finalized": {
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                    "name": "FailureMessage",
+                                    "value": "Descriptif not finalized or source identity changed. No reservation; a later finalized modification may be admitted."
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Fail_ledger_page": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "FailureMessage",
+                          "value": "Ledger lookup ambiguous or incomplete; no comment write."
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Enumerate_before_write": {
+              "type": "If",
+              "runAfter": {
+                "Resolve_saved_snapshot": [
+                  "Succeeded"
+                ]
+              },
+              "expression": "@empty(variables('FailureMessage'))",
+              "actions": {
+                "Before_reset_matches": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "Matches",
+                    "value": []
+                  }
+                },
+                "Before_set_next": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Before_reset_matches": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "name": "NextCommentUri",
+                    "value": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',string(items('For_each_ticket')?['Id']),')/comments?$top=100')"
+                  }
+                },
+                "Before_reset_pages": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Before_set_next": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "name": "CommentPageCount",
+                    "value": 0
+                  }
+                },
+                "Before_pages": {
+                  "type": "Until",
+                  "runAfter": {
+                    "Before_reset_pages": [
+                      "Succeeded"
+                    ]
+                  },
+                  "expression": "@or(empty(variables('NextCommentUri')),not(empty(variables('FailureMessage'))))",
+                  "limit": {
+                    "count": 100,
+                    "timeout": "PT10M"
+                  },
+                  "actions": {
+                    "Before_read_page": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('SiteUrl')",
+                          "parameters/method": "GET",
+                          "parameters/uri": "@variables('NextCommentUri')",
+                          "parameters/headers": {
+                            "Accept": "application/json;odata=minimalmetadata"
+                          }
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "HttpRequest"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "none"
+                        }
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Before_validate_page": {
+                      "type": "If",
+                      "runAfter": {
+                        "Before_read_page": [
+                          "Succeeded"
+                        ]
+                      },
+                      "expression": "@not(equals(body('Before_read_page')?['value'],null))",
+                      "actions": {
+                        "Before_matching_comments": {
+                          "type": "Query",
+                          "inputs": {
+                            "from": "@body('Before_read_page')?['value']",
+                            "where": "@contains(coalesce(item()?['text'],''),outputs('Copy_marker'))"
+                          }
+                        },
+                        "Before_append_matches": {
+                          "type": "Foreach",
+                          "foreach": "@body('Before_matching_comments')",
+                          "runAfter": {
+                            "Before_matching_comments": [
+                              "Succeeded"
+                            ]
+                          },
+                          "runtimeConfiguration": {
+                            "concurrency": {
+                              "repetitions": 1
+                            }
+                          },
+                          "actions": {
+                            "Before_append_match": {
+                              "type": "AppendToArrayVariable",
+                              "inputs": {
+                                "name": "Matches",
+                                "value": "@item()"
+                              }
+                            }
+                          }
+                        },
+                        "Before_candidate_next": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "Before_append_matches": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": "@coalesce(body('Before_read_page')?['odata.nextLink'],body('Before_read_page')?['@odata.nextLink'],'')"
+                        },
+                        "Before_next_count": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "Before_candidate_next": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": "@add(variables('CommentPageCount'),1)"
+                        },
+                        "Before_save_count": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Before_next_count": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "name": "CommentPageCount",
+                            "value": "@outputs('Before_next_count')"
+                          }
+                        },
+                        "Before_validate_next": {
+                          "type": "If",
+                          "runAfter": {
+                            "Before_save_count": [
+                              "Succeeded"
+                            ]
+                          },
+                          "expression": "@or(empty(outputs('Before_candidate_next')),and(less(variables('CommentPageCount'),100),startsWith(outputs('Before_candidate_next'),concat(parameters('SiteUrl'),replace(concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',string(items('For_each_ticket')?['Id']),')/comments?$top=100'),'?$top=100','?'))),not(equals(outputs('Before_candidate_next'),variables('NextCommentUri')))))",
+                          "actions": {
+                            "Before_advance": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "NextCommentUri",
+                                "value": "@outputs('Before_candidate_next')"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Before_fail_continuation": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "FailureMessage",
+                                  "value": "Comment pagination incomplete, repeated, over bound or outside this item. No partial success or replay."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Before_fail_page": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "FailureMessage",
+                              "value": "Invalid native comment page. No partial success."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Reserve_and_post_once": {
+              "type": "If",
+              "runAfter": {
+                "Enumerate_before_write": [
+                  "Succeeded"
+                ]
+              },
+              "expression": "@empty(variables('FailureMessage'))",
+              "actions": {
+                "New_copy": {
+                  "type": "If",
+                  "expression": "@equals(variables('LedgerItemId'),0)",
+                  "actions": {
+                    "No_orphan_marker": {
+                      "type": "If",
+                      "expression": "@equals(length(variables('Matches')),0)",
+                      "actions": {
+                        "Pending_snapshot": {
+                          "type": "Compose",
+                          "inputs": "@setProperty(setProperty(setProperty(setProperty(json('{}'),'key',outputs('Copy_key')),'ticketId',items('For_each_ticket')?['Id']),'state','Pending'),'text',variables('CommentText'))"
+                        },
+                        "Reserve_pending": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {
+                            "Pending_snapshot": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('SiteUrl')",
+                              "parameters/method": "POST",
+                              "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/items')",
+                              "parameters/headers": {
+                                "Accept": "application/json;odata=minimalmetadata",
+                                "Content-Type": "application/json;odata=nometadata"
+                              },
+                              "parameters/body": "@setProperty(setProperty(setProperty(json('{}'),'Title',outputs('Copy_key')),'State','Pending'),'Payload',string(outputs('Pending_snapshot')))"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "HttpRequest"
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "none"
+                            }
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Save_reserved_id": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Reserve_pending": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "name": "LedgerItemId",
+                            "value": "@int(body('Reserve_pending')?['Id'])"
+                          }
+                        },
+                        "Save_reserved_record": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Save_reserved_id": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "name": "SavedRecord",
+                            "value": "@outputs('Pending_snapshot')"
+                          }
+                        },
+                        "Post_native_comment": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {
+                            "Save_reserved_record": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('SiteUrl')",
+                              "parameters/method": "POST",
+                              "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',string(items('For_each_ticket')?['Id']),')/comments')",
+                              "parameters/headers": {
+                                "Accept": "application/json;odata=minimalmetadata",
+                                "Content-Type": "application/json;odata=nometadata"
+                              },
+                              "parameters/body": "@setProperty(json('{}'),'text',variables('CommentText'))"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "HttpRequest"
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "none"
+                            }
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Recover_uncertain_reservation": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('SiteUrl')",
+                              "parameters/method": "GET",
+                              "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/items?$select=Id,Title,State,Payload&$filter=Title eq ''',outputs('Copy_key'),'''&$top=2')",
+                              "parameters/headers": {
+                                "Accept": "application/json;odata=minimalmetadata"
+                              }
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "HttpRequest"
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "none"
+                            }
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          },
+                          "runAfter": {
+                            "Reserve_pending": [
+                              "Failed",
+                              "TimedOut"
+                            ]
+                          }
+                        },
+                        "Reservation_recovery_valid": {
+                          "type": "If",
+                          "expression": "@and(equals(length(body('Recover_uncertain_reservation')?['value']),1),empty(body('Recover_uncertain_reservation')?['odata.nextLink']),empty(body('Recover_uncertain_reservation')?['@odata.nextLink']))",
+                          "actions": {
+                            "Fail_reservation_uncertain": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "FailureMessage",
+                                "value": "Reservation conflict or uncertainty. State retained. Next run may reconcile only; no POST authorized."
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Fail_reservation_missing": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "FailureMessage",
+                                  "value": "Reservation failed and no unique ledger visible; inspect secured run. No comment posted."
+                                }
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Recover_uncertain_reservation": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Fail_orphan_marker": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "FailureMessage",
+                              "value": "Native marker exists without ledger; operator review, no duplicate."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Enumerate_after_write": {
+              "type": "If",
+              "runAfter": {
+                "Reserve_and_post_once": [
+                  "Succeeded"
+                ]
+              },
+              "expression": "@empty(variables('FailureMessage'))",
+              "actions": {
+                "After_reset_matches": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "Matches",
+                    "value": []
+                  }
+                },
+                "After_set_next": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "After_reset_matches": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "name": "NextCommentUri",
+                    "value": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',string(items('For_each_ticket')?['Id']),')/comments?$top=100')"
+                  }
+                },
+                "After_reset_pages": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "After_set_next": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "name": "CommentPageCount",
+                    "value": 0
+                  }
+                },
+                "After_pages": {
+                  "type": "Until",
+                  "runAfter": {
+                    "After_reset_pages": [
+                      "Succeeded"
+                    ]
+                  },
+                  "expression": "@or(empty(variables('NextCommentUri')),not(empty(variables('FailureMessage'))))",
+                  "limit": {
+                    "count": 100,
+                    "timeout": "PT10M"
+                  },
+                  "actions": {
+                    "After_read_page": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('SiteUrl')",
+                          "parameters/method": "GET",
+                          "parameters/uri": "@variables('NextCommentUri')",
+                          "parameters/headers": {
+                            "Accept": "application/json;odata=minimalmetadata"
+                          }
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "HttpRequest"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "none"
+                        }
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "After_validate_page": {
+                      "type": "If",
+                      "runAfter": {
+                        "After_read_page": [
+                          "Succeeded"
+                        ]
+                      },
+                      "expression": "@not(equals(body('After_read_page')?['value'],null))",
+                      "actions": {
+                        "After_matching_comments": {
+                          "type": "Query",
+                          "inputs": {
+                            "from": "@body('After_read_page')?['value']",
+                            "where": "@contains(coalesce(item()?['text'],''),outputs('Copy_marker'))"
+                          }
+                        },
+                        "After_append_matches": {
+                          "type": "Foreach",
+                          "foreach": "@body('After_matching_comments')",
+                          "runAfter": {
+                            "After_matching_comments": [
+                              "Succeeded"
+                            ]
+                          },
+                          "runtimeConfiguration": {
+                            "concurrency": {
+                              "repetitions": 1
+                            }
+                          },
+                          "actions": {
+                            "After_append_match": {
+                              "type": "AppendToArrayVariable",
+                              "inputs": {
+                                "name": "Matches",
+                                "value": "@item()"
+                              }
+                            }
+                          }
+                        },
+                        "After_candidate_next": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "After_append_matches": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": "@coalesce(body('After_read_page')?['odata.nextLink'],body('After_read_page')?['@odata.nextLink'],'')"
+                        },
+                        "After_next_count": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "After_candidate_next": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": "@add(variables('CommentPageCount'),1)"
+                        },
+                        "After_save_count": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "After_next_count": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "name": "CommentPageCount",
+                            "value": "@outputs('After_next_count')"
+                          }
+                        },
+                        "After_validate_next": {
+                          "type": "If",
+                          "runAfter": {
+                            "After_save_count": [
+                              "Succeeded"
+                            ]
+                          },
+                          "expression": "@or(empty(outputs('After_candidate_next')),and(less(variables('CommentPageCount'),100),startsWith(outputs('After_candidate_next'),concat(parameters('SiteUrl'),replace(concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',string(items('For_each_ticket')?['Id']),')/comments?$top=100'),'?$top=100','?'))),not(equals(outputs('After_candidate_next'),variables('NextCommentUri')))))",
+                          "actions": {
+                            "After_advance": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "NextCommentUri",
+                                "value": "@outputs('After_candidate_next')"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "After_fail_continuation": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "FailureMessage",
+                                  "value": "Comment pagination incomplete, repeated, over bound or outside this item. No partial success or replay."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "After_fail_page": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "FailureMessage",
+                              "value": "Invalid native comment page. No partial success."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Complete_verified_copy": {
+              "type": "If",
+              "runAfter": {
+                "Enumerate_after_write": [
+                  "Succeeded"
+                ]
+              },
+              "expression": "@empty(variables('FailureMessage'))",
+              "actions": {
+                "Exactly_one_marked_comment": {
+                  "type": "If",
+                  "expression": "@equals(length(variables('Matches')),1)",
+                  "actions": {
+                    "Exact_text_and_id": {
+                      "type": "If",
+                      "expression": "@and(equals(first(variables('Matches'))?['text'],variables('CommentText')),not(empty(string(coalesce(first(variables('Matches'))?['id'],'')))))",
+                      "actions": {
+                        "Read_ledger_version": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('SiteUrl')",
+                              "parameters/method": "GET",
+                              "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/items(',string(variables('LedgerItemId')),')?$select=Id,Title,State,Payload')",
+                              "parameters/headers": {
+                                "Accept": "application/json;odata=minimalmetadata"
+                              }
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "HttpRequest"
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "none"
+                            }
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Current_payload": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "Read_ledger_version": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": "@json(body('Read_ledger_version')?['Payload'])"
+                        },
+                        "Current_etag": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "Current_payload": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": "@coalesce(outputs('Read_ledger_version')?['headers']?['ETag'],body('Read_ledger_version')?['odata.etag'],body('Read_ledger_version')?['@odata.etag'],'')"
+                        },
+                        "Snapshot_unchanged": {
+                          "type": "If",
+                          "runAfter": {
+                            "Current_etag": [
+                              "Succeeded"
+                            ]
+                          },
+                          "expression": "@and(equals(body('Read_ledger_version')?['Title'],outputs('Copy_key')),equals(outputs('Current_payload')?['key'],outputs('Copy_key')),equals(outputs('Current_payload')?['ticketId'],items('For_each_ticket')?['Id']),equals(outputs('Current_payload')?['text'],variables('CommentText')),equals(outputs('Current_payload')?['state'],body('Read_ledger_version')?['State']),not(empty(outputs('Current_etag'))),not(equals(outputs('Current_etag'),'*')))",
+                          "actions": {
+                            "Already_completed": {
+                              "type": "If",
+                              "expression": "@equals(body('Read_ledger_version')?['State'],'Completed')",
+                              "actions": {
+                                "Completed_identity_matches": {
+                                  "type": "If",
+                                  "expression": "@equals(outputs('Current_payload')?['commentId'],string(first(variables('Matches'))?['id']))",
+                                  "actions": {},
+                                  "else": {
+                                    "actions": {
+                                      "Fail_completed_identity": {
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                          "name": "FailureMessage",
+                                          "value": "Completed native comment identity changed."
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Pending_only": {
+                                    "type": "If",
+                                    "expression": "@equals(body('Read_ledger_version')?['State'],'Pending')",
+                                    "actions": {
+                                      "Complete_ledger": {
+                                        "type": "OpenApiConnection",
+                                        "inputs": {
+                                          "parameters": {
+                                            "dataset": "@parameters('SiteUrl')",
+                                            "parameters/method": "POST",
+                                            "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('LedgerListId'),''')/items(',string(variables('LedgerItemId')),')')",
+                                            "parameters/headers": {
+                                              "Accept": "application/json;odata=minimalmetadata",
+                                              "Content-Type": "application/json;odata=nometadata",
+                                              "IF-MATCH": "@outputs('Current_etag')",
+                                              "X-HTTP-Method": "MERGE"
+                                            },
+                                            "parameters/body": "@setProperty(setProperty(json('{}'),'State','Completed'),'Payload',string(setProperty(setProperty(outputs('Current_payload'),'state','Completed'),'commentId',string(first(variables('Matches'))?['id']))))"
+                                          },
+                                          "host": {
+                                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                            "connectionName": "shared_sharepointonline",
+                                            "operationId": "HttpRequest"
+                                          },
+                                          "authentication": "@parameters('$authentication')",
+                                          "retryPolicy": {
+                                            "type": "none"
+                                          }
+                                        },
+                                        "runtimeConfiguration": {
+                                          "secureData": {
+                                            "properties": [
+                                              "inputs",
+                                              "outputs"
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "else": {
+                                      "actions": {
+                                        "Fail_invalid_state": {
+                                          "type": "SetVariable",
+                                          "inputs": {
+                                            "name": "FailureMessage",
+                                            "value": "Ledger state is not Pending or Completed."
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Fail_changed_snapshot": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "FailureMessage",
+                                  "value": "Ledger snapshot or ETag invalid; no completion update."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Fail_changed_comment": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "FailureMessage",
+                              "value": "Native comment text changed or ID absent. Do not replay."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Fail_missing_comment": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "FailureMessage",
+                          "value": "Native comment absent or ambiguous. Pending retained; no automatic replay."
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "Fail_connector_or_post": {
+      "type": "Terminate",
+      "inputs": {
+        "runStatus": "Failed",
+        "runError": {
+          "code": "InitialCommentActionFailed",
+          "message": "A connector, parsing or write failed. Inspect secured run and durable Pending state. Never reset/replay a native comment or email."
+        }
+      },
+      "runAfter": {
+        "Native_copy_work": [
+          "Failed",
+          "TimedOut"
+        ]
+      }
+    },
+    "Finish": {
+      "type": "If",
+      "runAfter": {
+        "Native_copy_work": [
+          "Succeeded"
+        ]
+      },
+      "expression": "@not(empty(variables('FailureMessage')))",
+      "actions": {
+        "Fail_validation": {
+          "type": "Terminate",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "InitialCommentGuard",
+              "message": "@variables('FailureMessage')"
+            }
+          }
+        }
+      },
+      "else": {
+        "actions": {}
+      }
+    }
+  }
+}
