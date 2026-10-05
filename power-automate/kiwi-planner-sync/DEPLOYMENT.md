@@ -75,6 +75,19 @@ at sign-in. No credentials were extracted or entered. This confirms response
 storage only, not notification dispatch or delivery. Planner remains paused;
 creation and reply delivery cannot be declared restored from this evidence.
 
+At the user's subsequent direction, the already-open Parliament Outlook window
+was located separately from the Chrome window used for tenant configuration.
+Targeted diagnostic-message inspection confirmed actual inbox delivery:
+requester creation acknowledgement at 13:14, requester direct-response email
+at 13:15, and responding-agent confirmation copy at 13:15. Both response messages
+contained the diagnostic response. This supersedes the mailbox-access blocker
+for that existing window and verifies these three paths for the connected
+account, not delivery to every colleague or a separate agent notification on
+ticket creation. No notification rule or production flow needed replacement.
+No additional ticket, reply or dispatch token was written during inbox inspection.
+The unwanted assignment email's source remains unidentified; Planner stays
+paused pending a scoped decision on its native assignment notifications.
+
 ### Superseded authentication blocker (11:43 follow-up)
 
 Planner synchronization remained paused; Power
