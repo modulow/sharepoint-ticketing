@@ -130,6 +130,18 @@ test('rich text uses approved conversion while the original field remains unchan
   assert.equal(f.source.description, '<p>Question &amp; details</p>');
 });
 
+test('email intake with initially empty Descriptif can copy on later finalization without reserving early', async () => {
+  const f = fixture();
+  f.source.description = '';
+  await assert.rejects(f.runner()(event), /Descriptif is empty/);
+  assert.equal(f.records.size, 0);
+  f.source.description = 'Finalized requester description';
+  await f.runner()(event);
+  await f.runner()(event);
+  assert.equal(f.posts(), 1);
+  assert.ok(f.comments[0].text.includes('Finalized requester description'));
+});
+
 test('complete native limit is measured including heading and marker; overflow never truncates', async () => {
   const f = fixture();
   const exactLength = `${HEADING}\n\n${f.source.description}\n\n[${keyFor(42)}]`.length;
