@@ -186,6 +186,50 @@ and [solution import](https://learn.microsoft.com/en-us/power-automate/import-fl
 procedures. The solution checker and export success do not replace runtime checks
 or prove compliance with the per-agent top-20 contract.
 
+## Existing-card refresh safeguards (2026-10-05)
+
+The user requested updating existing cards in place. Inspection of the exported live
+definition showed title-only matching and cleanup: the flow selected the first
+`[SP#<ID>]` task and deleted similarly titled tasks outside `DesiredPrefixes`.
+Neither establishes ownership sufficiently for destructive cleanup.
+
+An unmanaged solution update, version **1.0.0.12**, was prepared privately from the
+verified export, retaining the existing flow identity and all original update payloads.
+The existing-card branch now requires exactly one title candidate, reads its details,
+and requires an exact complete description line containing that ticket's SharePoint
+edit URL before updating it. CRLF and LF are supported; ticket ID 1 cannot match
+ticket ID 10. Duplicate candidates or an unverified source link are left untouched,
+with explicit `REFRESH_SKIPPED_DUPLICATE_MATCHES` or
+`REFRESH_SKIPPED_SOURCE_LINK_MISMATCH` diagnostic actions in run history.
+This positive correlation permits this bounded legacy refresh, not adoption for
+future deletion. It is not a durable integration-owned marker/state migration.
+
+The old deletion condition is now constant false. Automatic cleanup remains disabled
+until ownership, complete source pagination and actual assignment ranking are implemented.
+Cards outside the existing desired-ticket selection are retained, not deleted or
+claimed refreshed. Creation behavior is unchanged; this is not delete-and-recreate.
+Native priority and existing-card assignee synchronization remain unimplemented.
+
+The local package parsed successfully and passed seven source-link guard fixtures.
+The Planner flow was paused before import. Power Automate imported the solution with
+an activation warning; the imported definition was then verified in the designer,
+including its source guard and constant-false deletion token. The live flow checker
+reported zero errors and warnings. The protected flow was explicitly re-enabled,
+and Power Automate confirmed admission of a manual refresh run.
+
+The manual run at **10:13 local time** completed successfully in **1 minute
+24 seconds**. All **11 desired-ticket iterations** were independently checked in
+the run viewer: the native task update and task-details update succeeded, creation
+was skipped, and neither source-mismatch nor duplicate-match diagnostic was executed.
+The deletion action was observed skipped and its deployed constant-false condition
+prevents cleanup throughout this run. This confirms in-place connector writes to
+11 existing cards, not merely a saved configuration. No ticket content or identities
+were copied into the record. Native priority and reassignment were not part of these
+writes; cards outside this desired set are not claimed refreshed.
+The raw update package and original backup remain outside Git.
+The unchanged **Kiwi - Teams replies to requester** flow was checked after import
+and remains enabled; it was not manually run.
+
 ## Contract
 
 - `workflow-blueprint.json` defines the confirmed behavior and required tenant schema.
