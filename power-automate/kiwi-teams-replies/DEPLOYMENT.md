@@ -31,11 +31,13 @@ Requester questions entered directly in native comments already remain there.
 
 The test ticket's initial question and two distinct responses were copied
 manually into three separate native comments. The earlier consolidated
-history was superseded. Automatic copy was prepared in the live designer, but
-the save remained pending and persisted activation has not been verified.
-Do not treat the reference change or zero designer validation errors as a
-successful live deployment. Verify the saved action and an actual new comment
-before claiming automation is active.
+history was superseded. Automatic copy was added in the live designer using
+the existing SharePoint connection. Saving initially remained pending, then
+the designer confirmed the flow was ready to use. An actual automatically
+created comment has not yet been observed; do not treat the reference change,
+zero validation errors or save confirmation as end-to-end verification.
+Verify a new accepted public reply produces one comment before claiming that
+the automatic path works. Existing processed messages are not replayed.
 
 ## First-responder assignment ETag repair (2026-10-05)
 
