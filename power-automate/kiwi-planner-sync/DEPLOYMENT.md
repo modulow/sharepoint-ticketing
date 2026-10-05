@@ -6,6 +6,37 @@ importable Power Automate package** and contains no tenant connections, plan ID,
 IDs, list IDs for new state lists, or credentials. Create the flows and live resources
 only through the approved tenant process.
 
+## Live accessibility inspection (2026-10-05)
+
+Windows UI Automation can operate the user's authenticated Chrome through ordinary
+accessible controls; browser cookie/token extraction is neither needed nor permitted.
+This session inspected Power Automate and native SharePoint list settings read-only.
+No flow was saved/tested, no field was created, and no ticket/card was changed.
+
+An existing enabled **Kiwi - Sync SharePoint tickets to Planner** flow targets the
+**Kiwi Tickets** plan and runs every 15 minutes. This is a separate live implementation,
+not a deployment of the Node modules in this directory. Its observed configuration:
+
+- `Get items` orders by `Created desc` and requests 5,000 items. This does not establish
+  newest assignment-change ranking or complete pagination.
+- Create/update task actions map an `[SP#<ID>] <subject>` title and bucket, but no
+  native assignee option was configured in the inspected actions.
+- Both card details and source-edit references already use dynamic ticket fields,
+  rather than a constant generic description. Details include requester, assignee,
+  dates, source, description, requester reply and Teams reply/thread fields. This
+  inspection does not prove attachment/full exchange history completeness or successful
+  end-to-end execution.
+- Native `EuropaTickets` settings expose title, assignee, forwarded sender, description,
+  requester, sent date, requester reply, Teams/thread/source fields and system columns.
+  No status, priority, category, due-date or `PlannerAssignedAtUtc` columns were present.
+
+Do not populate missing source options with invented values or add new ticket workflow
+columns without an approved schema decision. Existing generic cards still require
+positive source-link correlation before migration; their title alone is not ownership
+proof. A connected browser now permits inspection and UI work, but does not make this
+existing flow conform to the approved assignment/history/ownership requirements.
+No private ticket content or tenant export was retained in this repository.
+
 ## Contract
 
 - `workflow-blueprint.json` defines the confirmed behavior and required tenant schema.
