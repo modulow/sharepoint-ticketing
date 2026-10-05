@@ -45,6 +45,7 @@ let dataLoading = !isDemo;
 let dataError = '';
 let signInRequired = false;
 let loadVersion = 0;
+let liveRequest;
 
 const saveTickets = () => {
   if (!isDemo) throw new Error('Live ticket changes must be made in authenticated SharePoint.');
@@ -358,10 +359,13 @@ function clearLiveTickets() {
 
 async function loadLiveTickets() {
   const version = ++loadVersion;
+  liveRequest?.abort();
+  const request = new AbortController();
+  liveRequest = request;
   clearLiveTickets();
   try {
     if (!window.KiwiTicketData) throw new Error('The protected ticket adapter is unavailable. No ticket data has been loaded.');
-    const result = await window.KiwiTicketData.load();
+    const result = await window.KiwiTicketData.load({ signal: request.signal });
     if (version !== loadVersion) return;
     tickets = result.tickets;
     signInRequired = result.signInRequired;
@@ -369,6 +373,7 @@ async function loadLiveTickets() {
     if (version === loadVersion) dataError = error instanceof Error ? error.message : 'Unable to load the protected ticket workspace.';
   } finally {
     if (version === loadVersion) {
+      liveRequest = undefined;
       dataLoading = false;
       render();
     }
@@ -384,6 +389,8 @@ if (!isDemo) {
   document.querySelector('#reset-demo').textContent = 'Refresh tickets';
   window.addEventListener('pagehide', () => {
     ++loadVersion;
+    liveRequest?.abort();
+    liveRequest = undefined;
     clearLiveTickets();
   });
   window.addEventListener('pageshow', event => {

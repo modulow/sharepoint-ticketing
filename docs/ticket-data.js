@@ -23,11 +23,14 @@
     });
   }
 
-  async function load() {
+  async function load({ signal } = {}) {
     if (!enabled) {
       throw new Error('Live tracking is not configured. Microsoft sign-in, agent authorization and an IT-approved protected API must be provisioned before tickets can appear here. Use the authenticated Kiwi queue in the meantime.');
     }
     const controller = new AbortController();
+    const cancel = () => controller.abort();
+    if (signal?.aborted) cancel();
+    else signal?.addEventListener('abort', cancel, { once: true });
     const timeout = window.setTimeout(() => controller.abort(), 15000);
     try {
       const response = await window.fetch(endpoint, {
@@ -55,12 +58,14 @@
       }
       return { signInRequired: false, tickets: validateTickets(await response.json()) };
     } catch (error) {
+      if (signal?.aborted) throw error;
       if (controller.signal.aborted) {
         throw new Error('The protected ticket service timed out. Retry to check your access again.');
       }
       throw error;
     } finally {
       window.clearTimeout(timeout);
+      signal?.removeEventListener('abort', cancel);
     }
   }
 

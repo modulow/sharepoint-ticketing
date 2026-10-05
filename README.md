@@ -234,7 +234,9 @@ is rejected. Successful responses must have JSON content type and
 `Cache-Control: private, no-store`; missing or public/shared-cache policy is rejected
 before parsing tickets. This browser check cannot prevent an upstream cache from
 storing a misconfigured response: server/CDN cache bypass remains mandatory.
-Requests time out after 15 seconds with an explicit retry message. Navigation away
+Requests time out after 15 seconds with an explicit retry message. Superseding
+refreshes and navigation away abort pending API requests as well as invalidating
+their results; cancellation is not reported as a timeout. Navigation away
 clears live ticket data/details and invalidates pending responses; back/forward-cache
 restoration rechecks access before rendering. Server authorization and logout/
 revocation checks are still required and are not implemented by these UI measures.

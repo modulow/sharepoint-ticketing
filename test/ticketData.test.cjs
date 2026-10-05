@@ -148,6 +148,22 @@ test('service timeout aborts the request and reports an actionable error', async
   assert.equal(cleared, 73);
 });
 
+test('caller cancellation aborts the API request without misreporting a timeout', async t => {
+  const p = page(t, { enabled: true });
+  let requestSignal;
+  p.window.fetch = (_url, options) => {
+    requestSignal = options.signal;
+    return new Promise((_resolve, reject) => {
+      requestSignal.addEventListener('abort', () => reject(new Error('Request cancelled')), { once: true });
+    });
+  };
+  const caller = new AbortController();
+  const rejected = assert.rejects(p.window.KiwiTicketData.load({ signal: caller.signal }), /Request cancelled/);
+  caller.abort();
+  await rejected;
+  assert.equal(requestSignal.aborted, true);
+});
+
 test('missing adapter fails closed with explicit status rather than exposing samples', async t => {
   const p = page(t);
   delete p.window.KiwiTicketData;
@@ -186,7 +202,11 @@ test('authorized fixture tickets keep filters/design, escape details, and disabl
 
 test('refresh removes prior details immediately and rejects stale responses', async t => {
   const pending = [];
-  const p = page(t, { loader: () => new Promise(resolve => pending.push(resolve)) });
+  const signals = [];
+  const p = page(t, { loader: ({ signal }) => {
+    signals.push(signal);
+    return new Promise(resolve => pending.push(resolve));
+  } });
   await start(p);
   pending[0]({ tickets: [fixture], signInRequired: false });
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -197,6 +217,7 @@ test('refresh removes prior details immediately and rejects stale responses', as
   assert.equal(p.document.querySelector('#dialog-body').textContent, '');
   assert.equal(p.document.querySelectorAll('.ticket-card').length, 0);
   p.document.querySelector('#reset-demo').click();
+  assert.equal(signals[1].aborted, true, 'a second refresh cancels the first refresh');
   pending[2]({ tickets: [], signInRequired: true });
   await new Promise(resolve => setTimeout(resolve, 0));
   pending[1]({ tickets: [fixture], signInRequired: false });
@@ -207,7 +228,11 @@ test('refresh removes prior details immediately and rejects stale responses', as
 
 test('browser history restoration clears ticket details and rechecks access before rendering', async t => {
   const pending = [];
-  const p = page(t, { loader: () => new Promise(resolve => pending.push(resolve)) });
+  const signals = [];
+  const p = page(t, { loader: ({ signal }) => {
+    signals.push(signal);
+    return new Promise(resolve => pending.push(resolve));
+  } });
   await start(p);
   pending[0]({ tickets: [fixture], signInRequired: false });
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -223,6 +248,7 @@ test('browser history restoration clears ticket details and rechecks access befo
   assert.equal(p.document.querySelector('#app h2').textContent, 'Loading tickets');
   // A response started before a second navigation must not restore ticket data.
   p.window.dispatchEvent(new p.window.PageTransitionEvent('pagehide', { persisted: true }));
+  assert.equal(signals[1].aborted, true, 'navigation cancels the pending restored-page request');
   pending[1]({ tickets: [fixture], signInRequired: false });
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(p.document.querySelectorAll('.ticket-card').length, 0);
