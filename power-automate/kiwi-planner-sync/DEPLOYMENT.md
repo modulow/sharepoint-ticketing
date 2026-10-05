@@ -278,6 +278,8 @@ mismatch diagnostics were skipped. This verifies convergence to the source snaps
 including its unassigned state, not a deliberately induced live A-to-B transfer.
 No source ticket was reassigned merely to fabricate that transition test; A-to-B
 remains fixture-covered rather than tenant-transition-tested.
+The live **Kiwi - Teams replies to requester** details page was also checked after
+the final import: status **Enabled**; the flow was not manually run.
 
 This update covers tickets in the existing desired-ticket selection.
 Cards outside that selection are not processed by this branch; clearing assignment
