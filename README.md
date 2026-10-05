@@ -188,7 +188,8 @@ conversion adapter. This does not import email replies or write `TicketExchanges
 
 The handler is not deployed, bundled into SPFx, or connected to a production trigger.
 See `power-automate/kiwi-initial-comment/DEPLOYMENT.md` for the dedicated ledger schema,
-creation-event hookup, cutoff, authentication, limit/conversion preflights and live
+native Power Automate creation/modification hookup (including finalized email
+descriptions), cutoff, authentication, limit/conversion preflights and live
 verification steps. Existing agent/email paths remain independent; Planner stays paused.
 
 ## Teams reply automation blueprint
