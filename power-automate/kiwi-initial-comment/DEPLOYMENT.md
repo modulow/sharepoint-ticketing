@@ -5,12 +5,13 @@
 The integrated reference is committed on the coordinator branch as `6760ef9`
 (with the preceding runtime and deployment commits). The live agent reply
 cadence was separately reduced to one minute and confirmed after a server reload.
-The initial-description copy is **not deployed or activated**. Native import
+The initial-description flow is **imported but not activated**. Native import
 offers a Dataverse solution or legacy package, not a raw workflow-definition JSON.
 The existing private solution export contains only the agent-reply and Planner
 resources; importing it does not install this new flow. Do not replace either
-existing resource with this definition. A genuine new cloud-flow resource,
-mapped connections and a restricted ledger must be provisioned before activation.
+existing resource with this definition. A distinct cloud-flow resource,
+mapped connections and a restricted ledger have now been provisioned; activation
+and runtime verification remain outstanding.
 The dedicated ledger `KiwiInitialCommentLedger` has now been created through the
 authenticated SharePoint UI, hidden from site navigation. Its GUID is
 `3a403104-e705-41ce-ba92-41b9ab527560`. Inheritance was stopped on this new list
@@ -20,7 +21,7 @@ uniqueness was enabled). State is single-line text. Payload was saved and its
 settings reopened: multiline text, plain text selected, append changes disabled.
 No ticket description has been written to the ledger or to comments.
 
-A private **unvalidated import candidate** was assembled from the genuine
+A private import package was assembled from the genuine
 unmanaged solution export, retaining only the required SharePoint/Content
 Conversion connection references and a new initial-comment workflow. Neither
 existing agent-reply nor Planner workflow is in that candidate. Its distinct
@@ -28,14 +29,18 @@ solution name is `KiwiInitialCommentAutomation`, version `1.0.0.1`, and workflow
 ID is `b198cfea-8f9c-47bd-859c-a1607bb2c25d`. It has inactive workflow metadata,
 the actual ledger GUID, cutoff 2099 and limit 0. The ZIP and connection metadata
 remain outside Git in the private session artifacts; they are not release assets.
-It has **not been imported or accepted by Power Automate**. The native Solutions
-page opened, but no usable solution-import action was exposed by the available
-UIAutomation controls; retries did not establish an import. This is a deployment
-control blocker, not evidence that the user's Chrome authentication expired.
+On 2026-10-05 the package was **successfully imported through native Chrome
+accessibility controls**. The solution importer recognized version `1.0.0.1` and
+showed valid existing SharePoint and Content Conversion connections. The advanced
+option to activate included flows was unchecked and confirmed Off before proceeding.
+The server displayed `La solution « Kiwi Initial Comment Automation » a été importée`.
+The new solution contains the distinct cloud flow
+`Kiwi - Descriptif initial dans les commentaires`; opening its actual hyperlink
+confirmed server status **Désactivé**. Platform import acceptance is not runtime
+verification; no new ticket or comment was created to test it.
 
-Remaining live work: import through the supported solution UI and resolve any
-platform validation errors, verify both mapped connections and ledger access for
-the executing identity, verify the flow remains off, set a current UTC cutoff
+Remaining live work: verify ledger access for the executing connection identity,
+set a current UTC cutoff
 and a verified comment limit or explicitly approved conservative local cap,
 then save/reload and enable the distinct flow. Observe a real new ticket and
 verify exact native comment plus Completed ledger entry before claiming runtime
