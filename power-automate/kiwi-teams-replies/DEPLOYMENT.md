@@ -13,7 +13,8 @@ field `R_x00e9_ponseaudemandeur`.
 ## Native comment copy (2026-10-05)
 
 The reference definition now appends one native SharePoint comment for each
-successfully dispatched public Teams reply. The heading is `Learn IT HelpDesk`;
+public Teams reply whose native-rule dispatch has been queued. This does not
+confirm email delivery. The heading is `Learn IT HelpDesk`;
 the text identifies the verified Teams author, contains the signed reply and
 includes the source Teams message ID. Comments are posted under the SharePoint
 connection account, not by impersonating the original author. No mentions are
@@ -33,11 +34,34 @@ The test ticket's initial question and two distinct responses were copied
 manually into three separate native comments. The earlier consolidated
 history was superseded. Automatic copy was added in the live designer using
 the existing SharePoint connection. Saving initially remained pending, then
-the designer confirmed the flow was ready to use. An actual automatically
+the designer confirmed the flow was ready to use. A fresh server details page
+confirmed the enabled flow was modified at 17:12 on 2026-10-05. A fresh native
+ticket form also confirmed exactly three individual history comments, with no
+consolidated duplicate. An actual automatically
 created comment has not yet been observed; do not treat the reference change,
 zero validation errors or save confirmation as end-to-end verification.
 Verify a new accepted public reply produces one comment before claiming that
 the automatic path works. Existing processed messages are not replayed.
+
+At the subsequent verification, public replies were still blocked by unresolved
+native-rule exchanges. Outlook Web requested sign-in, so delivery could not be
+verified. No exchange was falsely confirmed or reset, and no additional public
+test reply was sent: that would either fail the existing guard or risk an
+unnecessary email. Runtime comment-copy verification remains blocked until
+delivery of the prior dispatch is confirmed and a new eligible reply is accepted.
+
+## Ticket title prefix status (2026-10-05)
+
+All six existing tickets (IDs 10-15) were updated through title-only
+inline saves to `Learn IT Helpdesk - <original subject>`. Each native form
+confirmed the new title. A subsequent fresh SharePoint read enumerated all six
+items, verified every prefix and checked there was no continuation page.
+Response and dispatch fields were not edited.
+This is an existing-ticket migration, not automatic enforcement for future
+items. Repository normalization is tracked separately in PR #7. Native Lists
+creation and email intake still need an automatic normalization path before
+their Teams/Planner projections. Do not enable a restrictive list validation
+rule alone: it would reject existing intake flows that submit bare subjects.
 
 ## First-responder assignment ETag repair (2026-10-05)
 
