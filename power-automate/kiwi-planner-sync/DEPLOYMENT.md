@@ -317,6 +317,51 @@ manual execution.
 
 ## Contract
 
+### Live assignment-history reader preflight (2026-10-05)
+
+The user authorized continuing the live connection work. A minimal read-only
+browser request for source IDs/person lookup IDs confirmed **12 tickets, zero
+currently assigned tickets, and no next page** at inspection time. No ticket
+was assigned solely to fabricate a ranking/transfer test. A version request for
+one unassigned ticket confirmed an initial version and an explicit null person
+field, rather than inferring unassignment from missing response fields.
+
+Private unmanaged **1.0.0.16** adds a native SharePoint `HttpRequest` **GET**
+history-reader stage to the existing cloud flow, using the already approved
+SharePoint connection. It requests only VersionId, VersionLabel, Created and
+the responsible-person field, not ticket bodies/messages. Raw HTTP inputs/outputs
+are secured. Content-free diagnostics contain ticket ID, version count/labels
+and field-presence/null booleans, never responsible-person values. Reads are serial.
+The preflight rejects empty/unsupported collections or a continuation link before
+the existing bucket/task refresh; connector errors also block downstream writes.
+Run concurrency is one.
+
+The import completed with an activation warning. A freshly reloaded live designer
+reported **zero errors and zero warnings**. No timestamp field, source ticket write,
+new connection, state list, priority write or deletion was added. The current
+selection algorithm is deliberately unchanged in this diagnostic stage.
+Package SHA-256:
+`54A32384B96D3EC08717B9DAE1A52A5C903DBC413E80D61AC11D5747336B9D5A`.
+
+The flow was explicitly re-enabled and a manual run started at **11:32 local
+time**. All **12 history-loop iterations** were checked: version GET, schema
+projection and content-free read diagnostics succeeded; the incomplete-history
+diagnostic was skipped. All **12 ticket-refresh iterations** also retained
+successful task/details updates and verified native assignment readbacks;
+creation and correlation/assignment mismatch diagnostics were skipped.
+Comparison against 1.0.0.15 confirmed existing Planner action behavior unchanged
+apart from the new preflight dependency and serial-run configuration.
+The unchanged Teams reply flow was checked after this import: still enabled,
+without manual execution.
+
+This is a live history-reader integration, **not activation of exact last-20
+ranking**. The assigned-person history shape still needs positive validation,
+because all current source tickets are unassigned. Numeric SharePoint lookup IDs
+must be reconciled with the current source/Entra identity and version before the
+proven boundary is fed into stable per-agent ranking. Existing display-name bucket
+mapping and complete source paging also remain activation gates. The deletion
+guard stays false; existing out-of-selection cards are not pruned.
+
 ### Assignment-history recovery module
 
 `assignment-history.cjs` provides `recoverAssignmentTime(ticket, history)` and
