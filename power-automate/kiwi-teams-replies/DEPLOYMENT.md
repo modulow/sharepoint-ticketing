@@ -10,6 +10,46 @@ The flow does not modify the active intake flow
 `dada6a44-429e-4d4e-95c0-f2bf5c87e033`, send Outlook/SMTP mail, or write the direct-reply
 field `R_x00e9_ponseaudemandeur`.
 
+## First-responder assignment ETag repair (2026-10-05)
+
+A public reply was recognized and recorded as `Processing`, but the initial
+assignment failed with HTTP 412 before response staging or dispatch. The
+assignment snapshot requested `odata=nometadata`, which omitted the ETag, while
+the write expected the Graph-style `@odata.etag` property. Later successful
+scheduled runs deduplicated the existing exchange; they did not recover it.
+
+The assignment snapshot now requests `odata=minimalmetadata`. Its guarded
+`IF-MATCH` uses SharePoint's `odata.etag`, with `@odata.etag` as an alternate
+metadata representation. No wildcard ETag or unconditional assignment is used.
+The two corresponding live designer inputs were updated and saved; the
+repository contract test covers both the response format and ETag expression.
+
+For recovery, verify that the failed action precedes `Stage_ticket_reply` and
+`Commit_dispatch_token_only`, and that the ticket's reply fields and dispatch
+token remain empty. Only then mark that exact incomplete exchange
+`FailedTerminal`, preserving its message and unique source ID. An explicitly
+authorized new copy in the mapped ticket thread receives a new message ID and
+passes normal authorization, deduplication and dispatch checks. Never mark a
+failed assignment `AgentConfirmed`, clear unrelated pending exchanges, or
+replay a message whose dispatch might already have occurred.
+
+The visible list title is now **Learn-IT-Tickets**. Its original
+`Lists/EuropaTickets` address and list GUID are unchanged. Replies under the
+forwarded email root are distinct from replies under the mapped Workflows
+ticket root; only the latter are currently monitored.
+
+Live recovery verification: the test ticket's first responder was assigned,
+its signed `TeamsReplyText` and responding-agent field were staged, and a
+nonempty dispatch token was committed. The new exchange reached
+`AwaitingNativeRule`. The connected Outlook mailbox then showed both the
+requester reply and the responding-agent confirmation at 15:41, with the
+response and assigned-agent signature present. Only that verified exchange
+was manually marked `AgentConfirmed`; both pre-dispatch failed attempts remain
+`FailedTerminal`. This is direct inbox evidence for the connected test account,
+not a delivery guarantee for other recipients or automatic acknowledgement
+of future native-rule sends. The generated subject still used `EuropaTickets`
+in these received messages despite the visible list rename.
+
 ## Live notification presentation (2026-10-05)
 
 All five existing native list rules were updated in place through the authenticated
@@ -38,7 +78,8 @@ assigned-agent signature identifies the ticket owner, who may be different.
 
 Native rules expose only custom body text, not a configurable email subject or
 the standard SharePoint change-summary header. Their generated
-`<ticket title> was updated in EuropaTickets` subject remains unchanged.
+`<ticket title> was updated in <list title>` subject is not independently
+customizable; the list title is now `Learn-IT-Tickets`.
 Replacing it requires a separately configured mail-capable flow/connection and
 a guarded cutover to avoid duplicate sends; no such connection was created here.
 No notification was replayed during this presentation update. Previous inbox

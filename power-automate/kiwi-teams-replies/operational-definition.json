@@ -489,7 +489,7 @@
                                       "parameters/method": "GET",
                                       "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',items('For_each_ticket')?['Id'],')?$select=Id,Assigned_x0020_toId')",
                                       "parameters/headers": {
-                                        "Accept": "application/json;odata=nometadata"
+                                        "Accept": "application/json;odata=minimalmetadata"
                                       }
                                     },
                                     "host": {
@@ -519,7 +519,7 @@
                                           "parameters/headers": {
                                             "Accept": "application/json;odata=nometadata",
                                             "Content-Type": "application/json;odata=nometadata",
-                                            "IF-MATCH": "@body('Re_read_assignment_before_stage')?['@odata.etag']",
+                                            "IF-MATCH": "@coalesce(body('Re_read_assignment_before_stage')?['odata.etag'],body('Re_read_assignment_before_stage')?['@odata.etag'])",
                                             "X-HTTP-Method": "MERGE"
                                           },
                                           "parameters/body": "@json(concat('{\"Assigned_x0020_toId\":',string(int(body('Ensure_SharePoint_author')?['Id'])),'}'))"

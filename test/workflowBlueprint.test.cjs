@@ -333,6 +333,10 @@ test('first responder assignment preserves existing or concurrent assignees', ()
     /\$select=Id,Assigned_x0020_toId/
   );
   const unassigned = actionNamed('Ticket_is_unassigned');
+  assert.equal(
+    reread.inputs.parameters['parameters/headers'].Accept,
+    'application/json;odata=minimalmetadata'
+  );
   assert.match(unassigned.expression, /Assigned_x0020_toId/);
   assert.match(unassigned.expression, /equals\(int\(coalesce/);
 
@@ -341,7 +345,7 @@ test('first responder assignment preserves existing or concurrent assignees', ()
   assert.equal(assign.inputs.parameters['parameters/method'], 'POST');
   assert.equal(
     assign.inputs.parameters['parameters/headers']['IF-MATCH'],
-    "@body('Re_read_assignment_before_stage')?['@odata.etag']"
+    "@coalesce(body('Re_read_assignment_before_stage')?['odata.etag'],body('Re_read_assignment_before_stage')?['@odata.etag'])"
   );
   assert.equal(
     assign.inputs.parameters['parameters/headers']['X-HTTP-Method'],
