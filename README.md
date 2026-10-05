@@ -1,9 +1,13 @@
 # Support IT Ticketing for SharePoint Online
 
-**Live interactive demo:** https://modulow.github.io/sharepoint-ticketing/
+**Ticketing route:** https://ep.europa.kiwi/sharepoint-ticketing/
 
-The GitHub Pages demo uses sample data stored only in the visitor's browser. It does not
-connect to SharePoint or expose tenant data. for SharePoint Online
+The `docs/` UI now defaults to an agent-only live-tracking landing state, **not a
+working live integration**. Its same-origin adapter is disabled until an approved
+authentication/API service exists; it shows an explicit unavailable message and
+links to the native authenticated Kiwi lists. The isolated browser-only demonstration
+is available with `?demo=1`. No private tickets, credentials or tenant tokens are
+included in the static assets.
 
 Responsive SPFx ticket portal integrated with the Kiwi service at
 `https://europarl.sharepoint.com/sites/learn.IT-Kiwi`. The visual system follows the European Parliament Brand Book 2.0 guidance applicable to digital interfaces: Reflex Blue `#0C4DA2`, Yellow `#FDE021`, official neutral colours, purposeful dialogue-line elements, clear typographic hierarchy, simple geometry, restrained motion, and accessible contrast.
@@ -81,27 +85,44 @@ disabled while an agent save is in progress.
 
 ### Europa portal landing page
 
-`https://ep.europa.kiwi/sharepoint-ticketing/` currently serves the static `docs/`
-browser-only demonstration, **not** the authenticated SharePoint web part. Its existing
-**Create a ticket** buttons now open the real Kiwi intake popup directly. **Try sample
-form** opens an explicitly labelled local-only modal; ticket lists and agent management
-remain sample data and do not read private SharePoint data. Real intake goes through the
-existing SharePoint/Teams automation; this UI does not send Teams replies or modify flows.
+As inspected on 4 October 2026, `https://ep.europa.kiwi/sharepoint-ticketing/` serves
+an older static demonstration, **not** the authenticated SharePoint web part.
+GitHub's Pages API reports source branch `modulow-support-it-ticketing`, directory
+`/docs`; merging changes to `main` does not update that configured source.
+The published HTML loads `secure-popup.js`, whereas current main integrates popup
+behavior into `app.js`. No publishing configuration has been changed.
 
-The Europa portal's link is maintained in a separate repository. It should open the above
-ticketing URL in the same tab, not navigate directly to the Lists form. Publish the updated
-`docs/` assets to the hosting pipeline serving that route. To provide authenticated live
-ticket tracking/agent management, deploy the SPFx package to the existing Kiwi SharePoint
-page and point the portal at that page; the public static demo cannot supply those features
-without a separately approved authenticated architecture. No portal/tenant changes,
-live writes, flow toggles or live reply tests are performed by this repository change.
+The published **All tickets** control itself works: DOM interaction with the served
+assets renders six samples, two in the resolved filter, one selected ticket, then all
+six again when All tickets is clicked. The product gap is that these are samples, not
+the user's submitted SharePoint requests. Regression coverage also fixes sample
+submission retaining a previous filter, and agent rows incorrectly receiving the
+array index as the `opensList` argument or losing their handlers after rerenders.
+
+The new `docs/` default removes sample data from the normal workspace. It retains
+the existing stylesheet, hero, navigation, dashboard cards, ticket grids and agent
+layout, but displays live-loading/sign-in/denial/unavailable states instead of
+inventing tickets. Once an approved service is connected, ticket filters and read-only
+detail views operate on its responses held in memory, not browser storage.
+Live agent edits and attachment access remain in the native SharePoint queue.
+**Create a ticket** still opens the existing Microsoft Lists form directly.
+`?demo=1` explicitly selects the separate browser-only sample workspace, local sample
+form and local editing; it never calls the protected API. It is not an authorization
+switch for the server.
+
+The Europa portal's link is maintained in a separate repository. A same-design external
+live workspace requires the approved architecture below, not just static publication.
+The Microsoft-only alternative is deploying the SPFx package to the existing Kiwi
+SharePoint page and pointing the portal there. Any publication/deployment remains a
+separate authorized action. No portal/tenant changes, live writes, flow toggles or live
+reply tests are performed by this repository change.
 
 The portal deep link `?action=create` immediately renders the **Create a ticket** landing
 view with the secure native intake link. Arrival itself does not attempt a popup; Microsoft
 authentication opens only after an explicit click. Ordinary creation buttons still open
 intake directly without replacing the current dashboard or list.
 
-The static queue and sample agent workspace also expose **Open Kiwi agent queue** and
+The queue, unavailable state and agent workspace expose **Open Kiwi agent queue** and
 **Open reply exchanges** links to the real `EuropaTickets` and `TicketExchanges` lists.
 Intake and these live tools reuse the named `kiwi-ticket-form` popup where the retained
 window handle permits it; the same destination only refocuses it. Switching destinations
@@ -115,6 +136,136 @@ links without copying its stale baseline. Its automatic view replacement after o
 creation clicks, mixed live/sample creation form, and post-navigation opener clearing
 are intentionally not retained: the current UI preserves its landing view, separates
 sample submission, and clears the opener before initial authenticated navigation.
+
+### Cloudflare-first live tracking: approval and provisioning required
+
+**Implemented:** a disabled, strict same-origin browser adapter in
+`docs/ticket-data.js`, live-mode UI states and mock/fixture tests.
+**Not implemented or provisioned:** an OAuth service, Worker, Access application,
+Entra registration, ticket API, cloud secrets, permission grants or production
+publication. Turning on the adapter alone cannot provide authentication or data.
+
+The portal repository `modulow/modulow.github.io` currently documents static GitHub
+Pages hosting with a custom domain and native SharePoint ticket links. Its
+`backend/README.md` records that **Kiwi - Published content API** was blocked by
+institutional DLP; the Worker, Wrangler configuration and runtime flow URL were
+removed. The approved replacement exports only public content to a SharePoint file
+for human review and manual publication. That flow is not a ticket API. Neither this
+repository nor the current portal configuration establishes an active Cloudflare
+Pages project, Worker route, Access application/policy, bindings or deployed secrets.
+Cloudflare availability reported by the owner is not proof those components exist.
+No Cloudflare account configuration was inspected or mutated here.
+
+A possible approved target, preserving the UI, is:
+
+```text
+Browser -> Cloudflare-hosted /sharepoint-ticketing/ static UI
+        -> same-origin /sharepoint-ticketing/auth/* Microsoft sign-in service
+        -> same-origin /sharepoint-ticketing/api/tickets protected Worker
+           -> server-verified Entra identity + learn.IT group membership
+           -> delegated Graph/SharePoint reads under that user's permissions
+```
+
+This **must not be used to bypass DLP**. A delegated OAuth API differs technically
+from the abandoned Power Automate HTTP flow, but still processes institutional
+ticket/people data on Cloudflare infrastructure. Cloudflare Access and Worker Secrets
+do not authorize that transfer. Obtain explicit institutional IT/security approval
+for that data path, retention, residency and processor configuration before building
+or enabling the service. If it is not approved, keep data in Microsoft 365 and use
+the authenticated SPFx/native SharePoint page; an identical external live UI cannot
+be promised under that constraint.
+
+Provisioning gates for an approved Cloudflare path:
+
+1. Confirm the Cloudflare account/project, approved zone and host, ownership of the
+   existing route, and how it coexists with the current GitHub Pages site. Select
+   Pages Functions or a same-origin Worker; do not assume either exists. Serve all
+   auth/API paths on the same HTTPS origin. Disable or equivalently protect alternate
+   Pages preview domains and `workers.dev` entry points.
+2. Obtain tenant approval for a **single-tenant Microsoft Entra** registration and
+   exact HTTPS callback/logout URIs. Build server-side authorization-code sign-in
+   with PKCE, state/nonce checks, issuer/tenant/audience validation, and Secure,
+   HttpOnly, appropriately SameSite session cookies. OAuth credentials and delegated
+   tokens stay server-side in approved secret/session storage, never in static
+   source, browser storage, public content exports or logs. CSRF protection is
+   required for any later write API; this adapter only reads.
+3. Have administrators approve the least-privilege delegated Graph/SharePoint
+   permissions needed to resolve the current user's transitive membership and read
+   the Kiwi list/field metadata. Evaluate resource-scoped permissions supported by
+   the chosen API; do not substitute broad app-only access for a user who cannot
+   read the list. Conditional Access and SharePoint permission denials must remain
+   effective.
+4. On **every API request**, verify the authenticated institutional identity and
+   transitive membership of learn.IT group
+   `435074fb-2e8d-4c67-b06a-0359ddc5a939` server-side. Never trust a client-supplied
+   agent flag, arbitrary email domain, query parameter, decoded-but-unverified JWT
+   or incomplete group claim. Group overage/lookup failure fails closed. Verify
+   that each authorized member has full-ticket read permissions on `EuropaTickets`
+   (`f673fe2d-9733-46dd-9afe-4bf614c99202`) and that nonmembers/guests cannot bypass
+   the gate by direct API calls. The user's group-access requirement is a desired
+   policy, not proof of current effective SharePoint permissions.
+5. If Cloudflare Access is used as an additional perimeter, configure the Entra
+   identity provider and agent policy for both UI and API; verify its signed
+   assertions and protect direct origins. Access sign-in is **not** a delegated
+   Graph token and cannot replace the Microsoft OAuth/list authorization checks.
+6. Implement the ticket adapter against real list metadata, reusing the existing
+   `TicketSchema` field resolution behavior (Title/Titre, Descriptif, Demandeur0,
+   optional assignment/status/priority/due-date/response fields). Follow pagination
+   fully or fail explicitly; never silently return a partial queue. Preserve actual
+   values rather than substituting sample agents or statuses. Return only the
+   permitted ticket fields and do not proxy arbitrary URLs.
+7. Return `401` JSON for no session, `403` JSON for unauthorized agents or denied
+   SharePoint access, and explicit errors for upstream/configuration failures.
+   Ticket responses require `Cache-Control: private, no-store`, CDN cache bypass,
+   JSON content type, no wildcard credentialed CORS, and no sensitive request/
+   response logging or static snapshots. Recheck revocation and logout behavior.
+8. Test real approved identities: authorized group member, nonmember, guest,
+   expired/revoked session and direct API access. Verify no token/data enters
+   caches/storage/logs, pagination and complete ticket projections, and existing
+   intake/attachment/Teams behavior. Only then enable the adapter's `enabled`
+   constant and explicitly publish the approved route/assets. Neither merging this
+   PR nor switching the constant provisions a backend.
+
+The UI contract is `GET ./api/tickets` relative to `/sharepoint-ticketing/`, with
+same-origin cookies and no browser bearer tokens. `./auth/login` is a **reserved
+future service route**, not an existing or simulated login endpoint. It is only
+shown after the enabled service returns 401. Redirecting API fetches to HTML sign-in
+is rejected. Successful responses must have JSON content type and
+`Cache-Control: private, no-store`; missing or public/shared-cache policy is rejected
+before parsing tickets. This browser check cannot prevent an upstream cache from
+storing a misconfigured response: server/CDN cache bypass remains mandatory.
+Requests time out after 15 seconds with an explicit retry message. Superseding
+refreshes and navigation away abort pending API requests as well as invalidating
+their results; cancellation is not reported as a timeout. Navigation away
+clears live ticket data/details and invalidates pending responses; back/forward-cache
+restoration rechecks access before rendering. Server authorization and logout/
+revocation checks are still required and are not implemented by these UI measures.
+Responses use `{ "schemaVersion": 1, "tickets": [...] }`, where each
+ticket has a unique positive integer `id`, nonnegative integer `attachmentCount`,
+and string fields `subject`, `description`, `category`, `priority`, `status`,
+`requester`, `assignee`, `modified`, `due`, `resolution`. Empty optional strings
+represent unset fields. Unknown properties are discarded, malformed data is rejected
+as a whole, and no sample fallback occurs. The projection includes native response
+notes and attachment counts; opening attachment contents remains an authenticated
+native SharePoint operation. Fixture tests do not establish any live authorization.
+
+Read-only Windows accessibility inspection on 5 October 2026, reported by the
+browser-owning Planner session, confirmed that the signed-in account can access the
+native EuropaTickets list. Its column settings include Titre, Assigned to,
+Descriptif, Demandeur, Date/heure d'envoi, Réponse au demandeur, transfer/Teams
+fields and system columns. At that initial inspection there were **no category,
+priority, status or due-date columns**. Subsequently, on the user's explicit
+authorization, the Planner session created and verified optional `Status`,
+`Priority`, `Category` and `DueDate` (date/time) columns through authenticated Windows
+accessibility. Their current display labels are **Status**, **Priority**, **Category**
+and **Due date**; internal names remain unchanged. The choice sets match the
+existing repository workflow values. No defaults or existing-item backfill were
+applied, so older tickets can still have empty values.
+The future API must not manufacture missing optional values from the fixtures:
+missing fields use empty strings and must be presented as unavailable, not as
+verified workflow states. This PR itself did not add list columns. This inspection
+confirms browser UI control and one account's native list access, not all agents'
+permissions, an external OAuth/API connection or Cloudflare data-processing approval.
 
 The assignment selector expands transitive user members of the real learn.IT Microsoft
 365 group through Microsoft Graph, then calls SharePoint `ensureuser` so updates use the

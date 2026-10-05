@@ -26,7 +26,7 @@ const makePopup = () => {
 
 function staticPage(t, popup, search = '') {
   const dom = new JSDOM(fs.readFileSync(path.join(root, 'docs', 'index.html'), 'utf8'), {
-    url: `https://example.test/sharepoint-ticketing/${search}`,
+    url: `https://example.test/sharepoint-ticketing/${search}${search ? '&' : '?'}demo=1`,
     runScripts: 'outside-only'
   });
   t.after(() => dom.window.close());
@@ -146,6 +146,59 @@ test('unknown action keeps dashboard landing', t => {
   assert.equal(page.calls.length, 0);
 });
 
+test('All tickets clears every dashboard filter and selected-ticket state', t => {
+  const page = staticPage(t, null);
+  const counts = { open: 4, waiting: 1, resolved: 2, critical: 2 };
+  for (const [filter, count] of Object.entries(counts)) {
+    page.document.querySelector('[data-view="dashboard"]').click();
+    page.document.querySelector(`[data-ticket-filter="${filter}"]`).click();
+    assert.equal(page.document.querySelectorAll('.ticket-card').length, count);
+    page.document.querySelector('[data-view="tickets"]').click();
+    assert.equal(page.document.querySelector('#app h2').textContent, 'All demo tickets');
+    assert.equal(page.document.querySelectorAll('.ticket-card').length, 6);
+  }
+  page.document.querySelector('[data-view="dashboard"]').click();
+  page.document.querySelector('[data-ticket-list="1041"]').click();
+  assert.equal(page.document.querySelectorAll('.ticket-card').length, 1);
+  page.document.querySelector('[data-ticket-filter="all"]').click();
+  assert.equal(page.document.querySelectorAll('.ticket-card').length, 6);
+  page.document.querySelector('[data-view="dashboard"]').click();
+  page.document.querySelector('[data-go="tickets"]').click();
+  assert.equal(page.document.querySelectorAll('.ticket-card').length, 6);
+  assert.equal(page.calls.length, 0);
+});
+
+test('sample submission from a resolved filter displays the new ticket rather than a stale filter', t => {
+  const page = staticPage(t, null);
+  page.document.querySelector('[data-ticket-filter="resolved"]').click();
+  page.document.querySelector('[data-demo-create]').click();
+  const form = page.document.querySelector('#ticket-form');
+  form.elements.subject.value = 'New sample request';
+  form.elements.description.value = 'Only stored in this browser';
+  form.dispatchEvent(new page.window.Event('submit', { bubbles: true, cancelable: true }));
+  assert.equal(page.document.querySelector('#app h2').textContent, 'All demo tickets');
+  assert.equal(page.document.querySelectorAll('.ticket-card').length, 7);
+  assert.match(page.document.querySelector('.ticket-card').textContent, /New sample request/);
+});
+
+test('management rows retain selection handlers after agent filters and sample saves', t => {
+  const page = staticPage(t, null);
+  page.document.querySelector('[data-view="management"]').click();
+  assert.equal(page.document.querySelectorAll('.queue [data-ticket]').length, 6);
+  assert.equal(page.document.querySelectorAll('.queue [data-ticket-list]').length, 0);
+  page.document.querySelector('[data-ticket="1041"]').click();
+  assert.match(page.document.querySelector('.editor').textContent, /Access to finance workspace/);
+  page.document.querySelector('[data-agent="Demo agent 2"]').click();
+  assert.equal(page.document.querySelectorAll('.queue [data-ticket]').length, 1);
+  page.document.querySelector('[data-agent="all"]').click();
+  page.document.querySelector('[data-ticket="1040"]').click();
+  assert.match(page.document.querySelector('.editor').textContent, /Laptop does not start/);
+  const form = page.document.querySelector('#management-form');
+  form.dispatchEvent(new page.window.Event('submit', { bubbles: true, cancelable: true }));
+  page.document.querySelector('[data-ticket="1039"]').click();
+  assert.match(page.document.querySelector('.editor').textContent, /Recover deleted OneDrive files/);
+});
+
 test('queue and exchanges reuse native intake window across demo queue and agent rerenders', t => {
   const popup = makePopup();
   const page = staticPage(t, popup);
@@ -248,6 +301,12 @@ test('SharePoint UI preserves landing view, refreshes on popup closure, and open
   };
   await act(async () => { ReactDOM.render(React.createElement(SupportIt, { service, userDisplayName: 'Sample user' }), container); });
   const document = dom.window.document;
+  const allTickets = [...document.querySelectorAll('nav button')].find(button => button.textContent === 'All tickets');
+  await act(async () => { allTickets.click(); });
+  assert.equal(document.querySelector('#tickets-title').textContent, 'All tickets');
+  assert.equal(document.querySelectorAll('[aria-label^="Open ticket "]').length, 1);
+  assert.equal(allTickets.getAttribute('aria-current'), 'page');
+  await act(async () => { document.querySelector('nav button').click(); });
   const create = [...document.querySelectorAll('nav button')].find(button => button.textContent === 'Create a ticket');
   act(() => { create.click(); });
   assert.ok(document.querySelector('#summary-title'), 'dashboard remains mounted');

@@ -33,15 +33,24 @@ const kiwiTicketExchangeListUrl = 'https://europarl.sharepoint.com/sites/learn.I
 const app = document.querySelector('#app');
 const dialog = document.querySelector('#ticket-dialog');
 const dialogBody = document.querySelector('#dialog-body');
+const isDemo = new URLSearchParams(window.location.search).get('demo') === '1';
 let intakePopup;
 let popupUrl;
-let tickets = JSON.parse(localStorage.getItem('support-it-demo') || 'null') || structuredClone(seedTickets);
+let tickets = isDemo ? JSON.parse(localStorage.getItem('support-it-demo') || 'null') || structuredClone(seedTickets) : [];
 let view = new URLSearchParams(window.location.search).get('action') === 'create' ? 'create' : 'dashboard';
 let selectedId = tickets[0]?.id;
 let agentFilter = 'all';
 let ticketFilter = 'all';
+let dataLoading = !isDemo;
+let dataError = '';
+let signInRequired = false;
+let loadVersion = 0;
+let liveRequest;
 
-const saveTickets = () => localStorage.setItem('support-it-demo', JSON.stringify(tickets));
+const saveTickets = () => {
+  if (!isDemo) throw new Error('Live ticket changes must be made in authenticated SharePoint.');
+  localStorage.setItem('support-it-demo', JSON.stringify(tickets));
+};
 const openTickets = () => tickets.filter(ticket => !['Resolved', 'Closed'].includes(ticket.status));
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;',
@@ -55,7 +64,7 @@ const badge = ticket => `<span class="badge ${ticket.priority === 'Critical' ? '
 function showLiveToolStatus(label) {
   const status = document.querySelector('#intake-status');
   status.hidden = false;
-  status.textContent = `The ${label} is open in a small window. Live actions require your Microsoft account and existing SharePoint permissions. The tickets shown on this page remain browser-only samples.`;
+  status.textContent = `The ${label} is open in a small window. Live actions require your Microsoft account and existing SharePoint permissions.${isDemo ? ' The tickets shown on this page remain browser-only samples.' : ' Refresh the workspace after completing your changes in SharePoint.'}`;
 }
 
 function openLiveTool(url = kiwiIntakeFormUrl, label = 'secure Kiwi form') {
@@ -77,7 +86,7 @@ function openLiveTool(url = kiwiIntakeFormUrl, label = 'secure Kiwi form') {
     showLiveToolStatus(label);
   } else {
     document.querySelector('#dialog-title').textContent = 'Kiwi window blocked';
-    dialogBody.innerHTML = `<p role="alert">Your browser blocked the popup. Allow popups for this site and try again, or use the secure link below.</p><p>This live SharePoint tool requires your Microsoft account and existing permissions. Your ticketing page stays open; sample tickets on this public page are not connected to SharePoint.</p><div class="actions"><button id="retry-popup" class="secondary" type="button">Try popup again</button><a class="primary live-form-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">Open ${escapeHtml(label)}</a></div>`;
+    dialogBody.innerHTML = `<p role="alert">Your browser blocked the popup. Allow popups for this site and try again, or use the secure link below.</p><p>This live SharePoint tool requires your Microsoft account and existing permissions. Your ticketing page stays open.${isDemo ? ' Sample tickets on this public page are not connected to SharePoint.' : ''}</p><div class="actions"><button id="retry-popup" class="secondary" type="button">Try popup again</button><a class="primary live-form-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">Open ${escapeHtml(label)}</a></div>`;
     dialog.showModal();
     document.querySelector('#retry-popup').addEventListener('click', () => {
       dialog.close();
@@ -91,7 +100,7 @@ function liveToolLinks() {
 }
 
 function renderCreateLanding() {
-  app.innerHTML = `<section class="form-panel"><span class="eyebrow">Kiwi intake</span><h2>Create a ticket</h2><p>The official Microsoft Lists form supports attachments and the existing Kiwi SharePoint/Teams workflow. Sign in with your Microsoft account in the popup; this public page does not read private tenant data.</p><p><a class="primary live-form-link" data-live-tool="secure Kiwi form" href="${kiwiIntakeFormUrl}" target="_blank" rel="noreferrer">Open the secure Kiwi form ↗</a></p><p>Submit in the native form before closing it. Switching between live tools reuses the window and may discard unsaved form changes.</p><button class="secondary" data-sample-form type="button" aria-haspopup="dialog">Try sample form (browser only)</button></section>`;
+  app.innerHTML = `<section class="form-panel"><span class="eyebrow">Kiwi intake</span><h2>Create a ticket</h2><p>The official Microsoft Lists form supports attachments and the existing Kiwi SharePoint/Teams workflow. Sign in with your Microsoft account in the popup.${isDemo ? ' This demonstration does not read private tenant data.' : ' Ticket tracking requires separately authorized agent access.'}</p><p><a class="primary live-form-link" data-live-tool="secure Kiwi form" href="${kiwiIntakeFormUrl}" target="_blank" rel="noreferrer">Open the secure Kiwi form ↗</a></p><p>Submit in the native form before closing it. Switching between live tools reuses the window and may discard unsaved form changes.</p>${isDemo ? '<button class="secondary" data-sample-form type="button" aria-haspopup="dialog">Try sample form (browser only)</button>' : ''}</section>`;
 }
 
 function renderDashboard() {
@@ -111,7 +120,7 @@ function renderDashboard() {
     </section>
     <section class="panel"><div class="section-heading"><div><span class="eyebrow">Recent activity</span><h2>Latest tickets</h2></div><button class="primary" data-go="tickets">View all</button></div><div class="recent-list">${tickets.slice(0, 4).map(ticket => ticketRow(ticket, true)).join('')}</div></section>
     <section class="panel"><div class="section-heading"><div><span class="eyebrow">Self-service</span><h2>Useful resources</h2></div></div><div class="resource-grid">${resources.map(resource => `<a class="resource-card" href="${resource[3]}" target="_blank" rel="noreferrer"><span>${resource[0]}</span><strong>${resource[1]} ↗</strong><p>${resource[2]}</p></a>`).join('')}</div></section>
-    <section class="panel faq"><div class="section-heading"><div><span class="eyebrow">Good to know</span><h2>Frequently asked questions</h2></div></div>${faqs.map(item => `<details><summary>${item[0]}</summary><p>${item[1]}</p></details>`).join('')}</section>`;
+    <section class="panel faq"><div class="section-heading"><div><span class="eyebrow">Good to know</span><h2>Frequently asked questions</h2></div></div>${faqs.map(item => `<details><summary>${item[0]}</summary><p>${!isDemo && item[0] === 'Can I follow the progress of my request?' ? 'Authorized learn.IT support agents can track requests in All tickets. Other requesters use the native Kiwi form and existing SharePoint communications.' : item[1]}</p></details>`).join('')}</section>`;
 }
 
 function ticketRow(ticket, opensList = false) {
@@ -120,6 +129,7 @@ function ticketRow(ticket, opensList = false) {
 }
 
 function renderCreate() {
+  if (!isDemo) return;
   document.querySelector('#dialog-title').textContent = 'Try the sample workflow';
   dialogBody.innerHTML = `<section><span class="eyebrow">Browser-only demo</span><p>This sample form stores data only in this browser. For a real request use Create a ticket.</p>
     <form id="ticket-form">
@@ -151,6 +161,7 @@ function renderCreate() {
     selectedId = newTicket.id;
     saveTickets();
     view = 'tickets';
+    ticketFilter = 'all';
     dialog.close();
     render();
   });
@@ -159,7 +170,7 @@ function renderCreate() {
 
 function renderTickets() {
   const filters = {
-    all: ['All demo tickets', () => true],
+    all: [isDemo ? 'All demo tickets' : 'All tickets', () => true],
     open: ['Open tickets', ticket => !['Resolved', 'Closed'].includes(ticket.status)],
     waiting: ['Waiting tickets', ticket => ticket.status === 'Waiting'],
     resolved: ['Resolved tickets', ticket => ['Resolved', 'Closed'].includes(ticket.status)],
@@ -170,17 +181,17 @@ function renderTickets() {
     ? ['Selected ticket', ticket => ticket.id === exactId]
     : (filters[ticketFilter] || filters.all);
   const visibleTickets = tickets.filter(predicate);
-  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">Sample requests</span><h2>${title}</h2><p>This list contains browser-only demo data. Live links require existing SharePoint permissions. Switching live tools may discard unsaved form changes.</p></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}${liveToolLinks()}<button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer></article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
+  app.innerHTML = `<section><div class="section-heading"><div><span class="eyebrow">${isDemo ? 'Sample requests' : 'Agent requests'}</span><h2>${title}</h2><p>${isDemo ? 'This list contains browser-only demo data.' : 'Authorized SharePoint ticket data. Open a ticket for full details; make changes in the native Kiwi queue.'} Live links require existing SharePoint permissions. Switching live tools may discard unsaved form changes.</p></div><div class="actions">${ticketFilter !== 'all' ? '<button class="secondary" data-ticket-filter="all" type="button">View all tickets</button>' : ''}${liveToolLinks()}<button class="primary" data-go="create">+ Create a ticket</button></div></div><div class="ticket-grid">${visibleTickets.length ? visibleTickets.map(ticket => `<article class="ticket-card"><span class="ticket-id">#${Number(ticket.id)} · ${escapeHtml(ticket.category)}</span><h3>${escapeHtml(ticket.subject)}</h3><p>${escapeHtml(ticket.description)}</p><footer>${badge(ticket)}<span>${escapeHtml(ticket.assignee || 'Unassigned')}</span></footer>${isDemo ? '' : `<button class="secondary" data-ticket-detail="${Number(ticket.id)}" type="button">Open details</button>`}</article>`).join('') : '<div class="empty">No tickets match this selection.</div>'}</div></section>`;
 }
 
 function renderManagement() {
-  const assignedAgents = agents.filter(agent => tickets.some(ticket => ticket.assignee === agent));
+  const assignedAgents = [...new Set(tickets.map(ticket => ticket.assignee).filter(Boolean))];
   const visible = agentFilter === 'all' ? tickets : tickets.filter(ticket => agentFilter === 'unassigned' ? !ticket.assignee : ticket.assignee === agentFilter);
   if (!visible.some(ticket => ticket.id === selectedId)) selectedId = visible[0]?.id;
   const selected = tickets.find(ticket => ticket.id === selectedId);
-  const agentButton = (label, value, count, initials) => `<button class="agent-filter ${agentFilter === value ? 'active' : ''}" data-agent="${value}"><span class="avatar">${initials}</span><span><strong>${label}</strong><small>${count} tickets</small></span></button>`;
+  const agentButton = (label, value, count, initials) => `<button class="agent-filter ${agentFilter === value ? 'active' : ''}" data-agent="${escapeHtml(value)}"><span class="avatar">${escapeHtml(initials)}</span><span><strong>${escapeHtml(label)}</strong><small>${count} tickets</small></span></button>`;
   app.innerHTML = `<section>
-    <div class="section-heading"><div><span class="eyebrow">Sample agent workspace</span><h2>Ticket management</h2><p>Edits below are browser-only samples. Live links require existing SharePoint permissions. Switching live tools may discard unsaved form changes.</p></div><div class="actions">${liveToolLinks()}</div></div>
+    <div class="section-heading"><div><span class="eyebrow">${isDemo ? 'Sample agent workspace' : 'Agent workspace'}</span><h2>Ticket management</h2><p>${isDemo ? 'Edits below are browser-only samples.' : 'Read-only tracking. Make changes in the authenticated Kiwi queue.'} Live links require existing SharePoint permissions. Switching live tools may discard unsaved form changes.</p></div><div class="actions">${liveToolLinks()}</div></div>
     <div class="summary-grid">
       <article class="summary-card"><span>All tickets</span><strong>${tickets.length}</strong></article>
       <article class="summary-card"><span>Open</span><strong>${openTickets().length}</strong></article>
@@ -193,7 +204,7 @@ function renderManagement() {
       ${agentButton('Unassigned', 'unassigned', tickets.filter(ticket => !ticket.assignee).length, '?')}
     </div>
     <div class="management-grid">
-      <div class="queue">${visible.length ? visible.map(ticketRow).join('') : '<div class="empty">No tickets for this agent.</div>'}</div>
+      <div class="queue">${visible.length ? visible.map(ticket => ticketRow(ticket)).join('') : '<div class="empty">No tickets for this agent.</div>'}</div>
       <div class="editor">${selected ? managementEditor(selected) : '<div class="empty">Select a ticket to manage it.</div>'}</div>
     </div>
   </section>`;
@@ -201,6 +212,7 @@ function renderManagement() {
 }
 
 function managementEditor(ticket) {
+  if (!isDemo) return ticketDetails(ticket);
   return `<span class="ticket-id">Ticket #${Number(ticket.id)}</span><h2>${escapeHtml(ticket.subject)}</h2><p><strong>Requester:</strong> ${escapeHtml(ticket.requester)}</p><p class="description">${escapeHtml(ticket.description)}</p>
     <form id="management-form">
       <div class="form-grid">
@@ -214,11 +226,16 @@ function managementEditor(ticket) {
     </form>`;
 }
 
+function ticketDetails(ticket) {
+  return `<span class="ticket-id">Ticket #${Number(ticket.id)}</span><h2>${escapeHtml(ticket.subject)}</h2><p><strong>Requester:</strong> ${escapeHtml(ticket.requester)}</p><p class="description">${escapeHtml(ticket.description)}</p><p><strong>Category:</strong> ${escapeHtml(ticket.category)}</p><p><strong>Status:</strong> ${escapeHtml(ticket.status)}</p><p><strong>Priority:</strong> ${escapeHtml(ticket.priority)}</p><p><strong>Assigned to:</strong> ${escapeHtml(ticket.assignee || 'Unassigned')}</p><p><strong>Due date:</strong> ${escapeHtml(ticket.due || 'Not set')}</p><p><strong>Modified:</strong> ${escapeHtml(ticket.modified)}</p><p><strong>Resolution and notes:</strong> ${escapeHtml(ticket.resolution)}</p><p><strong>Attachments:</strong> ${Number(ticket.attachmentCount)} (open in the authenticated Kiwi queue)</p>`;
+}
+
 function bindManagement() {
   bindLiveTools();
   document.querySelectorAll('[data-agent]').forEach(button => button.addEventListener('click', () => {
     agentFilter = button.dataset.agent;
     renderManagement();
+    bindCommon();
   }));
   document.querySelector('#management-form')?.addEventListener('submit', event => {
     event.preventDefault();
@@ -232,6 +249,7 @@ function bindManagement() {
     ticket.modified = 'Just now';
     saveTickets();
     renderManagement();
+    bindCommon();
     document.querySelector('.management-grid').insertAdjacentHTML('beforebegin', '<div class="notice">Ticket updated in this browser demo.</div>');
   });
 }
@@ -276,11 +294,21 @@ function bindCommon() {
     view = 'management';
     render();
   }));
+  document.querySelectorAll('[data-ticket-detail]').forEach(button => button.addEventListener('click', () => {
+    const ticket = tickets.find(item => item.id === Number(button.dataset.ticketDetail));
+    document.querySelector('#dialog-title').textContent = `Ticket #${ticket.id}`;
+    dialogBody.innerHTML = ticketDetails(ticket);
+    dialog.showModal();
+  }));
+  document.querySelector('[data-refresh]')?.addEventListener('click', loadLiveTickets);
 }
 
 function render() {
   document.querySelectorAll('.main-nav button').forEach(button => button.classList.toggle('active', button.dataset.view === view));
   if (view === 'create') renderCreateLanding();
+  else if (!isDemo && (dataLoading || dataError || signInRequired)) {
+    app.innerHTML = `<section class="form-panel"><span class="eyebrow">Authorized agents only</span><h2>${dataLoading ? 'Loading tickets' : signInRequired ? 'Microsoft sign-in required' : 'Live tracking unavailable'}</h2><p role="${dataError ? 'alert' : 'status'}">${dataLoading ? 'Checking access to the protected ticket workspace.' : signInRequired ? 'Sign in with your institutional Microsoft account. Membership and SharePoint permissions must be verified by the protected service before any ticket data is returned.' : escapeHtml(dataError)}</p><div class="actions">${signInRequired ? `<a class="primary live-form-link" href="${window.KiwiTicketData.signInUrl}">Sign in with Microsoft</a>` : ''}${!dataLoading ? '<button class="secondary" data-refresh type="button">Retry</button>' : ''}${liveToolLinks()}</div></section>`;
+  }
   else if (view === 'tickets') renderTickets();
   else if (view === 'management') renderManagement();
   else renderDashboard();
@@ -306,6 +334,10 @@ document.querySelector('#close-dialog').addEventListener('click', () => dialog.c
 dialog.addEventListener('close', () => { dialogBody.innerHTML = ''; });
 
 document.querySelector('#reset-demo').addEventListener('click', () => {
+  if (!isDemo) {
+    loadLiveTickets();
+    return;
+  }
   localStorage.removeItem('support-it-demo');
   tickets = structuredClone(seedTickets);
   view = 'dashboard';
@@ -314,4 +346,57 @@ document.querySelector('#reset-demo').addEventListener('click', () => {
   render();
 });
 
+function clearLiveTickets() {
+  tickets = [];
+  selectedId = undefined;
+  dialog.close();
+  dialogBody.innerHTML = '';
+  dataLoading = true;
+  dataError = '';
+  signInRequired = false;
+  render();
+}
+
+async function loadLiveTickets() {
+  const version = ++loadVersion;
+  liveRequest?.abort();
+  const request = new AbortController();
+  liveRequest = request;
+  clearLiveTickets();
+  try {
+    if (!window.KiwiTicketData) throw new Error('The protected ticket adapter is unavailable. No ticket data has been loaded.');
+    const result = await window.KiwiTicketData.load({ signal: request.signal });
+    if (version !== loadVersion) return;
+    tickets = result.tickets;
+    signInRequired = result.signInRequired;
+  } catch (error) {
+    if (version === loadVersion) dataError = error instanceof Error ? error.message : 'Unable to load the protected ticket workspace.';
+  } finally {
+    if (version === loadVersion) {
+      liveRequest = undefined;
+      dataLoading = false;
+      render();
+    }
+  }
+}
+
+if (!isDemo) {
+  document.querySelector('[data-demo-create]').hidden = true;
+  document.querySelector('.footer-intro').hidden = true;
+  document.querySelector('.team').hidden = true;
+  document.querySelector('.footer-bottom span').textContent = 'European Parliament · Support IT';
+  document.querySelector('.footer-bottom span:nth-child(2)').textContent = 'Ticket tracking requires Microsoft sign-in and authorized support-agent access.';
+  document.querySelector('#reset-demo').textContent = 'Refresh tickets';
+  window.addEventListener('pagehide', () => {
+    ++loadVersion;
+    liveRequest?.abort();
+    liveRequest = undefined;
+    clearLiveTickets();
+  });
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) loadLiveTickets();
+  });
+}
+
 render();
+if (!isDemo) loadLiveTickets();
