@@ -8,7 +8,45 @@ only through the approved tenant process.
 
 ## Live accessibility inspection (2026-10-05)
 
-**Current activation override (11:38 follow-up): Planner synchronization is paused.**
+**Current activation override: Planner synchronization remains paused; Power
+Automate reauthentication is required.** At 11:43, after the user's further save,
+a minimal source read confirmed **one assigned ticket among 12**, not two. Its
+history contains an earlier explicit null responsible-person field and a newer
+`SP.FieldUserValue` with `LookupId`, `LookupValue` and `Email`. The current item
+projection also exposes `OData__UIVersionString`, person lookup ID and expanded
+`EMail`, enabling version/identity checks without display-name guesses.
+No source edits or Planner run were made in that follow-up.
+
+An unmanaged **1.0.0.17** ranking update was prepared privately, but **not imported,
+activated or tenant-tested**. Before import, the Power Automate browser session
+expired under conditional-access sign-in-frequency checks (`AADSTS70044`).
+The last independently confirmed state remains the 1.0.0.16 flow disabled.
+Reauthenticate in the user's Chrome Power Automate session before continuing;
+do not bypass institutional sign-in or copy authentication material.
+
+The prepared update reconstructs the current assignment's contiguous history
+boundary, checks it against a current person/version reread and one Team-member
+Entra identity, and sorts per case-normalized agent email by assignment timestamp,
+then descending ticket ID, taking 20. It preserves the existing unassigned
+bucket behavior separately. Native GetItems pagination is enabled up to a
+100,000-item safety limit, failing before Planner writes at that limit or on a
+remaining continuation. Identity/history/bucket errors gate the entire refresh.
+Existing agent buckets must resolve uniquely, with display-name collisions rejected;
+the resolved bucket ID is used for writes rather than repeating name lookup.
+The old all-Team-member bucket-creation loop is disabled in the prepared update.
+Durable bucket identity/rename migration and safe out-of-window pruning remain
+separate work; no card deletion is enabled. This is therefore a desired-set
+ranking update, not a guarantee of exactly 20 cards physically left in each bucket.
+
+Private definition dependency/scope checks and six boundary/ranking fixture groups
+passed, including 44 tickets proving independent top-20 sets. Teams workflow is
+unchanged. The package is retained outside Git as
+`KiwiHelpdeskAutomations_1_0_0_17_assignment_ranking.zip` in local Downloads.
+SHA-256: `97B014FA3976810DB6E558048FBEF4EE11C6313E5889ECC2EE5A6BA406266363`.
+Live checker, assigned-card readbacks and import/activation remain unverified.
+
+### Earlier safety pause (11:38 follow-up)
+
 The user reported assigning two tickets, but three independent reads (including
 a full refresh) of the complete 12-item source ID/person-ID index still showed
 explicit null `Assigned_x0020_toId` on every item, with no next page. Property
