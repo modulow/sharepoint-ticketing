@@ -194,8 +194,9 @@ or delivery of the newly revised templates.
 
 ## Exact prerequisites
 
-The dispatch field's live display title was renamed to `Ticket-Number` at the
-user's request on 2026-10-05. A fresh field-schema read verified its internal
+The dispatch field's live display title was renamed to `TicketID` at the
+user's request on 2026-10-05, superseding the initial `Ticket-Number` label.
+A fresh field-schema read verified its internal
 name remains `TeamsReplyDispatchToken` and its type remains Text. This is a
 label-only change: values remain dispatch identifiers, not ticket numbers.
 Keep workflow references on the internal name; use the item ID for the actual
