@@ -120,7 +120,7 @@ test('sample form opens in a labelled modal, cancels without writes, and only sa
   form.elements.description.value = 'No tenant calls';
   form.dispatchEvent(new page.window.Event('submit', { bubbles: true, cancelable: true }));
   assert.equal(page.dialog.hasAttribute('open'), false);
-  assert.equal(JSON.parse(page.window.localStorage.getItem('support-it-demo'))[0].subject, 'Local sample only');
+  assert.equal(JSON.parse(page.window.localStorage.getItem('support-it-demo'))[0].subject, 'Learn IT Helpdesk - Local sample only');
   assert.equal(page.calls.length, 0);
 });
 

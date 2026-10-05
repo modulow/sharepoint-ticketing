@@ -122,6 +122,44 @@ correct site user IDs. It never adds members. If expansion is unavailable, the m
 web part reports an explicit error instead of falling back to the incomplete SharePoint
 Members group.
 
+### Ticket title policy
+
+Ticket writes owned by this client use **`Learn IT Helpdesk - <original subject>`**.
+The spelling and case of the prefix are exact. Normalization is idempotent, corrects
+case variants, removes repeated leading prefixes, and keeps the individual subject.
+The complete title must fit SharePoint's 255-character text limit: an unprefixed
+subject can occupy 235 UTF-16 code units. Empty subjects and overflow are explicit
+errors; the client never truncates the subject or substitutes a constant title.
+
+SPFx agent saves re-read the stored title, normalize it in the same update as the
+requested fields, and use that snapshot's ETag. A concurrent update returns an error
+instead of overwriting another editor's title. An oversized legacy subject blocks
+the save until an authorized agent shortens it in the native list. Reads still show
+the actual stored title, not a fabricated prefix. The browser-only demo uses the same
+policy for its seeds, sample creation and agent saves; existing browser data is
+normalized only on save. This change does not migrate existing live items.
+
+**Live follow-up is required:** the popup delegates creation to the native Microsoft
+Lists form, so this repository cannot enforce titles at that boundary. Before claiming
+all live tickets follow the policy, the tenant owner must apply it to both the email
+intake flow's ticket `Title` mapping and the modern Lists form's post-create/update
+automation, before downstream Teams/Planner projections consume the title. Re-read the
+current subject and version; produce `Learn IT Helpdesk - <subject>`, skip an unchanged
+normalized title to prevent recursive triggers, and use an ETag-protected update.
+For email overflow, route to a visible failure/manual-review path before creating;
+for Lists overflow, flag the item for agent correction without truncation or downstream
+publication. A native form submission may already have created an unprefixed item before
+post-create automation runs: strict at-creation enforcement requires a separately
+approved intake change, not a popup URL parameter or a renamed list.
+
+The Teams reply blueprint intentionally retains its assignment/reply/dispatch-token
+contract and does not normalize titles during a reply. Its `TicketExchanges` titles
+are exchange audit labels, not ticket subjects. Enforce title policy in the dedicated
+intake/update automation rather than changing token-only dispatch semantics.
+Keep the visible list name **Learn-IT-Tickets**, URL `Lists/EuropaTickets`, and GUID
+`f673fe2d-9733-46dd-9afe-4bf614c99202` unchanged. Publish the static assets and rebuild/
+deploy the SPFx package separately; no tenant changes or deployment are performed here.
+
 ### Deploy to Kiwi
 
 1. Upload `sharepoint/solution/support-it-ticketing.sppkg` version `1.8.1.0` to the
