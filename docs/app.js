@@ -345,15 +345,20 @@ document.querySelector('#reset-demo').addEventListener('click', () => {
   render();
 });
 
-async function loadLiveTickets() {
-  const version = ++loadVersion;
+function clearLiveTickets() {
   tickets = [];
   selectedId = undefined;
   dialog.close();
+  dialogBody.innerHTML = '';
   dataLoading = true;
   dataError = '';
   signInRequired = false;
   render();
+}
+
+async function loadLiveTickets() {
+  const version = ++loadVersion;
+  clearLiveTickets();
   try {
     if (!window.KiwiTicketData) throw new Error('The protected ticket adapter is unavailable. No ticket data has been loaded.');
     const result = await window.KiwiTicketData.load();
@@ -377,6 +382,13 @@ if (!isDemo) {
   document.querySelector('.footer-bottom span').textContent = 'European Parliament · Support IT';
   document.querySelector('.footer-bottom span:nth-child(2)').textContent = 'Ticket tracking requires Microsoft sign-in and authorized support-agent access.';
   document.querySelector('#reset-demo').textContent = 'Refresh tickets';
+  window.addEventListener('pagehide', () => {
+    ++loadVersion;
+    clearLiveTickets();
+  });
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) loadLiveTickets();
+  });
 }
 
 render();

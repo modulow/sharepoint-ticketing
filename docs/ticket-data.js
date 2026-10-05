@@ -43,10 +43,22 @@
       if (response.status === 403) {
         throw new Error('Access denied. Only authorized learn.IT support agents can view this workspace.');
       }
-      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+      const contentType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+      if (!response.ok || contentType !== 'application/json') {
         throw new Error('The protected ticket service is unavailable or misconfigured. No sample data has been substituted.');
       }
+      const cacheDirectives = (response.headers.get('cache-control') || '')
+        .toLowerCase().split(',').map(value => value.trim());
+      if (!cacheDirectives.includes('private') || !cacheDirectives.includes('no-store') ||
+          cacheDirectives.some(value => /^(public|s-maxage)(?:=|$)/.test(value))) {
+        throw new Error('The protected ticket service must return private, no-store responses. No ticket data has been loaded.');
+      }
       return { signInRequired: false, tickets: validateTickets(await response.json()) };
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new Error('The protected ticket service timed out. Retry to check your access again.');
+      }
+      throw error;
     } finally {
       window.clearTimeout(timeout);
     }

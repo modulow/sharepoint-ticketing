@@ -230,7 +230,15 @@ The UI contract is `GET ./api/tickets` relative to `/sharepoint-ticketing/`, wit
 same-origin cookies and no browser bearer tokens. `./auth/login` is a **reserved
 future service route**, not an existing or simulated login endpoint. It is only
 shown after the enabled service returns 401. Redirecting API fetches to HTML sign-in
-is rejected. Responses use `{ "schemaVersion": 1, "tickets": [...] }`, where each
+is rejected. Successful responses must have JSON content type and
+`Cache-Control: private, no-store`; missing or public/shared-cache policy is rejected
+before parsing tickets. This browser check cannot prevent an upstream cache from
+storing a misconfigured response: server/CDN cache bypass remains mandatory.
+Requests time out after 15 seconds with an explicit retry message. Navigation away
+clears live ticket data/details and invalidates pending responses; back/forward-cache
+restoration rechecks access before rendering. Server authorization and logout/
+revocation checks are still required and are not implemented by these UI measures.
+Responses use `{ "schemaVersion": 1, "tickets": [...] }`, where each
 ticket has a unique positive integer `id`, nonnegative integer `attachmentCount`,
 and string fields `subject`, `description`, `category`, `priority`, `status`,
 `requester`, `assignee`, `modified`, `due`, `resolution`. Empty optional strings

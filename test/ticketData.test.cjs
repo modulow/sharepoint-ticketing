@@ -94,6 +94,9 @@ test('invalid service data, HTML login responses, and network failures fail expl
     jsonResponse({ schemaVersion: 1, tickets: [fixture, fixture] }),
     jsonResponse({ tickets: [fixture] }),
     new Response('<html>Login</html>', { headers: { 'Content-Type': 'text/html' } }),
+    new Response(JSON.stringify({ schemaVersion: 1, tickets: [fixture] }), {
+      headers: { 'Content-Type': 'application/jsonp', 'Cache-Control': 'private, no-store' }
+    }),
     jsonResponse({}, 500),
     new Error('Fixture network failure')
   ]) {
@@ -104,6 +107,54 @@ test('invalid service data, HTML login responses, and network failures fail expl
     assert.equal(p.document.querySelectorAll('.ticket-card').length, 0);
     assert.equal(p.window.localStorage.length, 0);
   }
+});
+
+test('API responses without private no-store cache policy fail before parsing ticket data', async t => {
+  for (const cacheControl of ['', 'private', 'no-store', 'public, no-store', 'private, no-store, public', 'private, no-store, s-maxage=60']) {
+    const p = page(t, { enabled: true, response: new Response(
+      JSON.stringify({ schemaVersion: 1, tickets: [fixture] }),
+      { headers: { 'Content-Type': 'application/json', 'Cache-Control': cacheControl } }
+    ) });
+    await assert.rejects(p.window.KiwiTicketData.load(), /private, no-store/);
+  }
+  const p = page(t, { enabled: true, response: new Response(
+    JSON.stringify({ schemaVersion: 1, tickets: [fixture] }),
+    { headers: { 'Content-Type': 'Application/JSON; charset=utf-8', 'Cache-Control': 'Private, No-Store' } }
+  ) });
+  assert.equal((await p.window.KiwiTicketData.load()).tickets[0].id, fixture.id);
+});
+
+test('service timeout aborts the request and reports an actionable error', async t => {
+  const p = page(t, { enabled: true });
+  let timeout;
+  let cleared;
+  let signal;
+  p.window.setTimeout = (callback, delay) => {
+    assert.equal(delay, 15000);
+    timeout = callback;
+    return 73;
+  };
+  p.window.clearTimeout = id => { cleared = id; };
+  p.window.fetch = (_url, options) => {
+    signal = options.signal;
+    return new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+    });
+  };
+  const rejected = assert.rejects(p.window.KiwiTicketData.load(), /timed out.*Retry/);
+  timeout();
+  await rejected;
+  assert.equal(signal.aborted, true);
+  assert.equal(cleared, 73);
+});
+
+test('missing adapter fails closed with explicit status rather than exposing samples', async t => {
+  const p = page(t);
+  delete p.window.KiwiTicketData;
+  await start(p);
+  assert.match(p.document.querySelector('[role="alert"]').textContent, /adapter is unavailable/);
+  assert.equal(p.calls.length, 0);
+  assert.equal(p.document.querySelectorAll('.ticket-card').length, 0);
 });
 
 test('authorized fixture tickets keep filters/design, escape details, and disable browser edits', async t => {
@@ -152,4 +203,32 @@ test('refresh removes prior details immediately and rejects stale responses', as
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(p.document.querySelector('#app h2').textContent, 'Microsoft sign-in required');
   assert.equal(p.document.querySelectorAll('.ticket-card').length, 0);
+});
+
+test('browser history restoration clears ticket details and rechecks access before rendering', async t => {
+  const pending = [];
+  const p = page(t, { loader: () => new Promise(resolve => pending.push(resolve)) });
+  await start(p);
+  pending[0]({ tickets: [fixture], signInRequired: false });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  p.document.querySelector('[data-view="tickets"]').click();
+  p.document.querySelector('[data-ticket-detail="7"]').click();
+  p.window.dispatchEvent(new p.window.PageTransitionEvent('pagehide', { persisted: true }));
+  assert.equal(p.document.querySelector('dialog').hasAttribute('open'), false);
+  assert.equal(p.document.querySelector('#dialog-body').textContent, '');
+  assert.equal(p.document.querySelectorAll('.ticket-card').length, 0);
+  assert.doesNotMatch(p.document.querySelector('#app').textContent, /Fixture/);
+  p.window.dispatchEvent(new p.window.PageTransitionEvent('pageshow', { persisted: true }));
+  assert.equal(pending.length, 2);
+  assert.equal(p.document.querySelector('#app h2').textContent, 'Loading tickets');
+  // A response started before a second navigation must not restore ticket data.
+  p.window.dispatchEvent(new p.window.PageTransitionEvent('pagehide', { persisted: true }));
+  pending[1]({ tickets: [fixture], signInRequired: false });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(p.document.querySelectorAll('.ticket-card').length, 0);
+  p.window.dispatchEvent(new p.window.PageTransitionEvent('pageshow', { persisted: true }));
+  pending[2]({ tickets: [], signInRequired: true });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(p.document.querySelector('#app h2').textContent, 'Microsoft sign-in required');
+  assert.equal(p.window.localStorage.length, 0);
 });
