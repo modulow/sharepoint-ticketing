@@ -8,8 +8,14 @@ only through the approved tenant process.
 
 ## Live accessibility inspection (2026-10-05)
 
-**Current live state: unmanaged 1.0.0.19 is imported and the Planner sync is
-enabled again.** The corrected manual run at **12:06 local time** succeeded
+**Current live state: unmanaged 1.0.0.19 is imported, but the Planner sync was
+paused on 2026-10-05 at approximately 13:09 local time during investigation of
+missing ticket emails and unwanted assignment notifications.** The disabled
+status was read back. No cards or source assignments were removed. The assignment
+email's origin is not proven; pausing prevents further sync-originated assignment
+writes, not notifications from other services or already queued messages.
+
+The corrected manual run at **12:06 local time** succeeded
 in **1m26s**. All 12 history iterations passed without schema/identity/bucket
 diagnostics: two tickets entered the proven assigned-ranking branch, ten the
 preserved unassigned branch. All 12 selected-card task/details updates and native
@@ -19,7 +25,7 @@ assignments, not a fabricated test. The cap/ordering has fixture coverage beyond
 20 tickets; this live source has only two assigned tickets and cannot prove a
 live >20 boundary.
 
-The active desired-set algorithm now orders each normalized agent email's tickets
+The deployed desired-set algorithm orders each normalized agent email's tickets
 by the proven latest assignment transition, then ticket ID, taking up to 20.
 Complete retained history and a matching current item version/identity are required.
 Pagination runs to a bounded 100,000-item limit, failing closed at the limit or
@@ -38,6 +44,28 @@ Private package SHA-256:
 `8396B3D074B9AA0DD2BDC163EAF3959479FCDEBFB2E57E858D7D377114E4AA47`.
 The unchanged Teams reply flow was checked after the final import and is still
 enabled; it was not manually run.
+
+### Notification incident investigation (13:06 follow-up)
+
+The form intake and Teams reply flows were enabled. Recent scheduled Teams reply
+runs succeeded, which does not prove email delivery. The form intake uses the
+modern Lists form-submitted trigger and has no explicit mail action: requester
+confirmation depends on the native requester-change rule.
+
+All five existing notification rules were inspected and enabled: requester-change
+confirmation, direct-response notifications to requester and modifier, and staged
+Teams-response notifications to requester and actual responding agent. The direct
+requester-response rule contains the dynamic response field in its message.
+No rule was replaced, toggled, or duplicated.
+
+A clearly labelled diagnostic ticket was submitted through the approved modern
+form. The form acknowledged submission, a new intake run appeared at 13:13, and
+the diagnostic item's requester, source, description and Teams thread were
+populated. This verifies intake initialization, not inbox delivery or an agent
+creation confirmation. Direct-reply delivery remains unverified: the shared
+inline editor changed during the investigation, so further writes stopped rather
+than overwrite a concurrent draft. Do not replay existing dispatch tokens or
+toggle requester identities to force notifications.
 
 ### Superseded authentication blocker (11:43 follow-up)
 
