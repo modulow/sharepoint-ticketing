@@ -5,7 +5,7 @@ const seedTickets = [
   { id: 1039, subject: 'Recover deleted OneDrive files', description: 'A project folder was deleted yesterday and needs to be restored.', category: 'Software', priority: 'High', status: 'Resolved', requester: 'Demo requester D', assignee: 'Demo agent 3', modified: 'Yesterday', due: '2026-09-19', resolution: 'Folder restored from the second-stage recycle bin.' },
   { id: 1038, subject: 'New headset configuration', description: 'Configure a USB headset for Teams calls and validate audio quality.', category: 'Telephony', priority: 'Low', status: 'Closed', requester: 'Demo requester E', assignee: 'Demo agent 6', modified: '18 Sep', due: '2026-09-18', resolution: 'Drivers updated and Teams audio test completed.' },
   { id: 1037, subject: 'Suspicious email reported', description: 'Received a message asking for Microsoft 365 credentials.', category: 'Access', priority: 'Critical', status: 'In progress', requester: 'Demo requester F', assignee: 'Demo agent 5', modified: '18 Sep', due: '2026-09-19', resolution: 'Message quarantined; investigation in progress.' }
-];
+].map(ticket => ({ ...ticket, subject: normalizeTicketTitle(ticket.subject) }));
 
 const resources = [
   ['Account', 'Reset your password', 'Recover access to your Microsoft 365 account securely.', 'https://passwordreset.microsoftonline.com/'],
@@ -42,6 +42,36 @@ let agentFilter = 'all';
 let ticketFilter = 'all';
 
 const saveTickets = () => localStorage.setItem('support-it-demo', JSON.stringify(tickets));
+// The standalone demo mirrors the SPFx normalizer; parity is checked in ticketTitle tests.
+function normalizeTicketTitle(value) {
+  let subject = value.trim();
+  const existingPrefix = /^Learn IT Helpdesk(?:\s*-\s*|\s+|$)/i;
+  while (existingPrefix.test(subject)) {
+    subject = subject.replace(existingPrefix, '').trim();
+  }
+  if (!subject) {
+    throw new Error('A ticket subject is required after Learn IT Helpdesk.');
+  }
+  const title = `Learn IT Helpdesk - ${subject}`;
+  if (title.length > 255) {
+    throw new Error('The complete ticket title must not exceed 255 characters, including "Learn IT Helpdesk - ". Shorten the subject to 235 characters; no text has been removed.');
+  }
+  return title;
+}
+
+function validateDemoTitle(form, subject) {
+  const error = form.querySelector('[data-title-error]');
+  try {
+    const title = normalizeTicketTitle(subject);
+    error.hidden = true;
+    error.textContent = '';
+    return title;
+  } catch (cause) {
+    error.textContent = cause.message;
+    error.hidden = false;
+    return undefined;
+  }
+}
 const openTickets = () => tickets.filter(ticket => !['Resolved', 'Closed'].includes(ticket.status));
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
   '&': '&amp;',
@@ -123,7 +153,9 @@ function renderCreate() {
   document.querySelector('#dialog-title').textContent = 'Try the sample workflow';
   dialogBody.innerHTML = `<section><span class="eyebrow">Browser-only demo</span><p>This sample form stores data only in this browser. For a real request use Create a ticket.</p>
     <form id="ticket-form">
-      <label class="field">Subject<input name="subject" required maxlength="120" placeholder="What can we help you with?"></label>
+      <label class="field">Subject<input name="subject" required aria-describedby="title-help" placeholder="What can we help you with?"></label>
+      <p id="title-help">Saved as Learn IT Helpdesk - your subject. The complete title is limited to 255 characters (235 for an unprefixed subject).</p>
+      <p data-title-error role="alert" hidden></p>
       <label class="field">Description<textarea name="description" rows="7" required placeholder="Context, error message, impact…"></textarea></label>
       <div class="form-grid">
         <label>Category<select name="category">${categories.map(value => `<option>${value}</option>`).join('')}</select></label>
@@ -134,9 +166,11 @@ function renderCreate() {
   document.querySelector('#ticket-form').addEventListener('submit', event => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    const subject = validateDemoTitle(event.currentTarget, data.get('subject'));
+    if (subject === undefined) return;
     const newTicket = {
       id: Math.max(...tickets.map(ticket => ticket.id), 1000) + 1,
-      subject: data.get('subject'),
+      subject,
       description: data.get('description'),
       category: data.get('category'),
       priority: data.get('priority'),
@@ -203,6 +237,7 @@ function renderManagement() {
 function managementEditor(ticket) {
   return `<span class="ticket-id">Ticket #${Number(ticket.id)}</span><h2>${escapeHtml(ticket.subject)}</h2><p><strong>Requester:</strong> ${escapeHtml(ticket.requester)}</p><p class="description">${escapeHtml(ticket.description)}</p>
     <form id="management-form">
+      <p data-title-error role="alert" hidden></p>
       <div class="form-grid">
         <label>Status<select name="status">${statuses.map(value => `<option ${value === ticket.status ? 'selected' : ''}>${value}</option>`).join('')}</select></label>
         <label>Priority<select name="priority">${priorities.map(value => `<option ${value === ticket.priority ? 'selected' : ''}>${value}</option>`).join('')}</select></label>
@@ -224,6 +259,9 @@ function bindManagement() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const ticket = tickets.find(item => item.id === selectedId);
+    const subject = validateDemoTitle(event.currentTarget, ticket.subject);
+    if (subject === undefined) return;
+    ticket.subject = subject;
     ticket.status = data.get('status');
     ticket.priority = data.get('priority');
     ticket.assignee = data.get('assignee');
