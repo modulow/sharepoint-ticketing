@@ -255,9 +255,10 @@ native EuropaTickets list. Its column settings include Titre, Assigned to,
 Descriptif, Demandeur, Date/heure d'envoi, Réponse au demandeur, transfer/Teams
 fields and system columns. At that initial inspection there were **no category,
 priority, status or due-date columns**. Subsequently, on the user's explicit
-authorization, the Planner session created and verified optional `Status` (Statut),
-`Priority` (Priorité), `Category` (Catégorie) and `DueDate` (Échéance, date/time)
-columns through authenticated Windows accessibility. The choice sets match the
+authorization, the Planner session created and verified optional `Status`,
+`Priority`, `Category` and `DueDate` (date/time) columns through authenticated Windows
+accessibility. Their current display labels are **Status**, **Priority**, **Category**
+and **Due date**; internal names remain unchanged. The choice sets match the
 existing repository workflow values. No defaults or existing-item backfill were
 applied, so older tickets can still have empty values.
 The future API must not manufacture missing optional values from the fixtures:
