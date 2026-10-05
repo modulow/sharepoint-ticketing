@@ -135,9 +135,11 @@
     "Re-read staged requester and agent through SharePoint REST lookup-ID fields because native GetItem omits Person Id values",
     "Change only TeamsReplyDispatchToken after the re-read matches",
     "Mark the exchange AwaitingNativeRule after the token update",
+    "Copy that public reply to one native ticket comment with Learn IT HelpDesk heading, verified author and Teams source message ID; disable automatic POST retries",
     "Set serial failure variables inside loops and perform any Terminate only after the loops"
   ],
   "failureSemantics": {
+    "CommentCopyFailure": "Email dispatch may already be queued. Inspect comments for the exact Teams source marker before manually recovering the comment only; never replay the email dispatch to recover a missing comment.",
     "Processing": "No token is known to have been committed. Inspect the failed run and ticket before any manual recovery.",
     "AwaitingNativeRule": "The token changed and SharePoint accepted the update. Native rules are queued, not proven delivered.",
     "AgentConfirmed": "The actual Teams agent received and checked the rule copy, then manually confirmed this exact exchange.",

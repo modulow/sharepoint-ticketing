@@ -632,6 +632,35 @@
                                         },
                                         "authentication": "@parameters('$authentication')"
                                       }
+                                    },
+                                    "Copy_reply_to_ticket_comment": {
+                                      "type": "OpenApiConnection",
+                                      "runAfter": {
+                                        "Mark_exchange_awaiting_native_rule": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "inputs": {
+                                        "parameters": {
+                                          "dataset": "@parameters('SiteUrl')",
+                                          "parameters/method": "POST",
+                                          "parameters/uri": "@concat('/_api/web/lists(guid''',parameters('TicketsListId'),''')/items(',items('For_each_ticket')?['Id'],')/comments')",
+                                          "parameters/headers": {
+                                            "Accept": "application/json;odata=nometadata",
+                                            "Content-Type": "application/json;odata=nometadata"
+                                          },
+                                          "parameters/body": "@setProperty(json('{}'),'text',concat('Learn IT HelpDesk',decodeUriComponent('%0A'),'Teams reply - ',body('Get_Teams_author')?['displayName'],decodeUriComponent('%0A'),outputs('Requester_reply_text'),decodeUriComponent('%0A'),'[Teams message: ',items('For_each_reply')?['id'],']'))"
+                                        },
+                                        "host": {
+                                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                          "connectionName": "shared_sharepointonline",
+                                          "operationId": "HttpRequest"
+                                        },
+                                        "authentication": "@parameters('$authentication')",
+                                        "retryPolicy": {
+                                          "type": "none"
+                                        }
+                                      }
                                     }
                                   },
                                   "else": {

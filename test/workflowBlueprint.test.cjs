@@ -361,6 +361,21 @@ test('first responder assignment preserves existing or concurrent assignees', ()
   );
 });
 
+test('one public reply is copied to a native comment only after dispatch is recorded', () => {
+  const copy = actionNamed('Copy_reply_to_ticket_comment');
+  assert.deepEqual(copy.runAfter, { Mark_exchange_awaiting_native_rule: ['Succeeded'] });
+  assert.equal(copy.inputs.host.operationId, 'HttpRequest');
+  assert.equal(copy.inputs.parameters['parameters/method'], 'POST');
+  assert.match(copy.inputs.parameters['parameters/uri'], /items\('.*For_each_ticket.*\/comments/);
+  assert.match(copy.inputs.parameters['parameters/body'], /setProperty\(json\('\{\}'\),'text'/);
+  assert.match(copy.inputs.parameters['parameters/body'], /Learn IT HelpDesk/);
+  assert.match(copy.inputs.parameters['parameters/body'], /Get_Teams_author.*displayName/);
+  assert.match(copy.inputs.parameters['parameters/body'], /Requester_reply_text/);
+  assert.match(copy.inputs.parameters['parameters/body'], /For_each_reply.*\['id'\]/);
+  assert.deepEqual(copy.inputs.retryPolicy, { type: 'none' });
+  assert.doesNotMatch(copy.inputs.parameters['parameters/body'], /mentions|@user/);
+});
+
 test('Terminate actions are never nested in a foreach', () => {
   const invalid = [];
   visitActions(definition.actions, (name, action, insideForeach) => {

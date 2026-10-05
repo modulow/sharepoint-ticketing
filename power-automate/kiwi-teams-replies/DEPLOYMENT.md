@@ -10,6 +10,33 @@ The flow does not modify the active intake flow
 `dada6a44-429e-4d4e-95c0-f2bf5c87e033`, send Outlook/SMTP mail, or write the direct-reply
 field `R_x00e9_ponseaudemandeur`.
 
+## Native comment copy (2026-10-05)
+
+The reference definition now appends one native SharePoint comment for each
+successfully dispatched public Teams reply. The heading is `Learn IT HelpDesk`;
+the text identifies the verified Teams author, contains the signed reply and
+includes the source Teams message ID. Comments are posted under the SharePoint
+connection account, not by impersonating the original author. No mentions are
+created. Existing source-ID deduplication prevents scheduled runs from copying
+an already processed reply again.
+
+The comment POST follows `Mark_exchange_awaiting_native_rule`, so it does not
+block the established email dispatch. It has no automatic retries: a network
+timeout could mean SharePoint accepted the comment. A failure remains visible
+in the run. Inspect for the source-message marker before recovering only the
+missing comment; never reset the exchange or replay the email to repair a
+comment. This is a once-only attempt, not guaranteed exactly-once delivery.
+Internal Teams discussions and inbound emails are not copied by this action.
+Requester questions entered directly in native comments already remain there.
+
+The test ticket's initial question and two distinct responses were copied
+manually into three separate native comments. The earlier consolidated
+history was superseded. Automatic copy was prepared in the live designer, but
+the save remained pending and persisted activation has not been verified.
+Do not treat the reference change or zero designer validation errors as a
+successful live deployment. Verify the saved action and an actual new comment
+before claiming automation is active.
+
 ## First-responder assignment ETag repair (2026-10-05)
 
 A public reply was recognized and recorded as `Processing`, but the initial
