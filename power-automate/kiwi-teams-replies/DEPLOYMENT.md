@@ -63,6 +63,27 @@ creation and email intake still need an automatic normalization path before
 their Teams/Planner projections. Do not enable a restrictive list validation
 rule alone: it would reject existing intake flows that submit bare subjects.
 
+### Combined production package preparation
+
+The title-normalization implementation from PR #7 was integrated into the
+PR #5 branch, preserving the Planner and workflow test selectors. The full
+repository test command and production build completed successfully.
+The rebuilt `sharepoint/solution/support-it-ticketing.sppkg` includes those
+changes. Its SHA-256 is
+`5D1C5F76DB9FE9BF56292D5B8B836C70D04F745CF7996DB55F0145FFC803B7F3`.
+
+The authenticated tenant app catalogue was inspected for deployment.
+Its classic Files ribbon exposed **Upload Document** as disabled for the
+current account. No package was uploaded or deployed; catalogue deployment
+and the requested Graph permission approval require an authorized
+administrator. Preparing this package does not enforce titles in the live
+native Lists form or email intake.
+
+The experimental absolute-positioned notification HTML was not saved:
+automated accessible input accepted only an incomplete fragment. The draft
+was canceled and the original rule reopened and verified. Existing native
+notifications remain enabled, and Planner synchronization remains paused.
+
 ## First-responder assignment ETag repair (2026-10-05)
 
 A public reply was recognized and recorded as `Processing`, but the initial
