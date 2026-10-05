@@ -249,6 +249,17 @@ as a whole, and no sample fallback occurs. The projection includes native respon
 notes and attachment counts; opening attachment contents remains an authenticated
 native SharePoint operation. Fixture tests do not establish any live authorization.
 
+Read-only Windows accessibility inspection on 5 October 2026, reported by the
+browser-owning Planner session, confirmed that the signed-in account can access the
+native EuropaTickets list. Its column settings include Titre, Assigned to,
+Descriptif, Demandeur, Date/heure d'envoi, Réponse au demandeur, transfer/Teams
+fields and system columns, but **no category, priority, status or due-date columns**.
+The future API must not manufacture these optional values from the fixtures:
+missing fields use empty strings and must be presented as unavailable, not as
+verified workflow states. No list columns were added by this PR. This inspection
+confirms browser UI control and one account's native list access, not all agents'
+permissions, an external OAuth/API connection or Cloudflare data-processing approval.
+
 The assignment selector expands transitive user members of the real learn.IT Microsoft
 365 group through Microsoft Graph, then calls SharePoint `ensureuser` so updates use the
 correct site user IDs. It never adds members. If expansion is unavailable, the management
