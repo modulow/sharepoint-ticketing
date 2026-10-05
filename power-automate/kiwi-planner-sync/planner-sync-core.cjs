@@ -2,6 +2,7 @@
 
 const MANAGED_MARKER_PREFIX = 'KiwiPlannerSync:v1:';
 const MAX_DESCRIPTION_LENGTH = 4000;
+const MAX_REFERENCES = 15;
 const TOP_TICKETS_PER_AGENT = 20;
 const SHAREPOINT_HOST = 'europarl.sharepoint.com';
 const PLANNER_PRIORITIES = { Critical: 1, High: 3, Normal: 5, Low: 9 };
@@ -44,7 +45,8 @@ function validateUrl(url, label) {
   } catch {
     fail('InvalidSourceUrl', `${label} must be an absolute HTTPS URL.`);
   }
-  if (parsed.protocol !== 'https:' || parsed.hostname.toLocaleLowerCase() !== SHAREPOINT_HOST) {
+  if (parsed.protocol !== 'https:' || parsed.hostname.toLocaleLowerCase() !== SHAREPOINT_HOST ||
+    parsed.username || parsed.password) {
     fail('InvalidSourceUrl', `${label} must use HTTPS on ${SHAREPOINT_HOST}.`);
   }
   return parsed.href;
@@ -136,11 +138,16 @@ function buildReferences(ticket) {
     });
   }
   const seen = new Set();
-  return references.filter(reference => {
+  const unique = references.filter(reference => {
     if (seen.has(reference.url)) return false;
     seen.add(reference.url);
     return true;
   });
+  if (unique.length > MAX_REFERENCES) {
+    fail('PlannerReferencesTooMany',
+      `Ticket ${ticket.id} needs ${unique.length} references; the Planner limit is ${MAX_REFERENCES}.`);
+  }
+  return unique;
 }
 
 function buildDesiredTasks(agents, tickets, limit = TOP_TICKETS_PER_AGENT) {
@@ -283,7 +290,8 @@ function planReconciliation({ agents, tickets, stateMappings, existingTasks, lim
       existing.percentComplete === desiredTask.percentComplete &&
       existing.priority === desiredTask.priority &&
       existing.previewType === desiredTask.previewType &&
-      (existing.dueDate || null) === desiredTask.dueDate &&
+      (existing.dueDate ? Date.parse(existing.dueDate) : null) ===
+        (desiredTask.dueDate ? Date.parse(desiredTask.dueDate) : null) &&
       JSON.stringify(canonicalize(existing.references || [])) === JSON.stringify(canonicalize(desiredTask.references));
     const needsRecovery = existing && (!mapping || mapping.plannerTaskId !== existing.id);
     upserts.push({
@@ -373,6 +381,7 @@ function buildGraphPayloads(desired, planId, existing = {}) {
 module.exports = {
   MANAGED_MARKER_PREFIX,
   MAX_DESCRIPTION_LENGTH,
+  MAX_REFERENCES,
   TOP_TICKETS_PER_AGENT,
   buildDesiredTasks,
   buildGraphPayloads,

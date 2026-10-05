@@ -1,7 +1,7 @@
 # Kiwi Planner ticket synchronization
 
-This directory contains a non-secret workflow contract, an executable reference model
-for reconciliation policy, fixture tests, and this deployment checklist. It is **not an
+This directory contains a non-secret workflow contract, reconciliation model, executable
+Graph client and sync orchestration modules, fixture tests, and this deployment checklist. It is **not an
 importable Power Automate package** and contains no tenant connections, plan ID, bucket
 IDs, list IDs for new state lists, or credentials. Create the flows and live resources
 only through the approved tenant process.
@@ -12,6 +12,10 @@ only through the approved tenant process.
 - `planner-sync-core.cjs` is the deterministic reference model used by the repository
   tests. The cloud flows must preserve its ranking, task projection, marker, ownership,
   and no-truncation semantics; Power Automate does not execute this CommonJS file.
+- `planner-graph-client.cjs` performs actual Graph reads and conditional task/details
+  writes with an injected approved token provider. No credentials are bundled.
+- `planner-sync-runner.cjs` runs the model against injected source/state/Graph adapters.
+  It is not a scheduler, SharePoint adapter, OAuth login, or tenant provisioning script.
 - The target group is Kiwi Team `435074fb-2e8d-4c67-b06a-0359ddc5a939`. The existing
   `EuropaTickets` and `TicketExchanges` list IDs are recorded in the blueprint.
 - SharePoint is authoritative. The 15-minute recurring flow is one-way to Planner. It
@@ -124,6 +128,53 @@ set the card's native priority, due date, assignment or completion. Remove stale
 assignees/references with explicit null values. For a newly created task, write and
 verify its marker/details before recording state; an uncertain marker-write failure
 requires operator repair, not another automatic create.
+
+### Executable Node runtime integration
+
+The runtime can be hosted in an institutionally approved Node 22 service, separately
+from the Power Automate implementation. **There is no configured runnable production
+job in this repository yet.** Its missing adapters must be implemented and reviewed
+before activation, not replaced with exported tenant data committed to the repository.
+
+Create the Graph client with `createPlannerGraphClient({ getAccessToken })`, where
+`getAccessToken` asynchronously obtains a Microsoft Graph token through the approved
+host's OAuth connection. Never extract browser cookies or pass tokens through chat,
+command-line arguments, source files or logs. The legacy modulow provisioning app ID
+is not verified for Kiwi and must not be repurposed.
+
+Invoke `runPlannerSync({ source, state, planner, teamId, planId, dryRun })` with that
+Graph client and the exact verified group/plan IDs. `dryRun` defaults to `true`; even a
+dry run reads tenant APIs when real adapters are supplied, so it requires approved access.
+The result contains IDs and operation names only, not copied ticket bodies/history.
+
+| Adapter operation | Required semantics |
+| --- | --- |
+| `source.readCompleteSnapshot()` | Return `{ complete: true, agents, tickets }` only after complete authorized paging, attachment/history reads, metadata-based field normalization, Entra identity resolution and proven assignment timestamps. Any failure must reject, not return partial data. Tickets/agents use the model's schema. |
+| `state.withExclusiveLock(callback)` | Acquire a durable cross-process lease, pass `{ assertHeld() }` to the callback, renew while it runs, and release in a finally block. `assertHeld` must reject immediately if the lease is lost. The runner checks before each write and state commit; the host must also fence overlapping executions and cancel in-flight work on lease loss. |
+| `state.read()` | Return all `{ mappings, pendingCreates }`, with source-ticket IDs unique and state scoped to this exact plan. |
+| `state.beginCreate(intent)` | Durably persist unique ticket ID, marker and plan ID **before** POST, without ticket text. |
+| `state.commitMapping(row)` | Atomically persist the verified mapping and remove the corresponding pending-create intent. Failure must leave the intent present. |
+| `state.removeMapping(ticketId)` | Remove only that plan's mapping after confirmed deletion or a complete snapshot proving its task absent. |
+
+The client verifies all plan/bucket/task pages, refuses pagination outside Microsoft
+Graph, rejects ambiguous markers and changes to task ownership, uses separate task
+and details ETags, and reads back all synchronized options/references before a mapping
+can be committed. Legacy marked JSON descriptions are recognized for an upgrade.
+Unmarked generic cards are still not adopted automatically.
+
+Conflicts, transport errors, 429/503, incomplete pages or invalid responses stop the run
+visibly. HTTP errors expose status and `retryAfter` but not response bodies or tokens.
+The host must honor `Retry-After` before a later reconciliation run; this client does not
+automatically retry writes. A failed or uncertain create leaves a durable pending intent
+and blocks later writes. An operator must locate/repair the task and atomically settle
+that intent before running again; a missing marker is never treated as proof that POST
+did not create a task.
+
+Planner currently allows [15 references per task](https://learn.microsoft.com/en-us/planner/planner-limits).
+The model preflights this limit as well as description/title lengths. An over-limit
+ticket requires an approved linked-history design; references are not silently dropped.
+The host's 15-minute schedule, OAuth connection, SharePoint source/state adapters,
+timestamp capture/backfill, and existing-card migration remain unconfigured prerequisites.
 
 ## Scheduled sync algorithm
 

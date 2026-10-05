@@ -79,6 +79,7 @@
       "nativePriority": { "Critical": 1, "High": 3, "Normal": 5, "Low": 9 },
       "nativeDueDate": "dueDateTime from the verified source date/time with timezone; null clears it",
       "previewType": "description",
+      "referenceLimit": 15,
       "graphPayloads": "planner-sync-core.cjs buildGraphPayloads returns separate task and details bodies. PATCH each using its own current ETag. Native task fields include title, priority, percentComplete, bucketId, assignments and dueDateTime; details include readable description, previewType and OData-escaped URL references.",
       "managedMarker": "KiwiPlannerSync:v1:<ticketId> stored in the canonical task details for recovery and ownership checks.",
       "maxDescriptionCharacters": 4000,

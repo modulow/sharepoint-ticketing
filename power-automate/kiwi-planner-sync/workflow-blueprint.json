@@ -4,6 +4,13 @@
   "name": "Kiwi - EuropaTickets to Planner",
   "operationalDefinition": "operational-definition.json",
   "importablePackageAvailable": false,
+  "nodeRuntime": {
+    "graphClient": "planner-graph-client.cjs",
+    "runner": "planner-sync-runner.cjs",
+    "defaultDryRun": true,
+    "requires": ["Approved token provider", "Complete SharePoint source adapter", "Durable exclusive-lock/state adapter with pending-create journal", "Approved scheduled host"],
+    "productionConfigured": false
+  },
   "purpose": "Reference contract for tenant-specific cloud flows. Connection references, real list IDs, consent and Planner IDs must be configured in the tenant.",
   "parameters": {
     "siteUrl": "https://europarl.sharepoint.com/sites/learn.IT-Kiwi",
@@ -15,6 +22,7 @@
     "pollIntervalMinutes": 15,
     "ticketsPerAgent": 20,
     "plannerTaskDescriptionLimit": 4000,
+    "plannerTaskReferenceLimit": 15,
     "runConcurrency": 1,
     "automationOwner": "CONFIGURE_APPROVED_CONNECTION_OWNER_IN_TENANT"
   },

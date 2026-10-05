@@ -150,7 +150,7 @@ It is intentionally not presented as an importable ZIP: a valid Power Automate p
 must be exported from a solution with real connection references and Team/Channel IDs.
 See its `DEPLOYMENT.md` for the exact tenant-side build, validation and export steps.
 
-## Kiwi Planner ticket sync blueprint
+## Kiwi Planner ticket sync
 
 `power-automate/kiwi-planner-sync/` defines the approved design for a one-way SharePoint
 to Planner sync in the Kiwi Team. It specifies the 15-minute recurrence, a bucket and
@@ -166,13 +166,20 @@ separates task updates from details/reference updates; writing only a generic de
 does not populate those options. Existing unmarked cards require verified source-ticket
 mapping before adoption; their identity is never guessed from the description.
 
-This folder is a blueprint, not an importable or deployed Power Automate package. It
+`planner-graph-client.cjs` now performs the actual Graph plan/task/detail reads and
+conditional writes when supplied an approved token provider. `planner-sync-runner.cjs`
+orchestrates reconciliation under a durable exclusive lock, defaults to a content-free
+dry run, and requires a persisted create intent before a POST so interrupted runs cannot
+blindly duplicate tasks. Its source and durable-state adapters must still be implemented
+and connected in the approved tenant host; no authentication or schedule is bundled.
+
+This folder is not an importable or deployed Power Automate package. It
 does not create the Planner plan, agent buckets, `PlannerAssignedAtUtc` field,
 `PlannerSyncAgents`/`PlannerSyncState` lists, connector connections, or live flows. The
 assignment timestamp flow must observe every assignment-change path and backfill
 verified assignment times from SharePoint version history; records without a provable
-timestamp fail closed. Planner details exceeding the 4,000-character Graph limit are
-not truncated. Tenant provisioning, Graph/connector consent, and production activation
+timestamp fail closed. Planner details exceeding 4,000 characters or 15 unique references
+fail visibly without truncation. Tenant provisioning, Graph/connector consent, and production activation
 require authenticated tenant access, any required consent, and successful controlled
 verification; none are performed by this repository. See
 `power-automate/kiwi-planner-sync/DEPLOYMENT.md` before any tenant setup.
