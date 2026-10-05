@@ -6,6 +6,8 @@ const {
   MANAGED_MARKER_PREFIX,
   MAX_DESCRIPTION_LENGTH,
   buildDesiredTasks,
+  buildGraphPayloads,
+  resolveExistingPlan,
   planReconciliation
 } = require('../power-automate/kiwi-planner-sync/planner-sync-core.cjs');
 
@@ -111,11 +113,13 @@ test('fails closed for missing assignment timestamps and agents outside the appr
 
 test('includes full ticket fields, attachment links and exchange history without truncation', () => {
   const desired = buildDesiredTasks(agents, [ticket(1)])[0];
-  const description = JSON.parse(desired.description);
-  assert.equal(description.managedMarker, `${MANAGED_MARKER_PREFIX}1`);
-  assert.equal(description.sourceTicketId, 1);
-  assert.equal(description.fields.Location, 'Floor 3');
-  assert.equal(description.exchanges[0].message, 'Exchange body 1');
+  assert.match(desired.description, /KiwiPlannerSync:v1:1/);
+  assert.match(desired.description, /Ticket #1 - Ticket 1/);
+  assert.match(desired.description, /Status: New\nPriority: High\nCategory: Software/);
+  assert.match(desired.description, /"Location": "Floor 3"/);
+  assert.match(desired.description, /Exchange body 1/);
+  assert.equal(desired.title, '#1 - Ticket 1');
+  assert.equal(desired.priority, 3);
   assert.deepEqual(desired.references.map(reference => reference.kind), ['ticket', 'attachment', 'exchange']);
   assert.equal(desired.references[0].url, ticket(1).sourceEditUrl);
 
@@ -244,6 +248,8 @@ test('does not rewrite a task whose canonical content and routing already match'
       bucketId: desired.bucketId,
       assigneeEntraObjectId: desired.assigneeEntraObjectId,
       percentComplete: desired.percentComplete,
+      priority: desired.priority,
+      previewType: desired.previewType,
       dueDate: desired.dueDate,
       references: desired.references
     }]
@@ -269,12 +275,88 @@ test('recovers an orphan marked task when its mapping points to a missing task I
       bucketId: desired.bucketId,
       assigneeEntraObjectId: desired.assigneeEntraObjectId,
       percentComplete: desired.percentComplete,
+      priority: desired.priority,
+      previewType: desired.previewType,
       dueDate: desired.dueDate,
       references: desired.references
     }]
   });
+
   assert.equal(plan.upserts[0].operation, 'recover');
   assert.equal(plan.upserts[0].existingTaskId, 'recovered-task');
+});
+
+test('uses only the existing kiwi tickets plan in the verified group', () => {
+  const plans = [
+    { id: 'kiwi-plan', title: 'kiwi tickets', owner: 'kiwi-group' },
+    { id: 'other-plan', title: 'kiwi tickets', owner: 'other-group' }
+  ];
+  assert.equal(resolveExistingPlan(plans, 'kiwi-group'), 'kiwi-plan');
+  assert.throws(() => resolveExistingPlan([], 'kiwi-group'), { code: 'ExistingPlanNotResolved' });
+  assert.throws(() => resolveExistingPlan([
+    ...plans, { id: 'duplicate', title: 'kiwi tickets', owner: 'kiwi-group' }
+  ], 'kiwi-group'), { code: 'ExistingPlanNotResolved' });
+  assert.equal(resolveExistingPlan(plans, 'kiwi-group', 'kiwi-plan'), 'kiwi-plan');
+  assert.throws(() => resolveExistingPlan(plans, 'kiwi-group', 'other-plan'),
+    { code: 'ExistingPlanNotResolved' });
+  assert.throws(() => resolveExistingPlan([{ id: 'unknown', title: 'kiwi tickets' }], undefined),
+    { code: 'ExistingPlanNotResolved' });
+});
+
+test('maps every source priority and completion to native Planner options', () => {
+  for (const [priority, expected] of Object.entries({ Critical: 1, High: 3, Normal: 5, Low: 9 })) {
+    const desired = buildDesiredTasks(agents, [ticket(1, {
+      priority, status: 'Resolved', dueDate: '2026-02-01T12:00:00Z'
+    })])[0];
+    const payload = buildGraphPayloads(desired, 'kiwi-plan');
+    assert.equal(payload.task.planId, 'kiwi-plan');
+    assert.equal(payload.task.priority, expected);
+    assert.equal(payload.task.percentComplete, 100);
+    assert.equal(payload.task.dueDateTime, '2026-02-01T12:00:00Z');
+    assert.equal(payload.task.bucketId, 'bucket-a');
+    assert.equal(payload.task.assignments['agent-a']['@odata.type'], '#microsoft.graph.plannerAssignment');
+    assert.equal(payload.details.previewType, 'description');
+    assert.equal(payload.details.description, desired.description);
+  }
+  assert.throws(() => buildDesiredTasks(agents, [ticket(1, { priority: 'Unknown' })]),
+    { code: 'UnsupportedTicketPriority' });
+  assert.throws(() => buildDesiredTasks(agents, [ticket(1, { status: 'Unknown' })]),
+    { code: 'UnsupportedTicketStatus' });
+  assert.throws(() => buildDesiredTasks(agents, [ticket(1, { dueDate: '2026-02-01' })]),
+    { code: 'InvalidDueDate' });
+  assert.throws(() => buildDesiredTasks(agents, [ticket(1, { subject: 'x'.repeat(255) })]),
+    { code: 'PlannerTitleTooLong' });
+});
+
+test('Graph update removes stale assignees and references without changing the plan', () => {
+  const desired = buildDesiredTasks(agents, [ticket(1)])[0];
+  const payload = buildGraphPayloads(desired, 'kiwi-plan', {
+    id: 'task-1', planId: 'kiwi-plan',
+    assignments: { 'old-agent': {}, 'agent-a': {} },
+    references: { 'https%3A//europarl%2Esharepoint%2Ecom/obsolete': {} }
+  });
+  assert.equal(payload.task.planId, undefined);
+  assert.equal(payload.task.assignments['old-agent'], null);
+  assert.equal(payload.task.dueDateTime, null);
+  assert.equal(payload.details.references['https%3A//europarl%2Esharepoint%2Ecom/obsolete'], null);
+  const key = 'https%3A//europarl%2Esharepoint%2Ecom/sites/learn%2EIT-Kiwi/Lists/EuropaTickets/EditForm%2Easpx?ID=1';
+  assert.equal(payload.details.references[key].alias, 'Edit ticket 1');
+  assert.equal(payload.details.references[key]['@odata.type'], 'microsoft.graph.externalReference');
+  assert.throws(() => buildGraphPayloads(desired, 'kiwi-plan', { planId: 'other-plan' }),
+    { code: 'PlannerPlanMismatch' });
+  assert.throws(() => buildGraphPayloads(desired, 'kiwi-plan', { id: 'unverified-task' }),
+    { code: 'PlannerPlanMismatch' });
+});
+
+test('a priority-only source change triggers a native task update', () => {
+  const oldDesired = buildDesiredTasks(agents, [ticket(1)])[0];
+  const plan = planReconciliation({
+    agents, tickets: [ticket(1)], stateMappings: [{
+      sourceTicketId: 1, plannerTaskId: 'task-1', managedMarker: oldDesired.marker
+    }],
+    existingTasks: [{ ...oldDesired, id: 'task-1', priority: 9 }]
+  });
+  assert.equal(plan.upserts[0].operation, 'update');
 });
 
 test('deletes only mapped integration tasks that leave the top 20', () => {

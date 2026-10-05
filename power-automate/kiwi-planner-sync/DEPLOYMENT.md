@@ -76,8 +76,14 @@ that no assigned ticket lacking a valid timestamp can silently enter the top 20.
 
 ## Plan/bucket provisioning
 
-Provision the plan and buckets once in the confirmed Kiwi Team after validating the
-roster, group membership, user licensing, and write permission. Save the returned plan
+The user has already created **kiwi tickets**. Bind that existing plan, not a new one.
+Enumerate plans in the verified Kiwi group, select the exact plan ID, and stop if the
+name is ambiguous or the supplied ID belongs to a different group. Never adopt generic
+existing tasks by description or title alone: verify their source ticket and establish
+an explicit approved mapping/marker first. Otherwise leave those tasks untouched.
+
+Provision missing agent buckets once after validating the
+roster, group membership, user licensing, and write permission. Save the verified plan
 ID and exactly one bucket ID per authorized support agent in approved tenant
 configuration and `PlannerSyncAgents`, including agents with zero assigned tickets.
 Do not recreate the plan or buckets from the recurring flow. If a new agent is approved,
@@ -90,6 +96,34 @@ connector needs Graph HTTP calls, confirm licensing, authentication and admin co
 first. Use ETags/`If-Match` for updates and deletes. The actual edit form for each item
 must be validated in the target site; do not assume that the generic intake URL edits
 existing tickets.
+
+### Ticket-specific cards and native Planner options
+
+`buildDesiredTasks` now produces a `#<ID> - <subject>` title and labelled, readable
+ticket details, rather than a generic description or a raw JSON card. `buildGraphPayloads`
+produces distinct Graph task and task-details bodies:
+
+| Source option | Planner field |
+| --- | --- |
+| Assignee | `assignments` plus that agent's `bucketId` |
+| Priority | `priority`: Critical 1, High 3, Normal 5, Low 9 |
+| Status | `percentComplete`: resolved/closed 100, in progress 50, new/waiting 0 |
+| Due date | `dueDateTime`, preserving source timezone; null clears an old date |
+| Ticket ID and subject | `title`, maximum 255 characters; oversize fails |
+| Category, requester, exact status, resolution and extra fields | Labelled description (Planner has no matching arbitrary custom fields) |
+| Attachments and edit links | `references` on details, with OData-encoded URL property keys |
+
+The precise Waiting/Resolved/Closed distinction remains in the description; Planner's
+three progress states cannot represent all ticket statuses. No categories are relabelled
+in the shared plan without a separately verified label mapping. Editing continues through
+the native SharePoint form.
+
+Update **both** `/planner/tasks/{id}` and `/planner/tasks/{id}/details`, using their
+separate ETags and the exact plan's access rights. Writing only a description cannot
+set the card's native priority, due date, assignment or completion. Remove stale
+assignees/references with explicit null values. For a newly created task, write and
+verify its marker/details before recording state; an uncertain marker-write failure
+requires operator repair, not another automatic create.
 
 ## Scheduled sync algorithm
 

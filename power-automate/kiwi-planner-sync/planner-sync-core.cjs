@@ -4,6 +4,19 @@ const MANAGED_MARKER_PREFIX = 'KiwiPlannerSync:v1:';
 const MAX_DESCRIPTION_LENGTH = 4000;
 const TOP_TICKETS_PER_AGENT = 20;
 const SHAREPOINT_HOST = 'europarl.sharepoint.com';
+const PLANNER_PRIORITIES = { Critical: 1, High: 3, Normal: 5, Low: 9 };
+
+function resolveExistingPlan(plans, teamId, planId) {
+  if (!Array.isArray(plans) || typeof teamId !== 'string' || !teamId.trim()) {
+    fail('ExistingPlanNotResolved', 'A complete plan snapshot and verified Kiwi group ID are required.');
+  }
+  const matches = plans.filter(plan => plan.container?.containerId === teamId || plan.owner === teamId)
+    .filter(plan => planId ? plan.id === planId : plan.title === 'kiwi tickets');
+  if (matches.length !== 1 || !matches[0].id) {
+    fail('ExistingPlanNotResolved', 'Select exactly one verified Kiwi group plan ID; do not create another plan.');
+  }
+  return matches[0].id;
+}
 
 function fail(code, message) {
   const error = new Error(message);
@@ -67,30 +80,32 @@ function makeTicketDescription(ticket) {
     Date.parse(left.date || '') - Date.parse(right.date || '') ||
     String(left.id).localeCompare(String(right.id))
   );
-  const description = JSON.stringify(canonicalize({
-    managedMarker: `${MANAGED_MARKER_PREFIX}${ticket.id}`,
-    sourceTicketId: ticket.id,
-    subject: ticket.subject,
-    description: ticket.description,
-    requester: ticket.requester,
-    category: ticket.category,
-    priority: ticket.priority,
-    status: ticket.status,
-    assignee: {
-      entraObjectId: ticket.assigneeEntraObjectId,
-      displayName: ticket.assigneeDisplayName,
-      upn: ticket.assigneeUpn
-    },
-    assignedAtUtc: ticket.assignedAtUtc,
-    dueDate: ticket.dueDate || null,
-    resolution: ticket.resolution || null,
-    created: ticket.created,
-    modified: ticket.modified,
-    fields: ticket.fields || {},
-    sourceEditUrl: ticket.sourceEditUrl,
-    attachments,
-    exchanges
-  }), null, 2);
+  const description = [
+    `Ticket #${ticket.id} - ${ticket.subject}`,
+    `Status: ${ticket.status}`,
+    `Priority: ${ticket.priority}`,
+    `Category: ${ticket.category}`,
+    `Requester: ${ticket.requester}`,
+    `Assigned to: ${ticket.assigneeDisplayName} (${ticket.assigneeUpn})`,
+    `Agent Entra ID: ${ticket.assigneeEntraObjectId}`,
+    `Assigned at: ${ticket.assignedAtUtc}`,
+    `Due date: ${ticket.dueDate || 'None'}`,
+    `Created: ${ticket.created}`,
+    `Modified: ${ticket.modified}`,
+    '',
+    'Description', ticket.description,
+    '', 'Resolution', ticket.resolution || 'None',
+    '', 'Additional ticket fields', JSON.stringify(canonicalize(ticket.fields || {}), null, 2),
+    '', 'Attachments',
+    ...attachments.map(attachment => `${attachment.name}\n${attachment.url}`),
+    '', 'Exchange history',
+    ...exchanges.map(exchange =>
+      `Exchange #${exchange.id} - ${exchange.date} - ${exchange.author} - ${exchange.source} / ${exchange.visibility}\n` +
+      `${exchange.message}\n${exchange.editUrl}`
+    ),
+    '', `Edit source ticket: ${ticket.sourceEditUrl}`,
+    '', `${MANAGED_MARKER_PREFIX}${ticket.id}`
+  ].join('\n');
   if (description.length > MAX_DESCRIPTION_LENGTH) {
     fail(
       'PlannerDescriptionTooLong',
@@ -182,15 +197,32 @@ function buildDesiredTasks(agents, tickets, limit = TOP_TICKETS_PER_AGENT) {
     );
     for (const { ticket } of ranked.slice(0, limit)) {
       const completed = ['Resolved', 'Closed'].includes(ticket.status);
+      if (!Object.prototype.hasOwnProperty.call(PLANNER_PRIORITIES, ticket.priority)) {
+        fail('UnsupportedTicketPriority', `Ticket ${ticket.id} needs an explicit Planner priority mapping.`);
+      }
+      if (!['New', 'In progress', 'Waiting', 'Resolved', 'Closed'].includes(ticket.status)) {
+        fail('UnsupportedTicketStatus', `Ticket ${ticket.id} needs an explicit Planner status mapping.`);
+      }
+      const title = `#${ticket.id} - ${ticket.subject}`;
+      if (title.length > 255) {
+        fail('PlannerTitleTooLong', `Ticket ${ticket.id} needs a Planner title exceeding 255 characters.`);
+      }
+      const dueDate = ticket.dueDate || null;
+      if (dueDate && (!Number.isFinite(Date.parse(dueDate)) ||
+        !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(dueDate))) {
+        fail('InvalidDueDate', `Ticket ${ticket.id} needs a source due date with time and timezone.`);
+      }
       desired.push({
         sourceTicketId: ticket.id,
         marker: `${MANAGED_MARKER_PREFIX}${ticket.id}`,
-        title: ticket.subject,
+        title,
         description: makeTicketDescription(ticket),
         bucketId: agent.bucketId,
         assigneeEntraObjectId: agent.entraObjectId,
         percentComplete: completed ? 100 : ticket.status === 'In progress' ? 50 : 0,
-        dueDate: ticket.dueDate || null,
+        priority: PLANNER_PRIORITIES[ticket.priority],
+        previewType: 'description',
+        dueDate,
         references: buildReferences(ticket)
       });
     }
@@ -249,6 +281,8 @@ function planReconciliation({ agents, tickets, stateMappings, existingTasks, lim
       existing.bucketId === desiredTask.bucketId &&
       existing.assigneeEntraObjectId === desiredTask.assigneeEntraObjectId &&
       existing.percentComplete === desiredTask.percentComplete &&
+      existing.priority === desiredTask.priority &&
+      existing.previewType === desiredTask.previewType &&
       (existing.dueDate || null) === desiredTask.dueDate &&
       JSON.stringify(canonicalize(existing.references || [])) === JSON.stringify(canonicalize(desiredTask.references));
     const needsRecovery = existing && (!mapping || mapping.plannerTaskId !== existing.id);
@@ -297,11 +331,52 @@ function planReconciliation({ agents, tickets, stateMappings, existingTasks, lim
   return { desired, upserts, deletes, stateRowsToRemove, unmappedManagedTasks };
 }
 
+function buildGraphPayloads(desired, planId, existing = {}) {
+  if (!planId || ((existing.id || existing.planId) && existing.planId !== planId)) {
+    fail('PlannerPlanMismatch', 'The task must belong to the verified existing Kiwi plan.');
+  }
+  const assignments = {};
+  for (const id of Object.keys(existing.assignments || {})) {
+    if (id !== desired.assigneeEntraObjectId) assignments[id] = null;
+  }
+  assignments[desired.assigneeEntraObjectId] = {
+    '@odata.type': '#microsoft.graph.plannerAssignment', orderHint: ' !'
+  };
+  const references = {};
+  const encodeKey = url => url.replace(/[.:%@#]/g, character =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+  for (const reference of desired.references) {
+    references[encodeKey(validateUrl(reference.url, 'Planner reference'))] = {
+      '@odata.type': 'microsoft.graph.externalReference',
+      alias: reference.name,
+      type: 'Other'
+    };
+  }
+  for (const key of Object.keys(existing.references || {})) {
+    if (!Object.prototype.hasOwnProperty.call(references, key)) references[key] = null;
+  }
+  return {
+    task: {
+      ...(existing.id ? {} : { planId }),
+      title: desired.title,
+      bucketId: desired.bucketId,
+      assignments,
+      priority: desired.priority,
+      percentComplete: desired.percentComplete,
+      dueDateTime: desired.dueDate
+    },
+    details: { description: desired.description, previewType: desired.previewType, references }
+  };
+}
+
 module.exports = {
   MANAGED_MARKER_PREFIX,
   MAX_DESCRIPTION_LENGTH,
   TOP_TICKETS_PER_AGENT,
   buildDesiredTasks,
+  buildGraphPayloads,
   makeTicketDescription,
+  resolveExistingPlan,
   planReconciliation
 };

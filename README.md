@@ -159,6 +159,13 @@ assignment timestamp, completed Planner tasks for resolved/closed tickets, compl
 ticket/attachment/TicketExchanges content, SharePoint edit links, and safe removal of
 only integration-owned tasks that leave the top 20.
 
+The user-created **kiwi tickets** plan must be reused by verified plan ID. The reference
+model projects each ticket into an ID/subject title, readable full details, and native
+Planner assignment, priority, due date and completion fields. Its Graph payload builder
+separates task updates from details/reference updates; writing only a generic description
+does not populate those options. Existing unmarked cards require verified source-ticket
+mapping before adoption; their identity is never guessed from the description.
+
 This folder is a blueprint, not an importable or deployed Power Automate package. It
 does not create the Planner plan, agent buckets, `PlannerAssignedAtUtc` field,
 `PlannerSyncAgents`/`PlannerSyncState` lists, connector connections, or live flows. The

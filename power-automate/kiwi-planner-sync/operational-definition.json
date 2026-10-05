@@ -19,7 +19,8 @@
     "ticketsListId": "f673fe2d-9733-46dd-9afe-4bf614c99202",
     "exchangesListId": "58aa42f2-6fa0-4df2-9a76-90189fece896",
     "teamId": "435074fb-2e8d-4c67-b06a-0359ddc5a939",
-    "planId": "SET_AFTER_APPROVED_TENANT_PROVISIONING",
+    "planTitle": "kiwi tickets",
+    "planId": "SET_TO_VERIFIED_EXISTING_KIWI_TICKETS_PLAN_ID",
     "sourceOfTruth": "SharePoint"
   },
   "assignmentTimestampCapture": {
@@ -73,8 +74,12 @@
       ]
     },
     "ticketCard": {
-      "title": "The untruncated SharePoint ticket subject",
-      "detailsFormat": "Canonical JSON text built from every non-system ticket field, source edit URL, all attachment names/URLs, and all TicketExchanges messages with author, source, visibility, date, and edit URL.",
+      "title": "#<ticketId> - <SharePoint subject>; fail above 255 characters rather than truncate",
+      "detailsFormat": "Readable labelled ticket fields followed by complete description, resolution, sorted extra fields, attachment links, dated exchange history, source edit link, and ownership marker.",
+      "nativePriority": { "Critical": 1, "High": 3, "Normal": 5, "Low": 9 },
+      "nativeDueDate": "dueDateTime from the verified source date/time with timezone; null clears it",
+      "previewType": "description",
+      "graphPayloads": "planner-sync-core.cjs buildGraphPayloads returns separate task and details bodies. PATCH each using its own current ETag. Native task fields include title, priority, percentComplete, bucketId, assignments and dueDateTime; details include readable description, previewType and OData-escaped URL references.",
       "managedMarker": "KiwiPlannerSync:v1:<ticketId> stored in the canonical task details for recovery and ownership checks.",
       "maxDescriptionCharacters": 4000,
       "oversizeBehavior": "Fail the item visibly without truncating, creating, or updating a partial task.",
@@ -153,7 +158,7 @@
     }
   },
   "tenantOperationsNotPerformedByRepository": [
-    "Create the Planner plan and agent buckets",
+    "Verify and bind the existing kiwi tickets plan; provision missing agent buckets without creating another plan",
     "Create PlannerAssignedAtUtc and assignment-capture flow",
     "Create restricted PlannerSyncAgents and PlannerSyncState lists",
     "Create and connect the Power Automate flows",

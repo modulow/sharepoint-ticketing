@@ -10,7 +10,8 @@
     "ticketsListId": "f673fe2d-9733-46dd-9afe-4bf614c99202",
     "exchangesListId": "58aa42f2-6fa0-4df2-9a76-90189fece896",
     "teamId": "435074fb-2e8d-4c67-b06a-0359ddc5a939",
-    "planId": "SET_AFTER_APPROVED_TENANT_PROVISIONING",
+    "planTitle": "kiwi tickets",
+    "planId": "SET_TO_VERIFIED_EXISTING_KIWI_TICKETS_PLAN_ID",
     "pollIntervalMinutes": 15,
     "ticketsPerAgent": 20,
     "plannerTaskDescriptionLimit": 4000,
@@ -36,17 +37,18 @@
       "sourceOfTruth": "SharePoint",
       "direction": "SharePoint to Planner only",
       "steps": [
+        "Resolve the existing kiwi tickets plan in the verified Kiwi group using its configured exact plan ID; never create a duplicate plan or adopt generic unmarked tasks without approved source-ticket correlation.",
         "Read the complete authorized-agent roster and Entra object IDs from PlannerSyncAgents. Verify every roster member has exactly one existing bucket ID, including agents with no tickets; fail before task writes if any is missing or duplicated.",
         "Read all EuropaTickets pages and all TicketExchanges pages needed for assigned tickets. Fail the run on missing assignment timestamps, unresolved assignees, unsupported paging, or access failures; do not silently omit records.",
         "Build each agent's desired ticket set from currently assigned tickets ordered by PlannerAssignedAtUtc descending, then ticket ID descending; select 20 independently per agent. Include all statuses.",
         "For each desired ticket, construct a complete plain-text Planner description from all non-system ticket fields, attachment names/URLs, and every TicketExchanges row (message, author, source/visibility, and exchange date). Add the source item's verified EditForm URL and attachment/exchange source URLs as Planner references.",
         "Reject descriptions exceeding 4000 characters without truncation. Do not create or update a partial card; surface a ticket/task ID and content-length error without logging the content.",
         "Find the integration-owned task by PlannerSyncState ticket mapping; if absent, scan task details for the stable KiwiPlannerSync:v1:<ticketId> marker before creating. If more than one marked task exists, fail for operator repair rather than create another.",
-        "Create or update the task in the mapped agent bucket, assign it to that agent's Entra object ID, map Resolved/Closed to 100 percent complete and other statuses to not complete, and write the complete task details/references using current ETags.",
+        "Create or update the task title (#ticketId - subject), mapped agent bucket and Entra assignment, native priority (Critical=1, High=3, Normal=5, Low=9), dueDateTime (or null), and percentComplete (Resolved/Closed=100, In progress=50, New/Waiting=0). Write readable description, description preview and OData-encoded references separately using the task/details ETags. Reject unknown source priority/status mappings and oversized titles visibly.",
         "After Planner writes succeed, persist/update the unique PlannerSyncState mapping for ticket ID, current agent ID, bucket ID, Planner task ID, marker, and successful-sync timestamp.",
         "For mappings no longer in the desired set, delete only tasks positively identified by both the exact integration marker and PlannerSyncState mapping. Delete their state rows only after Planner deletion is confirmed. A marked task without a mapping is an orphan: fail for operator repair and do not delete it. Never delete an unmarked/manual task or any SharePoint item."
       ],
-      "changeDetection": "Rebuild the canonical task payload each run and compare all ticket fields, attachment links, exchange rows, references, assignment, bucket and completion state; do not rely only on EuropaTickets.Modified because exchanges and attachments may change independently.",
+      "changeDetection": "Rebuild the canonical task payload each run and compare all ticket fields, attachment links, exchange rows, references, assignment, bucket, priority, due date, preview and completion state; do not rely only on EuropaTickets.Modified because exchanges and attachments may change independently.",
       "throttling": "Use serial writes, honor Retry-After for 429/503, and retry only operations known to be safe. For uncertain task-create outcomes, search the marker before retrying.",
       "errorHandling": "Fail the run visibly on any incomplete page, invalid identity, oversized detail, unauthorized source, duplicate marker, failed Planner update/delete, or failed mapping write. Never report success after partial sync."
     }
@@ -112,7 +114,7 @@
       "Blueprint, reference reconciliation logic, tests and deployment runbook"
     ],
     "tenantOperationsRequiringAuthenticatedAccessAndConsent": [
-      "Planner plan and bucket creation",
+      "Verify and bind the existing kiwi tickets plan and provision missing buckets",
       "PlannerAssignedAtUtc field and timestamp-capture flow",
       "PlannerSyncAgents and PlannerSyncState lists",
       "Power Automate connections and production flows",
